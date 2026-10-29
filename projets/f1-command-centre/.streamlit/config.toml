@@ -1,0 +1,10 @@
+# Lu quand Streamlit est lancé depuis ce dossier (voir le README).
+[server]
+headless = true            # pas de question au premier lancement, rien d'écrit dans ~/.streamlit
+address = "localhost"      # accessible depuis ce Mac seulement, sans recherche d'adresse publique
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"             # la palette des graphiques est validée sur fond clair

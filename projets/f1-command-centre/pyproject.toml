@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f1cc"
+version = "0.1.0"
+description = "Tableau de bord d'ingénierie de course F1 en rejeu (ETL OpenF1 + SQLite + Streamlit), s'appuie sur f1engine et f1risk"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+f1cc = ["pages/*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Les avertissements de rang de statsmodels sont gérés explicitement dans le code.
+# pandas 2.3.3 (version des projets 1 et 2) avec numpy 2.5 émet un DeprecationWarning sur les
+# timedelta « generic » à chaque calcul de dates : il vient de pandas, pas de ce code.
+filterwarnings = [
+    "ignore::statsmodels.tools.sm_exceptions.SingularMatrixWarning",
+    "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning",
+]

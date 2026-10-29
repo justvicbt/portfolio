@@ -1,0 +1,19 @@
+# Données brutes, cache API et base locale (régénérables avec `python -m f1cc etl`)
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Streamlit (réglages locaux éventuels)
+.streamlit/secrets.toml
+
+# Système et éditeurs
+.DS_Store
+.vscode/
+.idea/

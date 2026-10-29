@@ -1,0 +1,16 @@
+# Versions testées avec Python 3.14 (macOS arm64). Les huit premières sont celles des projets 1 et 2.
+matplotlib==3.11.2
+numpy==2.5.4
+pandas==2.3.3
+pytest==9.2.0
+python-dotenv==1.2.4
+requests==2.34.2
+SQLAlchemy==2.1.6
+statsmodels==0.15.0
+# Utilisé directement (intervalles de Student) ; déjà installé par statsmodels
+scipy==1.18.1
+# Tableau de bord
+plotly==7.1.0
+streamlit==1.66.1
+# Dépendance indirecte (statsmodels -> formulaic) : version stable figée au lieu de la préversion 2.5.2rc1
+wrapt==2.5.1
