@@ -1,0 +1,73 @@
+circuit,factor,level,p_success,p_success_ref,cvar5_gain_s,cvar5_gain_ref_s
+Sakhir,Variabilité des arrêts (fixe / x2),low,0.3048,0.4326,-2.138,-13.2
+Sakhir,Variabilité des arrêts (fixe / x2),high,0.4577,0.4326,-25.63,-13.2
+Sakhir,Probabilité de SC/VSC (0 / x2),low,0.4428,0.4326,-12.08,-13.2
+Sakhir,Probabilité de SC/VSC (0 / x2),high,0.4234,0.4326,-13.98,-13.2
+Sakhir,Perte aux stands sous SC (13 % / 101 % de la normale),low,0.4279,0.4326,-16.53,-13.2
+Sakhir,Perte aux stands sous SC (13 % / 101 % de la normale),high,0.4366,0.4326,-12.12,-13.2
+Sakhir,Air sale à la sortie (0 / x2),low,0.4512,0.4326,-13.11,-13.2
+Sakhir,Air sale à la sortie (0 / x2),high,0.4134,0.4326,-13.3,-13.2
+Sakhir,Pente du pneu usé (bas / haut de l'IC 95 %),low,0.3828,0.4326,-13.45,-13.2
+Sakhir,Pente du pneu usé (bas / haut de l'IC 95 %),high,0.4848,0.4326,-12.95,-13.2
+Sakhir,Gain du pneu neuf (bas / haut de l'IC 95 %),low,0.3664,0.4326,-13.53,-13.2
+Sakhir,Gain du pneu neuf (bas / haut de l'IC 95 %),high,0.5009,0.4326,-12.88,-13.2
+Sakhir,Bruit tour par tour (0 / x2),low,0.4249,0.4326,-13.21,-13.2
+Sakhir,Bruit tour par tour (0 / x2),high,0.439,0.4326,-13.22,-13.2
+Sakhir,Évolution de la piste (0 / x3),low,0.4326,0.4326,-13.2,-13.2
+Sakhir,Évolution de la piste (0 / x3),high,0.4326,0.4326,-13.2,-13.2
+Sakhir,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",low,0.3392,0.4326,-13.72,-13.2
+Sakhir,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",high,0.5304,0.4326,-12.69,-13.2
+Catalunya,Variabilité des arrêts (fixe / x2),low,0.3071,0.4263,-3.108,-9.27
+Catalunya,Variabilité des arrêts (fixe / x2),high,0.4552,0.4263,-17.67,-9.27
+Catalunya,Probabilité de SC/VSC (0 / x2),low,0.437,0.4263,-8.098,-9.27
+Catalunya,Probabilité de SC/VSC (0 / x2),high,0.4144,0.4263,-10.29,-9.27
+Catalunya,Perte aux stands sous SC (13 % / 101 % de la normale),low,0.4216,0.4263,-12.83,-9.27
+Catalunya,Perte aux stands sous SC (13 % / 101 % de la normale),high,0.4314,0.4263,-8.147,-9.27
+Catalunya,Air sale à la sortie (0 / x2),low,0.4334,0.4263,-9.236,-9.27
+Catalunya,Air sale à la sortie (0 / x2),high,0.4198,0.4263,-9.305,-9.27
+Catalunya,Pente du pneu usé (bas / haut de l'IC 95 %),low,0.3755,0.4263,-9.545,-9.27
+Catalunya,Pente du pneu usé (bas / haut de l'IC 95 %),high,0.4769,0.4263,-8.996,-9.27
+Catalunya,Gain du pneu neuf (bas / haut de l'IC 95 %),low,0.3792,0.4263,-9.525,-9.27
+Catalunya,Gain du pneu neuf (bas / haut de l'IC 95 %),high,0.4731,0.4263,-9.016,-9.27
+Catalunya,Bruit tour par tour (0 / x2),low,0.4153,0.4263,-9.185,-9.27
+Catalunya,Bruit tour par tour (0 / x2),high,0.4358,0.4263,-9.46,-9.27
+Catalunya,Évolution de la piste (0 / x3),low,0.4263,0.4263,-9.27,-9.27
+Catalunya,Évolution de la piste (0 / x3),high,0.4263,0.4263,-9.27,-9.27
+Catalunya,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",low,0.3389,0.4263,-9.792,-9.27
+Catalunya,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",high,0.5181,0.4263,-8.75,-9.27
+Hungaroring,Variabilité des arrêts (fixe / x2),low,0.3368,0.4407,-3.077,-10.47
+Hungaroring,Variabilité des arrêts (fixe / x2),high,0.464,0.4407,-20.48,-10.47
+Hungaroring,Probabilité de SC/VSC (0 / x2),low,0.4507,0.4407,-9.651,-10.47
+Hungaroring,Probabilité de SC/VSC (0 / x2),high,0.4291,0.4407,-11.22,-10.47
+Hungaroring,Perte aux stands sous SC (13 % / 101 % de la normale),low,0.4356,0.4407,-13.53,-10.47
+Hungaroring,Perte aux stands sous SC (13 % / 101 % de la normale),high,0.4458,0.4407,-9.69,-10.47
+Hungaroring,Air sale à la sortie (0 / x2),low,0.4495,0.4407,-10.42,-10.47
+Hungaroring,Air sale à la sortie (0 / x2),high,0.4323,0.4407,-10.53,-10.47
+Hungaroring,Pente du pneu usé (bas / haut de l'IC 95 %),low,0.4018,0.4407,-10.69,-10.47
+Hungaroring,Pente du pneu usé (bas / haut de l'IC 95 %),high,0.4778,0.4407,-10.26,-10.47
+Hungaroring,Gain du pneu neuf (bas / haut de l'IC 95 %),low,0.3839,0.4407,-10.78,-10.47
+Hungaroring,Gain du pneu neuf (bas / haut de l'IC 95 %),high,0.494,0.4407,-10.16,-10.47
+Hungaroring,Bruit tour par tour (0 / x2),low,0.4249,0.4407,-10.35,-10.47
+Hungaroring,Bruit tour par tour (0 / x2),high,0.4483,0.4407,-10.76,-10.47
+Hungaroring,Évolution de la piste (0 / x3),low,0.4407,0.4407,-10.47,-10.47
+Hungaroring,Évolution de la piste (0 / x3),high,0.4407,0.4407,-10.47,-10.47
+Hungaroring,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",low,0.3537,0.4407,-11.01,-10.47
+Hungaroring,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",high,0.5282,0.4407,-9.94,-10.47
+Monza,Variabilité des arrêts (fixe / x2),low,0.018,0.3101,-3.332,-14.34
+Monza,Variabilité des arrêts (fixe / x2),high,0.3776,0.3101,-27.92,-14.34
+Monza,Probabilité de SC/VSC (0 / x2),low,0.316,0.3101,-13.6,-14.34
+Monza,Probabilité de SC/VSC (0 / x2),high,0.3038,0.3101,-14.98,-14.34
+Monza,Perte aux stands sous SC (13 % / 101 % de la normale),low,0.305,0.3101,-17.45,-14.34
+Monza,Perte aux stands sous SC (13 % / 101 % de la normale),high,0.3141,0.3101,-13.62,-14.34
+Monza,Air sale à la sortie (0 / x2),low,0.3234,0.3101,-14.27,-14.34
+Monza,Air sale à la sortie (0 / x2),high,0.3004,0.3101,-14.42,-14.34
+Monza,Pente du pneu usé (bas / haut de l'IC 95 %),low,0.2869,0.3101,-14.51,-14.34
+Monza,Pente du pneu usé (bas / haut de l'IC 95 %),high,0.3375,0.3101,-14.18,-14.34
+Monza,Gain du pneu neuf (bas / haut de l'IC 95 %),low,0.2912,0.3101,-14.48,-14.34
+Monza,Gain du pneu neuf (bas / haut de l'IC 95 %),high,0.332,0.3101,-14.21,-14.34
+Monza,Bruit tour par tour (0 / x2),low,0.3083,0.3101,-14.33,-14.34
+Monza,Bruit tour par tour (0 / x2),high,0.3327,0.3101,-14.38,-14.34
+Monza,Évolution de la piste (0 / x3),low,0.3101,0.3101,-14.34,-14.34
+Monza,Évolution de la piste (0 / x3),high,0.3101,0.3101,-14.34,-14.34
+Monza,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",low,0.2454,0.3101,-14.89,-14.34
+Monza,"Rythme de l'attaquant (0,2 s/tour plus lent / plus rapide)",high,0.4032,0.3101,-13.8,-14.34

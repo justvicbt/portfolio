@@ -1,0 +1,2 @@
+n_attempts,n_evaluated,n_skipped,observed_successes,expected_successes,expected_90pct_low,expected_90pct_high,brier_simulator,brier_coin_flip,brier_observed_rate
+43,36,7,17,16.2,12,21,0.227,0.25,0.249

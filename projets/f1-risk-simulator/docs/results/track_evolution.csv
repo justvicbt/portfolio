@@ -1,0 +1,5 @@
+circuit,track_evolution_s_per_lap,track_evolution_se,pit_loss_median_s,median_lap_s,max_time_offset_s,bound_effect_3_laps_s
+Sakhir,-0.02323,0.003284,23.31,98.44,24.81,0.01756
+Catalunya,-0.007745,0.003101,22.69,81.09,24.19,0.006931
+Hungaroring,-0.0007531,0.002754,22.01,81.93,23.51,0.0006482
+Monza,-0.002048,0.001176,25.5,83.17,27,0.001995

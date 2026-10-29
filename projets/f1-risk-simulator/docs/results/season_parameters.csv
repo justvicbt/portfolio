@@ -1,0 +1,6 @@
+parameter,value,detail
+sc_rate_per_lap,0.009148,13 SC / 1421 tours
+vsc_rate_per_lap,0.009148,13 VSC / 1421 tours
+sc_pit_loss_ratio_median,0.6552,36 arrêts
+vsc_pit_loss_ratio_median,0.7954,11 arrêts
+dirty_air_cost_s_per_lap,0.3381,erreur standard 0.025

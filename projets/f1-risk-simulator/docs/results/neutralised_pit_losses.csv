@@ -1,0 +1,68 @@
+circuit,driver,lap,status,loss_s,green_loss_s,ratio,kept
+Austin,ALB,7,VSC,10.54,21.69,0.4859,True
+Baku,ALB,1,SC,13.71,21.81,0.6286,False
+Baku,OCO,1,SC,15.44,21.81,0.7078,False
+Baku,OCO,2,SC,2.151,21.81,0.09862,False
+Catalunya,HUL,56,SC,-39.14,22.69,-1.725,False
+Imola,VER,46,SC,11.43,28.66,0.3988,True
+Imola,NOR,46,SC,18.99,28.66,0.6626,True
+Imola,BOR,46,SC,15.28,28.66,0.5331,True
+Imola,HAD,46,SC,28.22,28.66,0.9846,True
+Imola,ALO,46,SC,18.83,28.66,0.6571,True
+Imola,STR,46,SC,20.24,28.66,0.7062,True
+Imola,ALB,47,SC,29.58,28.66,1.032,True
+Imola,COL,46,SC,17.77,28.66,0.6201,True
+Imola,HAM,46,SC,24.62,28.66,0.8591,True
+Imola,BEA,31,VSC,55.12,28.66,1.923,False
+Interlagos,VER,7,VSC,9.124,22.64,0.4029,True
+Interlagos,TSU,2,SC,11.04,22.64,0.4875,False
+Interlagos,OCO,8,VSC,20.58,22.64,0.9089,True
+Interlagos,HAM,2,SC,23.05,22.64,1.018,False
+Jeddah,BOR,1,SC,13.1,21.17,0.6185,False
+Jeddah,DOO,1,SC,11.03,21.17,0.5207,False
+Jeddah,OCO,1,SC,12.51,21.17,0.591,False
+Las Vegas,GAS,2,VSC,20.88,22.24,0.939,False
+Las Vegas,ANT,2,VSC,14.62,22.24,0.6573,False
+Las Vegas,ALO,16,VSC,20.89,22.24,0.9393,True
+Las Vegas,LAW,2,VSC,31.64,22.24,1.423,False
+Lusail,OCO,9,SC,11.38,27.72,0.4104,True
+Miami,NOR,29,VSC,15.18,19.08,0.7954,True
+Miami,ALO,28,VSC,13.09,19.08,0.6859,True
+Miami,LEC,29,VSC,21.8,19.08,1.142,True
+Miami,LAW,28,VSC,12.5,19.08,0.6548,True
+Miami,HAM,28,VSC,10.64,19.08,0.5576,True
+Miami,RUS,29,VSC,18.23,19.08,0.9553,True
+Miami,PIA,29,VSC,16.88,19.08,0.8847,True
+Monte Carlo,BOR,1,VSC,53.12,20.85,2.548,False
+Monte Carlo,GAS,1,VSC,18.99,20.85,0.911,False
+Monte Carlo,TSU,1,VSC,17.21,20.85,0.8255,False
+Monte Carlo,BEA,1,VSC,48.29,20.85,2.316,False
+Sakhir,NOR,32,SC,9.663,23.31,0.4145,True
+Sakhir,BOR,32,SC,25.91,23.31,1.112,True
+Sakhir,ANT,32,SC,17.5,23.31,0.7508,True
+Sakhir,ALO,32,SC,19.42,23.31,0.8333,True
+Sakhir,LEC,32,SC,10.54,23.31,0.4522,True
+Sakhir,STR,32,SC,24.72,23.31,1.06,True
+Sakhir,TSU,32,SC,16.59,23.31,0.7116,True
+Sakhir,ALB,32,SC,20.07,23.31,0.8613,True
+Sakhir,LAW,32,SC,22.77,23.31,0.9769,True
+Sakhir,HAM,32,SC,9.212,23.31,0.3952,True
+Sakhir,SAI,32,SC,16.12,23.31,0.6915,True
+Sakhir,RUS,32,SC,10.17,23.31,0.4365,True
+Sakhir,PIA,32,SC,16.13,23.31,0.6919,True
+Sakhir,BEA,32,SC,18.05,23.31,0.7743,True
+Spielberg,HAD,2,SC,-9.43,21.28,-0.4431,False
+Zandvoort,VER,23,SC,1.55,17.98,0.08622,True
+Zandvoort,NOR,23,SC,2.057,17.98,0.1144,True
+Zandvoort,HAD,23,SC,1.668,17.98,0.09278,True
+Zandvoort,GAS,23,SC,13.96,17.98,0.7768,True
+Zandvoort,ANT,23,SC,9.381,17.98,0.5218,True
+Zandvoort,ALB,23,SC,10.98,17.98,0.611,True
+Zandvoort,LAW,23,SC,7.165,17.98,0.3986,True
+Zandvoort,LAW,27,SC,76.24,17.98,4.241,False
+Zandvoort,COL,65,SC,11.75,17.98,0.6534,True
+Zandvoort,SAI,23,SC,6.416,17.98,0.3569,True
+Zandvoort,SAI,27,SC,76.18,17.98,4.238,False
+Zandvoort,SAI,65,SC,18.84,17.98,1.048,True
+Zandvoort,RUS,23,SC,2.611,17.98,0.1452,True
+Zandvoort,PIA,23,SC,0.996,17.98,0.0554,True

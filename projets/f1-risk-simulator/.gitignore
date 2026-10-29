@@ -1,0 +1,16 @@
+# Données brutes, cache API et base locale (régénérables avec `python -m f1risk ingest`)
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Système et éditeurs
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,5 @@
+circuit,compounds,slope_old_s_per_lap,slope_old_se,offset_new_vs_old_s,track_evolution_s_per_lap,track_evolution_se,lap_noise_s,n_pit_stops,pit_loss_median_s,pit_loss_p10_s,pit_loss_p90_s,p_rejoin_in_traffic,n_rejoins,stop_window,median_first_stop
+Sakhir,SOFT > MEDIUM,0.1492,0.0132,0.3609,-0.02323,0.003284,0.4213,23,23.31,21.36,25.81,0.3571,28,8-16,12
+Catalunya,SOFT > MEDIUM,0.1095,0.01016,0.65,-0.007745,0.003101,0.579,38,22.69,20.45,24.67,0.125,40,8-21,16
+Hungaroring,MEDIUM > HARD,0.05347,0.006484,-0.1926,-0.0007531,0.002754,0.6189,28,22.01,20.23,25.08,0.1724,29,14-40,20
+Monza,MEDIUM > HARD,0.01848,0.00295,0.01465,-0.002048,0.001176,0.3287,16,25.5,24.5,31.11,0.2778,18,19-49,33
