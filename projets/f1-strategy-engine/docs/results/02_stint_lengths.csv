@@ -1,0 +1,13 @@
+circuit,compound,n_stints,avg_laps,avg_laps_ended_by_pit,min_laps,max_laps,longest_by
+Catalunya,MEDIUM,21,24.1,24.2,8,36,HUL
+Catalunya,SOFT,51,13.4,14.5,1,25,SAI
+Catalunya,HARD,1,11.0,,11,11,VER
+Hungaroring,HARD,24,31.5,29.4,18,55,OCO
+Hungaroring,MEDIUM,21,26.7,26.5,13,40,BOR
+Hungaroring,SOFT,4,12.8,12.8,5,17,TSU
+Monza,HARD,17,30.4,44.4,4,51,OCO
+Monza,MEDIUM,16,26.8,30.3,1,46,NOR
+Monza,SOFT,6,5.2,9.0,1,9,LAW
+Sakhir,HARD,14,22.6,16.5,12,30,OCO
+Sakhir,MEDIUM,26,19.9,17.8,13,31,VER
+Sakhir,SOFT,22,13.4,10.6,1,25,ANT

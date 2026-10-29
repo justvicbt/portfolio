@@ -1,0 +1,29 @@
+# Secrets : ne jamais pousser ça sur GitHub
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# Données qui ne doivent pas être publiques
+data/private/
+*.private.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

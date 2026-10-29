@@ -1,0 +1,9 @@
+model,circuit,laps,best_1_stop,best_2_stop,breakeven_pit_loss_s,breakeven_p5,breakeven_p95,measured_pit_loss_s,two_stop_gain_s,p_two_stop_faster
+A,Catalunya,66,S26 - M40,S19 - S20 - M27,28.8,24.0,33.6,22.7,6.1,0.981
+A,Hungaroring,70,M32 - H38,M20 - H25 - H25,23.9,20.5,27.0,22.0,1.9,0.824
+A,Monza,53,M22 - H31,M13 - H20 - H20,3.9,2.7,5.1,25.5,-21.6,0.0
+A,Sakhir,57,S30 - H27,S19 - H19 - H19,31.7,27.9,34.8,23.3,8.4,1.0
+B,Catalunya,66,S28 - M38,S20 - S20 - M26,30.3,24.9,35.4,22.7,7.6,0.99
+B,Hungaroring,70,M32 - H38,M20 - H25 - H25,24.0,20.7,27.1,22.0,2.0,0.835
+B,Monza,53,M23 - H30,M15 - H19 - H19,3.9,3.2,5.0,25.5,-21.6,0.0
+B,Sakhir,57,S27 - M30,S18 - S19 - M20,37.1,33.3,41.6,23.3,13.8,1.0

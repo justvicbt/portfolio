@@ -1,0 +1,11 @@
+circuit,stop_no,n_stops,first_lap,avg_lap,last_lap,avg_pct_race,avg_stint_before,avg_lane_time_s
+Catalunya,1,19,6,15.0,22,23.0,15.0,23.0
+Catalunya,2,19,24,40.1,49,61.0,25.1,23.1
+Catalunya,3,14,44,53.5,56,81.0,14.1,22.4
+Catalunya,4,2,54,54.5,55,83.0,9.0,22.2
+Hungaroring,1,20,5,24.9,42,36.0,24.9,22.0
+Hungaroring,2,9,35,42.0,51,60.0,26.4,22.8
+Monza,1,19,9,32.9,51,62.0,32.9,25.9
+Sakhir,1,20,5,12.1,17,21.0,12.1,25.1
+Sakhir,2,20,26,30.4,32,53.0,18.3,24.8
+Sakhir,3,2,32,38.0,44,67.0,8.5,30.9

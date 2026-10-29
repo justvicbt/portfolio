@@ -1,0 +1,12 @@
+circuit,compound,n_laps,avg_fuel_corr_s,gap_to_fastest_s
+Catalunya,SOFT,269,79.319,0.0
+Catalunya,MEDIUM,358,79.535,0.215
+Hungaroring,SOFT,11,80.393,0.0
+Hungaroring,HARD,492,80.607,0.214
+Hungaroring,MEDIUM,248,80.818,0.424
+Monza,SOFT,14,81.573,0.0
+Monza,MEDIUM,212,81.769,0.196
+Monza,HARD,277,82.106,0.533
+Sakhir,MEDIUM,218,96.799,0.0
+Sakhir,SOFT,67,96.976,0.178
+Sakhir,HARD,163,97.423,0.625
