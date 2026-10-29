@@ -1,4 +1,4 @@
-# Salut, moi c'est Victor 👋
+# Salut, moi c'est Victor
 
 Je travaille en conformité et en gestion des risques depuis 2021 (banque d'investissement, immobilier, gestion de patrimoine). Au fil des missions, j'ai eu de plus en plus envie de comprendre ce qui se passe sous le capot : les données, les modèles, le code. Aujourd'hui je me forme à la data et à l'IA appliquées à la finance (MSc Data Management, IA & Stratégie Financière à l'INSEEC).
 
@@ -10,7 +10,7 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 
 | Projet | En deux mots | Domaine | Stack | Statut |
 |---|---|---|---|---|
-| [Moteur de stratégie F1](./projets/f1-strategy-engine) | Données réelles de 4 Grands Prix 2025 : base SQL, modèle de dégradation des pneus et simulateur 1 vs 2 arrêts | Data | Python, SQL (SQLite), pandas, statsmodels | ✅ Terminé (v1) |
+| [Moteur de stratégie F1](./projets/f1-strategy-engine) | Données réelles de 4 Grands Prix 2025 : base SQL, modèle de dégradation des pneus et simulateur 1 vs 2 arrêts | Data | Python, SQL (SQLite), pandas, statsmodels | Terminé (v1) |
 
 ## Comment c'est rangé
 

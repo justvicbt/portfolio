@@ -4,9 +4,9 @@ Je charge les données de quatre Grands Prix 2025 dans une base SQL. Je les nett
 
 ## Pourquoi ce projet
 
-Je voulais un projet de données de bout en bout sur un vrai jeu de données, avec ses trous et ses pièges. Je cherchais aussi une question qui se tranche avec des chiffres. La stratégie en F1 s'y prête bien. S'arrêter coûte environ 20 secondes. Ne pas s'arrêter coûte quelques dixièmes par tour, qui s'accumulent à mesure que le pneu s'use. La bonne décision dépend de l'ampleur de cette usure, et c'est exactement ce que les données doivent mesurer.
+Je voulais un projet de données de bout en bout sur un vrai jeu de données, avec ses trous et ses pièges. Je cherchais aussi une question qui se tranche avec des chiffres. La stratégie en F1 s'y prête bien. S'arrêter coûte environ 20 secondes. Ne pas s'arrêter coûte quelques dixièmes par tour, qui s'accumulent à mesure que le pneu s'use. La bonne décision dépend de la vitesse de cette usure. C'est ce que je mesure avec les données.
 
-Cette logique me parle à cause de mon métier : un coût fixe certain contre un coût diffus et incertain, avec une décision à prendre malgré l'incertitude.
+Ça me rappelle mon métier dans les risques : comparer un coût fixe et connu à un coût diffus qu'on estime mal, puis décider quand même.
 
 ## Ce que j'ai fait
 
@@ -36,7 +36,7 @@ Ensuite, je corrige l'effet du carburant. Une voiture part avec environ 100 kg d
 - un duel entre deux pilotes, avec l'écart cumulé (`SUM … OVER`) ;
 - un audit du nettoyage.
 
-**Le modèle de dégradation** (`src/f1engine/degradation.py`). Pour chaque course, je fais une régression du temps corrigé sur l'âge du pneu, avec une pente par composé. Un effet fixe par pilote absorbe le niveau de chaque voiture. Les tours d'un même relais ne sont pas indépendants, donc les erreurs sont clusterisées par relais, et j'utilise une loi de Student pour les intervalles parce qu'il y a peu de relais par composé.
+**Le modèle de dégradation** (`src/f1engine/degradation.py`). Pour chaque course, je fais une régression du temps corrigé sur l'âge du pneu, avec une pente par composé. Un effet fixe par pilote absorbe le niveau de chaque voiture. Les tours d'un même relais ne sont pas indépendants, donc je clusterise les erreurs standard par relais. Comme il y a peu de relais par composé, je calcule les intervalles avec une loi de Student plutôt qu'une loi normale.
 
 **Le simulateur** (`src/f1engine/strategy.py`). À partir des pentes estimées, je cherche la meilleure stratégie à 1 arrêt et la meilleure à 2 arrêts. Je teste toutes les combinaisons de composés (au moins deux différents, comme l'impose le règlement) et tous les tours d'arrêt possibles. Le temps perdu aux stands est un paramètre. J'en déduis un seuil : la perte aux stands en dessous de laquelle 2 arrêts deviennent plus rapides. L'incertitude sur ce seuil vient de 2 000 tirages des paramètres du modèle.
 
@@ -58,7 +58,7 @@ Ensuite, je corrige l'effet du carburant. Une voiture part avec environ 100 kg d
 | Monza | Medium | 0,017 | [0,011 ; 0,024] | 212 |
 | Monza | Dur | 0,013 | [0,006 ; 0,020] | 277 |
 
-Bahreïn, avec sa piste abrasive et sa chaleur, use les pneus six à neuf fois plus vite que Monza. En Espagne, le tendre se dégrade deux fois plus vite que le medium. Il manque des composés dans le tableau quand trop peu de pilotes les ont utilisés. Il faut au moins 30 tours propres et 3 relais : le dur en Espagne n'a servi qu'une fois, et le tendre a très peu tourné en Hongrie et à Monza.
+Bahreïn, avec sa piste abrasive et sa chaleur, use les pneus six à neuf fois plus vite que Monza. En Espagne, le tendre se dégrade deux fois plus vite que le medium. Un composé n'apparaît que s'il a au moins 30 tours propres et 3 relais. Le dur en Espagne n'a servi qu'une fois, et le tendre a très peu tourné en Hongrie et à Monza.
 
 ### 1 arrêt ou 2 arrêts ?
 
@@ -71,7 +71,7 @@ Bahreïn, avec sa piste abrasive et sa chaleur, use les pneus six à neuf fois p
 | Hongrie | 23,9 s | [20,5 ; 27,0] | 22,0 s | Limite (2 arrêts dans 82 % des tirages) | Stratégies mélangées : 9 pilotes à 2 arrêts, et Norris gagne avec 1 seul |
 | Monza | 3,9 s | [2,7 ; 5,1] | 25,5 s | 1 arrêt, sans hésitation | Tout le monde à 1 arrêt |
 
-La « perte aux stands mesurée » vient de la requête `04_pit_loss.sql` : le temps du tour d'entrée et du tour de sortie, moins deux tours normaux du même pilote. Sur ces quatre courses, ce modèle très simple retrouve la stratégie dominante. La Hongrie est l'exemple le plus intéressant : le modèle la classe comme un cas limite, et c'est justement la course où les équipes ont fait des choix différents.
+La « perte aux stands mesurée » vient de la requête `04_pit_loss.sql` : le temps du tour d'entrée et du tour de sortie, moins deux tours normaux du même pilote. Sur ces quatre courses, ce modèle très simple retrouve la stratégie dominante. La Hongrie est le seul cas limite pour le modèle. C'est aussi la course où Norris a gagné avec un seul arrêt, alors que 9 pilotes se sont arrêtés deux fois.
 
 ### Télémétrie
 
@@ -81,11 +81,11 @@ Voici les tours les plus rapides de Verstappen (1:21.003, en pneus durs de 14 to
 
 ## Ce que j'en retiens
 
-- **La moitié du travail, c'est le nettoyage.** Selon la course, je n'ai gardé que 40 à 55 % des tours. Le trafic en écarte à lui seul 29 à 45 %. Sans ce filtre, la pente mesurerait surtout la difficulté à dépasser.
-- **L'hypothèse carburant n'est pas un détail.** Dans un relais, l'âge du pneu et le numéro de tour augmentent ensemble. Les données seules ne peuvent donc pas séparer l'usure des pneus de l'allègement de la voiture : c'est l'hypothèse qui tranche. Si je passe de 0,03 à 0,02 ou 0,04 s/kg, les pentes bougent de ±0,01 à 0,02 s/tour, soit autant que toute l'usure mesurée à Monza (fichier `docs/results/degradation_robustness.csv`).
-- **On peut quand même vérifier cette hypothèse.** J'ai ajouté une variante (le modèle B) qui estime la tendance de course directement à partir des données. C'est possible parce que l'âge du pneu repart à zéro à chaque arrêt, alors que le numéro de tour continue. Sur trois courses, la tendance estimée colle à l'hypothèse 0,03 s/kg à 0,007 s/tour près. À Bahreïn, il reste 0,023 s/tour inexpliqué, probablement la piste qui gagne en adhérence en refroidissant (c'est une course de nuit). Avec cette correction, les pentes de Bahreïn montent à 0,12–0,15 s/tour.
-- **Les écarts de rythme entre composés sont fragiles.** Le modèle A trouvait le dur 0,5 s plus rapide que le medium à Bahreïn, ce qui est peu crédible. En réalité, les relais en dur ont surtout eu lieu en fin de course, sur une piste plus rapide. Le modèle B ramène cet écart à 0,1 s. Les pentes sont beaucoup plus solides que les niveaux.
-- **Les tests ont trouvé un vrai problème.** Sur des données simulées dont je connaissais la vraie pente, mes intervalles à « 95 % » ne la contenaient que 85 à 90 % du temps : ils étaient trop étroits. Je suis passé à une loi de Student. À une taille comparable aux vraies données, la couverture remonte à 91–95 %.
+- Le nettoyage m'a pris la moitié du travail. Selon la course, je n'ai gardé que 40 à 55 % des tours. Le trafic en écarte à lui seul 29 à 45 %. Sans ce filtre, la pente mesurerait surtout la difficulté à dépasser.
+- L'hypothèse carburant pèse directement sur les pentes. Dans un relais, l'âge du pneu et le numéro de tour augmentent ensemble. Les données seules ne peuvent donc pas séparer l'usure des pneus de l'allègement de la voiture : c'est l'hypothèse qui tranche. Si je passe de 0,03 à 0,02 ou 0,04 s/kg, les pentes bougent de ±0,01 à 0,02 s/tour, soit autant que toute l'usure mesurée à Monza (fichier `docs/results/degradation_robustness.csv`).
+- Je peux quand même tester cette hypothèse. Pour ça, j'ai ajouté une variante (le modèle B) qui estime la tendance de course directement à partir des données. C'est possible parce que l'âge du pneu repart à zéro à chaque arrêt, alors que le numéro de tour continue. Sur trois courses, la tendance estimée colle à l'hypothèse 0,03 s/kg à 0,007 s/tour près. À Bahreïn, il reste 0,023 s/tour inexpliqué, probablement la piste qui gagne en adhérence en refroidissant (c'est une course de nuit). Avec cette correction, les pentes de Bahreïn montent à 0,12–0,15 s/tour.
+- Les écarts de rythme entre composés sont fragiles. Le modèle A trouvait le dur 0,5 s plus rapide que le medium à Bahreïn, ce qui est peu crédible. En réalité, les relais en dur ont surtout eu lieu en fin de course, sur une piste plus rapide. Le modèle B ramène cet écart à 0,1 s. Les pentes sont beaucoup plus solides que les niveaux.
+- Les tests m'ont montré que mes intervalles étaient trop étroits. Sur des données simulées dont je connaissais la vraie pente, mes intervalles à « 95 % » ne la contenaient que 85 à 90 % du temps. Je suis passé à une loi de Student. À une taille comparable aux vraies données, la couverture remonte à 91–95 %.
 
 ## Limites
 
@@ -140,8 +140,8 @@ f1-strategy-engine/
 
 ## Stack
 
-Python 3.14 · OpenF1 (API publique) · SQLite · SQLAlchemy · pandas · statsmodels · matplotlib · pytest
+Python 3.14, OpenF1 (API publique), SQLite, SQLAlchemy, pandas, statsmodels, matplotlib, pytest
 
 ## Statut
 
-✅ Terminé (v1). Pistes pour la suite : plus de courses pour estimer une dégradation non linéaire, une probabilité de safety car dans le simulateur, et une version PostgreSQL du schéma.
+Terminé (v1). Pistes pour la suite : plus de courses pour estimer une dégradation non linéaire, une probabilité de safety car dans le simulateur, et une version PostgreSQL du schéma.

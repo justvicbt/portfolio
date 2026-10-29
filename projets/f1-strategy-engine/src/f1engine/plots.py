@@ -1,8 +1,8 @@
 """Graphiques enregistrés dans docs/ (PNG, fond clair).
 
-Palette : trois premiers slots de la palette catégorielle de référence, validée pour
-le daltonisme (toutes paires). L'aqua est sous 3:1 de contraste : chaque point est
-donc aussi étiqueté directement.
+Couleurs : les trois premières d'une palette testée pour les daltoniens (chaque paire
+reste distinguable). Le vert contraste peu avec le fond (moins de 3:1), donc chaque
+point porte aussi une étiquette.
 """
 import os
 

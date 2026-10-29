@@ -38,4 +38,4 @@ pip install -r requirements.txt
 
 ## Statut
 
-*🚧 En cours, ✅ Terminé ou 💤 En pause, avec la prochaine étape envisagée.*
+*En cours, Terminé, Expérimentation ou En pause, avec la prochaine étape envisagée.*
