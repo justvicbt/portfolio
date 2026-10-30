@@ -10,22 +10,22 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 
 | Projet | En deux mots | Domaine | Stack | Statut |
 |---|---|---|---|---|
-| [Moteur de stratégie F1](./projets/f1-strategy-engine) | Données réelles de 4 Grands Prix 2025 : base SQL, modèle de dégradation des pneus et simulateur 1 vs 2 arrêts | Data | Python, SQL (SQLite), pandas, statsmodels | Terminé (v1) |
-| [Simulateur de risque d'undercut F1](./projets/f1-risk-simulator) | Monte Carlo sur la saison 2025 : probabilité de réussite, gain et pire cas d'un undercut, avec safety cars, arrêts et trafic, confronté aux vraies tentatives | Risque | Python, numpy, pandas, statsmodels, SQLite | Terminé (v1) |
-| [Centre de commande F1](./projets/f1-command-centre) | Tableau de bord qui rejoue 4 Grands Prix 2025 (pipeline ETL météo et tours, écarts au tour, pneus, stratégie), chaque enseignement avec son incertitude | Data | Python, Streamlit, Plotly, pandas, SQLite | Terminé (v1) |
+| [Moteur de stratégie et de télémétrie F1](./projets/moteur-strategie-telemetrie-f1) | Données réelles de 4 Grands Prix 2025 : base SQL, modèle de dégradation des pneus et simulateur 1 contre 2 arrêts | Data | Python, SQL (SQLite), pandas, statsmodels | Terminé (v1) |
+| [Simulateur de risque d'undercut F1](./projets/simulateur-risque-undercut-f1) | Monte Carlo sur la saison 2025 : probabilité de réussite, gain et pire cas d'un undercut, avec safety cars, arrêts et trafic, confronté aux vraies tentatives | Risque | Python, numpy, pandas, statsmodels, SQLite | Terminé (v1) |
+| [Centre de commande de course F1](./projets/centre-commande-course-f1) | Tableau de bord qui rejoue 4 Grands Prix 2025 (pipeline ETL météo et tours, écarts au tour, pneus, stratégie), chaque enseignement avec son incertitude | Data | Python, Streamlit, Plotly, pandas, SQLite | Terminé (v1) |
 
 ## Comment c'est rangé
 
 ```
 .
-├── README.md                # cette page
+├── README.md                            # cette page
 ├── .gitignore
-├── projets/                 # un dossier par projet
-│   ├── f1-strategy-engine/  # stratégie et télémétrie F1
-│   ├── f1-risk-simulator/   # risque d'un undercut F1 (réutilise le code du projet précédent)
-│   └── f1-command-centre/   # tableau de bord de rejeu d'une course F1 (réutilise les deux précédents)
+├── projets/                             # un dossier par projet
+│   ├── moteur-strategie-telemetrie-f1/  # Moteur de stratégie et de télémétrie F1
+│   ├── simulateur-risque-undercut-f1/   # Simulateur de risque d'undercut F1 (réutilise le moteur de stratégie)
+│   └── centre-commande-course-f1/       # Centre de commande de course F1 (réutilise les deux autres)
 └── modele-projet/
-    └── README.md            # le modèle de README que je recopie pour chaque nouveau projet
+    └── README.md                        # le modèle de README que je recopie pour chaque nouveau projet
 ```
 
 Chaque projet contient :

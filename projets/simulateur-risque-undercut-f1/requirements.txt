@@ -1,0 +1,11 @@
+# Versions testées avec Python 3.14 (macOS arm64), identiques au moteur de stratégie
+matplotlib==3.11.2
+numpy==2.5.4
+pandas==2.3.3
+pytest==9.2.0
+python-dotenv==1.2.4
+requests==2.34.2
+SQLAlchemy==2.1.6
+statsmodels==0.15.0
+# Dépendance indirecte (statsmodels -> formulaic) : version stable figée au lieu d'une préversion
+wrapt==2.5.1
