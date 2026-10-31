@@ -34,8 +34,14 @@ pip install -r requirements.txt
 
 ## Stack
 
-*Langages, bibliothèques et outils, avec une ligne sur le rôle de chacun si ce n'est pas évident.*
+*Une liste à puces : langages, bibliothèques et outils, avec le rôle de chacun si ce n'est pas évident.*
+
+- Python 3.14
+- pandas pour la préparation des données
+- pytest
 
 ## Statut
 
-*En cours, Terminé, Expérimentation ou En pause, avec la prochaine étape envisagée.*
+*Une seule ligne : l'état (En cours, Terminé (v1), Expérimentation ou En pause), puis les pistes pour la suite.*
+
+Terminé (v1). Pistes pour la suite : …
