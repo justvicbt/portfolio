@@ -1,0 +1,11 @@
+type,numero,debut_m,fin_m,vitesse_entree_kmh,vitesse_min_kmh,vitesse_max_kmh
+freinage,1,769,903,348,79,
+freinage,2,2005,2099,322,111,
+freinage,3,2432,2480,265,208,
+freinage,4,2750,2814,274,190,
+freinage,5,3801,3893,341,195,
+freinage,6,5027,5087,331,217,
+rapide,1,0,769,322,322,348
+rapide,2,1596,1988,314,314,329
+rapide,3,3309,3820,315,314,341
+rapide,4,4460,4989,314,314,332

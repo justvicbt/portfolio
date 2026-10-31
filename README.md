@@ -13,6 +13,7 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 | [Moteur de stratégie et de télémétrie F1](./projets/moteur-strategie-telemetrie-f1) | Données réelles de 4 Grands Prix 2025 : base SQL, modèle de dégradation des pneus et simulateur 1 contre 2 arrêts | Data | Python, SQL (SQLite), pandas, statsmodels | Terminé (v1) |
 | [Simulateur de risque d'undercut F1](./projets/simulateur-risque-undercut-f1) | Monte Carlo sur la saison 2025 : probabilité de réussite, gain et pire cas d'un undercut, avec safety cars, arrêts et trafic, confronté aux vraies tentatives | Risque | Python, numpy, pandas, statsmodels, SQLite | Terminé (v1) |
 | [Centre de commande de course F1](./projets/centre-commande-course-f1) | Tableau de bord qui rejoue 4 Grands Prix 2025 (pipeline ETL météo et tours, écarts au tour, pneus, stratégie), chaque enseignement avec son incertitude | Data | Python, Streamlit, Plotly, pandas, SQLite | Terminé (v1) |
+| [Carte de vitesse d'un circuit F1](./projets/carte-circuit-vitesse-f1) | Le tracé d'un circuit coloré selon la vitesse sur un tour de qualification, avec ses sections rapides et ses zones de freinage | Data | Python, numpy, matplotlib | Terminé (v1) |
 
 ## Comment c'est rangé
 
@@ -23,7 +24,8 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 ├── projets/                             # un dossier par projet
 │   ├── moteur-strategie-telemetrie-f1/  # Moteur de stratégie et de télémétrie F1
 │   ├── simulateur-risque-undercut-f1/   # Simulateur de risque d'undercut F1 (réutilise le moteur de stratégie)
-│   └── centre-commande-course-f1/       # Centre de commande de course F1 (réutilise les deux autres)
+│   ├── centre-commande-course-f1/       # Centre de commande de course F1 (réutilise les deux autres)
+│   └── carte-circuit-vitesse-f1/        # Carte de vitesse d'un circuit F1 (autonome)
 └── modele-projet/
     └── README.md                        # le modèle de README que je recopie pour chaque nouveau projet
 ```

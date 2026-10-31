@@ -1,0 +1,2 @@
+circuit,annee,pilote,tour,temps_s,mesures,mesures_retirees,frequence_hz,ecart_max_s,vitesse_max_kmh,vitesse_min_kmh,vitesse_moyenne_kmh,part_fond,part_freinage,distance_vitesse_m,longueur_xy,ratio_xy_sur_m,zones_freinage,sections_rapides
+Monza,2025,VER,17,78.792,291,0,3.6806,0.961,348.0,73.0,263.0276,0.7812,0.1407,5756.7971,57515.9518,9.991,6,4
