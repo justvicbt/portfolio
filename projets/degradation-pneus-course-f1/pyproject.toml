@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f1pneus"
+version = "0.1.0"
+description = "Usure des pneus et facteurs parasites sur une course de F1 (OpenF1, pandas, statsmodels, matplotlib)"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # Émis par pandas 2.3 avec numpy 2.5 sur pd.Timedelta(seconds=...), sans effet sur les valeurs.
+    "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning",
+]

@@ -14,6 +14,7 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 | [Simulateur de risque d'undercut F1](./projets/simulateur-risque-undercut-f1) | Monte Carlo sur la saison 2025 : probabilité de réussite, gain et pire cas d'un undercut, avec safety cars, arrêts et trafic, confronté aux vraies tentatives | Risque | Python, numpy, pandas, statsmodels, SQLite | Terminé (v1) |
 | [Centre de commande de course F1](./projets/centre-commande-course-f1) | Tableau de bord qui rejoue 4 Grands Prix 2025 (pipeline ETL météo et tours, écarts au tour, pneus, stratégie), chaque enseignement avec son incertitude | Data | Python, Streamlit, Plotly, pandas, SQLite | Terminé (v1) |
 | [Carte de vitesse d'un circuit F1](./projets/carte-circuit-vitesse-f1) | Le tracé d'un circuit coloré selon la vitesse sur un tour de qualification, avec ses sections rapides et ses zones de freinage | Data | Python, numpy, matplotlib | Terminé (v1) |
+| [Usure des pneus et facteurs parasites en F1](./projets/degradation-pneus-course-f1) | Hongrie 2025, Norris contre Piastri : la dégradation des pneus une fois retirés carburant, trafic et neutralisations, et pourquoi les données ne permettent pas de dire si les deux arrêts ont coûté du temps | Data | Python, pandas, statsmodels, matplotlib | Terminé (v1) |
 
 ## Comment c'est rangé
 
@@ -25,7 +26,8 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 │   ├── moteur-strategie-telemetrie-f1/  # Moteur de stratégie et de télémétrie F1
 │   ├── simulateur-risque-undercut-f1/   # Simulateur de risque d'undercut F1 (réutilise le moteur de stratégie)
 │   ├── centre-commande-course-f1/       # Centre de commande de course F1 (réutilise les deux autres)
-│   └── carte-circuit-vitesse-f1/        # Carte de vitesse d'un circuit F1 (autonome)
+│   ├── carte-circuit-vitesse-f1/        # Carte de vitesse d'un circuit F1 (autonome)
+│   └── degradation-pneus-course-f1/     # Usure des pneus et facteurs parasites en F1 (autonome)
 └── modele-projet/
     └── README.md                        # le modèle de README que je recopie pour chaque nouveau projet
 ```
