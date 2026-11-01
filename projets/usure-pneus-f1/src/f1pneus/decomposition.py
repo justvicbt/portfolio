@@ -87,17 +87,27 @@ def decomposer(df: pd.DataFrame, total_tours: int, a: str, b: str, ecart_obs: fl
     point = difference(xa, xb, m, ecart_obs)
 
     rng = np.random.default_rng(graine)
-    fixes = d[d["pilote"].isin([a, b])]
-    groupes = [[g for _, g in gp.groupby("id_relais")] for p, gp in d.groupby("pilote") if p not in (a, b)]
+    # Positions des lignes de chaque relais, dans l'ordre pilote puis relais : un tirage devient un seul iloc.
+    fixes = np.flatnonzero(d["pilote"].isin([a, b]).to_numpy())
+    positions = d.groupby(["pilote", "id_relais"]).indices
+    groupes = {}
+    for p, r in sorted(positions):
+        if p not in (a, b):
+            groupes.setdefault(p, []).append(positions[(p, r)])
+    groupes = list(groupes.values())
+    ids = d["id_relais"].to_numpy(object)
     tirs, echecs = [], 0
     for _ in range(tirages):
-        parts = [fixes]
-        for k, g in enumerate(groupes):
+        lignes, suffixes = [fixes], [np.full(len(fixes), "", dtype=object)]
+        for g in groupes:
             for j, i in enumerate(rng.integers(0, len(g), len(g))):
                 # Un relais tiré deux fois devient deux relais distincts (sinon la variante « relais » les fusionne).
-                parts.append(g[i].assign(id_relais=g[i]["id_relais"] + f"#{j}"))
+                lignes.append(g[i])
+                suffixes.append(np.full(len(g[i]), f"#{j}", dtype=object))
+        lignes = np.concatenate(lignes)
+        tirage = d.iloc[lignes].assign(id_relais=ids[lignes] + np.concatenate(suffixes))
         try:
-            r = difference(xa, xb, ajuster_niveaux(pd.concat(parts), seuils, variante, regroupe=False), ecart_obs)
+            r = difference(xa, xb, ajuster_niveaux(tirage, seuils, variante, regroupe=False), ecart_obs)
         except (np.linalg.LinAlgError, ValueError, KeyError):
             echecs += 1
             continue
