@@ -116,7 +116,7 @@ python -m f1engine all   # ingestion + requêtes SQL + modèle, simulateur, grap
 pytest                   # 22 tests, sans réseau
 ```
 
-Le premier lancement télécharge environ 110 réponses d'OpenF1, ce qui prend environ 4 minutes à cause de la limite de débit. Les lancements suivants lisent le cache dans `data/raw/` et prennent quelques secondes. On peut aussi lancer les étapes une par une : `python -m f1engine ingest`, `queries` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1engine ingest` après la fin de la session.
+Le premier lancement télécharge environ 110 réponses d'OpenF1, ce qui prend environ 4 minutes à cause de la limite de débit. Les lancements suivants lisent le cache dans `data/raw/` et prennent quelques secondes. Le premier lancement depuis le cache est plus long, environ 26 secondes : matplotlib construit son cache de polices une seule fois, et Python compile le code. On peut aussi lancer les étapes une par une : `python -m f1engine ingest`, `queries` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1engine ingest` après la fin de la session.
 
 Ce qui est produit :
 - `data/f1.db` : la base SQLite (non versionnée, régénérable). On peut l'interroger directement, par exemple avec `sqlite3 data/f1.db < sql/queries/04_pit_loss.sql`.

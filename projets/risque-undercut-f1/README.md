@@ -173,7 +173,7 @@ python -m f1risk all   # ingestion de la saison + paramètres, simulations, vali
 pytest                 # 16 tests ; celui de cohérence avec le moteur de stratégie demande la base locale
 ```
 
-Le premier lancement télécharge environ 170 réponses d'OpenF1 (près de 100 Mo, gardés dans `data/raw/`). À cause de la limite de débit de l'API, cela prend de 6 à 7 minutes. Les lancements suivants lisent le cache, et `python -m f1risk all` prend environ 7 secondes. On peut lancer les étapes séparément : `python -m f1risk ingest` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1risk ingest` après la fin de la session.
+Le premier lancement télécharge environ 170 réponses d'OpenF1 (près de 100 Mo, gardés dans `data/raw/`). À cause de la limite de débit de l'API, cela prend de 6 à 7 minutes. Les lancements suivants lisent le cache, et `python -m f1risk all` prend environ 7 secondes. Le premier lancement depuis le cache est plus long, environ 34 secondes : matplotlib construit son cache de polices une seule fois, et Python compile le code. On peut lancer les étapes séparément : `python -m f1risk ingest` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1risk ingest` après la fin de la session.
 
 Ce qui est produit :
 - `data/f1_2025.db` : la base SQLite de la saison, avec le schéma du moteur de stratégie (non versionnée, régénérable) ;

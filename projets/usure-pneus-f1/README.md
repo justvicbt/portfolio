@@ -203,7 +203,7 @@ python -m f1pneus   # Hongrie 2025, Norris contre Piastri
 pytest              # 19 tests, sans réseau
 ```
 
-Le premier lancement fait neuf requêtes à OpenF1 (4,7 Mo), en une vingtaine de secondes. Les réponses sont gardées dans `data/raw/`, et les lancements suivants n'appellent plus l'API. L'analyse prend ensuite environ 45 secondes, surtout pour les 7 × 2 000 tirages du bootstrap (`--tirages 200` la ramène à moins de 10 secondes). Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer la commande après la fin de la session.
+Le premier lancement fait neuf requêtes à OpenF1 (4,7 Mo), en une vingtaine de secondes. Les réponses sont gardées dans `data/raw/`, et les lancements suivants n'appellent plus l'API. L'analyse prend ensuite environ 45 secondes, surtout pour les 7 × 2 000 tirages du bootstrap (`--tirages 200` la ramène à moins de 10 secondes). Le premier lancement depuis le cache est plus long, environ 72 secondes : matplotlib construit son cache de polices une seule fois, et Python compile le code. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer la commande après la fin de la session.
 
 Options utiles :
 - `--circuit "Yas Marina Circuit" --annee 2025 --pilotes PIA NOR` : autre course et autres pilotes (nom court OpenF1 ; l'écart est celui du second sur le premier) ;

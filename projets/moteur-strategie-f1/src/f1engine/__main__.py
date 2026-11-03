@@ -56,7 +56,7 @@ def analyze(duel_circuit: str = "Monza", duel_drivers: tuple[str, str] = ("VER",
             })
     strat = pd.DataFrame(rows)
     strat.to_csv(RESULTS_DIR / "strategy.csv", index=False)
-    print("\n== 1 arrêt vs 2 arrêts (perte aux stands = médiane mesurée, requête 04)")
+    print("\n== 1 arrêt contre 2 arrêts (perte aux stands = médiane mesurée, requête 04)")
     print(strat.to_string(index=False))
 
     tel = read_sql(engine, """
