@@ -160,10 +160,10 @@ Pour l'undercut, la page choisit par défaut la paire de pilotes qui a passé le
 
 ## Ce que j'en retiens
 
-- **Le plus long a été de rendre les chiffres honnêtes, pas de les calculer.** La règle « pas d'enseignement sans base chiffrée » m'a obligé à écrire autant de code pour les cas insuffisants que pour les cas normaux. C'est aussi ce qui m'a montré que l'undercut ne permettait jamais de désigner un tour.
-- **Réutiliser le code des projets précédents a été rentable, à une condition.** Ils écrivent par défaut dans leurs propres dossiers, et une simple importation de `f1risk` aurait placé le cache de matplotlib dans le dossier du projet Risque d'undercut F1. Il faut lire ce que fait un module au moment de son importation, pas seulement ses fonctions.
+- **Le plus long a été de rendre les chiffres honnêtes.** La règle « pas d'enseignement sans base chiffrée » m'a obligé à écrire autant de code pour les cas insuffisants que pour les cas normaux. C'est aussi ce qui m'a montré que l'undercut ne permettait jamais de désigner un tour.
+- **Réutiliser le code des projets précédents a été rentable, à condition de lire ce qu'un module fait à son importation.** Ils écrivent par défaut dans leurs propres dossiers : une simple importation de `f1risk` aurait placé le cache de matplotlib dans le dossier du projet Risque d'undercut F1.
 - **Les contrôles de cohérence m'ont appris quelque chose sur les données.** Je pensais que la durée d'un tour et l'écart entre deux passages sur la ligne étaient la même mesure. Ils diffèrent de 0,05 à 0,06 s en médiane selon la course, de façon systématique.
-- **Silverstone casse les modèles, et c'est utile.** Le modèle du moteur de stratégie y trouve une pente de −0,47 s par tour en medium : la piste séchait plus vite que les pneus ne s'usaient. Sans le contrôle des pentes négatives, le simulateur aurait cru à un pneu qui rajeunit.
+- **Silverstone casse les modèles.** Le modèle du moteur de stratégie y trouve une pente de −0,47 s par tour en medium : la piste séchait plus vite que les pneus ne s'usaient. Sans le contrôle des pentes négatives, le simulateur aurait cru à un pneu qui rajeunit.
 - Si je recommençais, j'aurais choisi des courses où la température varie au milieu de la course (une course de jour qui se couvre, par exemple) pour la question de la météo. Avec ces quatre courses, elle ne pouvait pas trouver de réponse.
 
 ## Limites

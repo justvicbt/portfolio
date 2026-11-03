@@ -8,7 +8,7 @@ Réponse courte : les données ne permettent pas de trancher, car l'hypothèse s
 
 Un tour plus lent ne prouve pas que le pneu s'use. La voiture peut être derrière une autre, la piste peut changer, le réservoir se vide, une neutralisation ou une consigne d'équipe peut casser le rythme. Si je trace le temps au tour contre l'âge des pneus sans rien corriger, je mesure un mélange de tout ça.
 
-Le [Moteur de stratégie F1](../moteur-strategie-f1) estime déjà une pente de dégradation par gomme sur quatre courses, et le projet [Risque d'undercut F1](../risque-undercut-f1) s'en sert. Ici, je change d'échelle : une seule course, deux pilotes, une question précise. Le cœur du projet n'est pas la pente elle-même. C'est de montrer comment elle bouge quand on change chaque hypothèse, et si la réponse à la question tient malgré ça.
+Le [Moteur de stratégie F1](../moteur-strategie-f1) estime déjà une pente de dégradation par gomme sur quatre courses, et le projet [Risque d'undercut F1](../risque-undercut-f1) s'en sert. Ici, je change d'échelle : une seule course, deux pilotes, une question précise. Ce qui m'intéresse, c'est la façon dont la pente bouge quand on change chaque hypothèse, et si la réponse à la question tient malgré ça.
 
 ## Ce que j'ai fait
 
@@ -46,7 +46,7 @@ Le trafic n'est pas un retrait. Un tour compte comme « dans le trafic » si l'�
 
 **Le carburant.** Une voiture plus légère va plus vite, donc le temps au tour baisse au fil de la course, même avec des pneus qui s'usent. Je retire au temps de chaque tour le coût du carburant encore à bord : 100 kg au départ, consommés à débit constant, et 0,03 s par kg. Ces deux valeurs sont des hypothèses courantes, pas des mesures, et je les fais varier.
 
-Le piège est le suivant. Dans un relais, l'âge du pneu et le numéro de tour avancent exactement ensemble. Les données d'un relais ne peuvent donc pas séparer l'usure de l'allègement : c'est l'hypothèse qui tranche. Avec 70 tours, chaque 0,01 s/kg de plus ajoute exactement 0,0143 s/tour à la pente. Je teste aussi une variante sans hypothèse de carburant : un terme en numéro de tour est estimé sur les données. C'est possible parce que l'âge du pneu repart à zéro à chaque arrêt, alors que le numéro de tour continue. Ce terme mélange l'allègement et l'évolution de la piste, que rien ne permet de séparer.
+Dans un relais, l'âge du pneu et le numéro de tour avancent exactement ensemble. Les données d'un relais ne peuvent donc pas séparer l'usure de l'allègement : c'est l'hypothèse qui tranche. Avec 70 tours, chaque 0,01 s/kg de plus ajoute exactement 0,0143 s/tour à la pente. Je teste aussi une variante sans hypothèse de carburant : un terme en numéro de tour est estimé sur les données. C'est possible parce que l'âge du pneu repart à zéro à chaque arrêt, alors que le numéro de tour continue. Ce terme mélange l'allègement et l'évolution de la piste, que rien ne permet de séparer.
 
 **La méthode.** Une régression du temps corrigé sur l'âge des pneus :
 - **la pente par gomme** est estimée sur tout le peloton, avec un niveau propre à chaque relais. Elle ne vient donc que de l'évolution à l'intérieur des relais, pas des écarts entre pilotes ;

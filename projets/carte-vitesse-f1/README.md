@@ -47,7 +47,7 @@ Les parts du tour sont des parts du temps : chaque mesure compte pour l'interval
 - la carte des zones : sections rapides en trait plein, freinages en points (un par mesure), numérotés dans l'ordre du tour ;
 - le profil de vitesse en fonction de la distance, avec les mêmes zones et les mêmes numéros.
 
-Les coordonnées sont tracées telles qu'OpenF1 les donne, sans rotation ni retournement. Pour Monza, la carte sort dans le bon sens : le tour se fait dans le sens des aiguilles d'une montre, comme sur le vrai circuit, et ce n'est pas une image en miroir.
+Les coordonnées sont tracées telles qu'OpenF1 les donne, sans rotation ni retournement. Pour Monza, la carte sort dans le bon sens : le tour se fait dans le sens des aiguilles d'une montre, comme sur le vrai circuit.
 
 ## Ce que ça donne
 
