@@ -102,6 +102,24 @@ def test_gap_ahead_takes_last_value_before_lap_and_ignores_lapped_text():
     assert np.isnan(gaps.iloc[2])               # "+1 LAP" n'est pas un écart en secondes
 
 
+def test_leader_gap_of_zero_is_free_air_not_traffic():
+    # OpenF1 renvoie interval = 0 pour le leader : il n'a personne devant, ce n'est pas du trafic.
+    laps = pd.concat([laps_every_100s(3, driver=4).iloc[1:], laps_every_100s(2, driver=81).iloc[1:]],
+                     ignore_index=True)
+    intervals = pd.DataFrame({
+        "date": [at(95), at(195), at(96)],
+        "driver_number": [4, 4, 81],
+        "interval": [0, 0.8, 0.9],
+    })
+    laps["gap_ahead_s"] = gap_ahead(laps, intervals, tolerance_s=20)
+    assert np.isnan(laps.loc[0, "gap_ahead_s"])                       # leader : air libre
+    assert laps["gap_ahead_s"].iloc[1:].tolist() == pytest.approx([0.8, 0.9])
+    laps = laps.assign(is_pit_in_lap=0, is_pit_out_lap=0, track_status="GREEN", compound="HARD")
+    out = mark_clean(laps, CleaningRules(min_gap_ahead_s=1.5, outlier_ratio=1.07))
+    assert out["exclusion"].astype(object).where(out["exclusion"].notna(), None).tolist() == [
+        None, "traffic", "traffic"]
+
+
 def test_mark_clean_gives_first_exclusion_reason():
     laps = pd.DataFrame({
         "driver_number": 1,

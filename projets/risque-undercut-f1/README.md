@@ -23,22 +23,22 @@ Il ne lit ni n'écrit rien dans le dossier de données du moteur de stratégie :
 - Melbourne et Monaco contenaient quelques relais incohérents (fin avant le début), 9 au total. Je les retire avant l'insertion, sinon le schéma du moteur de stratégie rejette toute la course.
 - À Miami, OpenF1 ne donne pas les tours 1 à 24. La course est gardée avec ce trou.
 
-Sur les 4 circuits du moteur de stratégie, la méthode est la même mais les pentes ne sont pas exactement identiques. Depuis le premier téléchargement, OpenF1 a révisé l'âge de départ de 5 trains de pneus, ce qui déplace certaines pentes de 0,0015 s/tour au plus. Un test vérifie que l'écart reste sous 0,002.
+Sur les 4 circuits du moteur de stratégie, la méthode est la même mais les pentes ne sont pas exactement identiques. Depuis le premier téléchargement, OpenF1 a révisé l'âge de départ de 5 trains de pneus, ce qui déplace certaines pentes de 0,0018 s/tour au plus. Un test vérifie que l'écart reste sous 0,002.
 
 **Le modèle.** L'attaquant A est à `g` secondes derrière le rival R au début du tour N. Je simule tour par tour jusqu'à la fin du tour de sortie du dernier des deux à s'arrêter. A réussit s'il est devant à ce moment. Le temps de chaque tour est la somme de plusieurs éléments :
 
 | Élément | Source | Valeur (4 circuits principaux) | Incertitude simulée |
 |---|---|---|---|
-| Écart de rythme par gomme et dégradation par tour d'âge | modèle B du moteur de stratégie, par circuit | pente du pneu usé de 0,018 (Monza) à 0,149 s/tour (Bahreïn) | tirage normal avec la covariance clusterisée par relais |
-| Évolution de la piste | terme « numéro de tour » du même modèle | de −0,001 à −0,023 s/tour | idem |
-| Bruit d'un tour à l'autre | écart-type des résidus de la régression | 0,33 à 0,62 s | normal, indépendant |
-| Perte aux stands | chaque arrêt sous drapeau vert, même définition que la requête 04 du moteur de stratégie | médiane de 22,0 à 25,5 s, sur 16 à 38 arrêts | rééchantillonnage des arrêts observés |
+| Écart de rythme par gomme et dégradation par tour d'âge | modèle B du moteur de stratégie, par circuit | pente du pneu usé de 0,021 (Monza) à 0,154 s/tour (Bahreïn) | tirage normal avec la covariance clusterisée par relais |
+| Évolution de la piste | terme « numéro de tour » du même modèle | de +0,001 à −0,023 s/tour | idem |
+| Bruit d'un tour à l'autre | écart-type des résidus de la régression | 0,33 à 0,61 s | normal, indépendant |
+| Perte aux stands | chaque arrêt sous drapeau vert, même définition que la requête 04 du moteur de stratégie | médiane de 22,0 à 25,4 s, sur 16 à 39 arrêts | rééchantillonnage des arrêts observés |
 | Safety car et VSC | messages de direction de course, 24 courses, 1er tour exclu | 13 SC et 13 VSC sur 1 421 tours, soit 0,9 % par tour pour chacun | loi Gamma (Poisson, a priori de Jeffreys) |
 | Perte aux stands sous neutralisation | arrêts sous SC/VSC comparés aux voitures restées en piste sur les mêmes tours | 66 % de la perte normale sous SC (36 arrêts), 80 % sous VSC (11 arrêts) | rééchantillonnage |
-| Trafic à la sortie | écart à la voiture devant au premier tour après la sortie | ressort à moins de 1,5 s dans 13 % (Espagne) à 36 % (Bahreïn) des cas | rééchantillonnage |
-| Coût de l'air sale | régression avec effet fixe par relais, toute la saison | 0,34 s par tour (erreur standard 0,025) | tirage normal |
+| Trafic à la sortie | écart à la voiture devant au premier tour après la sortie | ressort à moins de 1,5 s dans 10 % (Espagne) à 36 % (Bahreïn) des cas | rééchantillonnage |
+| Coût de l'air sale | régression avec effet fixe par relais, toute la saison | 0,36 s par tour (erreur standard 0,026) | tirage normal |
 
-**Comment la perte aux stands entre dans la simulation.** La perte mesurée vaut (tour d'entrée + tour de sortie) − 2 × tour normal du pilote. C'est le surcoût d'un arrêt par rapport à deux tours normaux, y compris le bruit aléatoire de ces deux tours. Le simulateur l'ajoute donc une seule fois, au tour d'entrée. Il simule le tour de sortie comme un tour normal en pneus neufs et ne tire aucun bruit supplémentaire sur ces deux tours. Dans une première version, je tirais quand même ce bruit, ce qui le comptait deux fois. L'effet de la correction est faible : au plus 3 points sur la probabilité de réussite et 0,24 s sur la moyenne des 5 % pires scénarios, tous circuits et tours d'arrêt confondus.
+**Comment la perte aux stands entre dans la simulation.** La perte mesurée vaut (tour d'entrée + tour de sortie) − 2 × tour normal du pilote. C'est le surcoût d'un arrêt par rapport à deux tours normaux, y compris le bruit aléatoire de ces deux tours. Le simulateur l'ajoute donc une seule fois, au tour d'entrée. Il simule le tour de sortie comme un tour normal en pneus neufs et ne tire aucun bruit supplémentaire sur ces deux tours. Dans une première version, je tirais quand même ce bruit, ce qui le comptait deux fois. L'effet de la correction est faible : au plus 3 points sur la probabilité de réussite et 0,23 s sur la moyenne des 5 % pires scénarios, tous circuits et tours d'arrêt confondus.
 
 Les règles qui changent le scénario :
 - **Safety car ou VSC pendant la fenêtre.** Toute voiture qui ne s'est pas encore arrêtée s'arrête sur ce tour avec la perte réduite, puis les écarts sont gelés. C'est le scénario redouté : A a payé son arrêt plein tarif, et R s'arrête juste après pour un tiers de moins.
@@ -70,12 +70,12 @@ Un vrai « leave-one-race-out » n'est pas possible pour les paramètres du circ
 ![Carte de décision](docs/decision_map.png)
 
 La frontière des 50 % se déplace beaucoup d'un circuit à l'autre. À pneus du même âge, l'undercut a plus d'une chance sur deux de passer :
-- sous 1 à 1,25 s d'écart à Bahreïn, en Espagne et en Hongrie ;
+- sous 0,75 à 1 s d'écart à Bahreïn, en Espagne et en Hongrie ;
 - sous 0,25 à 0,5 s seulement à Monza.
 
-La carte est calculée par pas de 0,25 s, d'où ces fourchettes.
+La carte est calculée par pas de 0,25 s, d'où ces fourchettes. Avant la correction, la frontière était un pas plus loin (1 à 1,25 s) sur les trois premiers circuits : l'écart de 0 qu'OpenF1 donne au leader y était compté comme du trafic. Depuis la correction, l'air sale coûte un peu plus cher et les pentes ont bougé, et l'undercut paraît un peu moins favorable.
 
-Avoir des pneus plus frais que le rival compte surtout là où ils s'usent vite. À Bahreïn, 5 tours d'avance sur l'âge des pneus repoussent la frontière de 1 à 1,75 s. À Monza, presque rien ne bouge.
+Avoir des pneus plus frais que le rival compte surtout là où ils s'usent vite. À Bahreïn, 5 tours d'avance sur l'âge des pneus repoussent la frontière de 0,75 à 1,5 s. À Monza, presque rien ne bouge.
 
 ### Risque et gain selon le tour d'arrêt
 
@@ -85,16 +85,16 @@ Au tour d'arrêt médian de chaque circuit, avec un écart initial de 1,5 s (l'�
 
 | Circuit (tour) | P(réussite), rival qui répond | P(réussite), rival qui reste 3 tours | P(réussite), ne rien faire | Gain moyen | 5e centile | Moyenne des 5 % pires |
 |---|---|---|---|---|---|---|
-| Bahreïn (12) | 44 % | 74 % | 26 % | +1,0 s | −7,3 s | −13,4 s |
-| Espagne (16) | 43 % | 71 % | 28 % | +0,9 s | −6,4 s | −9,4 s |
-| Hongrie (20) | 43 % | 70 % | 28 % | +1,0 s | −8,4 s | −10,6 s |
-| Monza (33) | 31 % | 47 % | 26 % | +0,3 s | −12,0 s | −14,3 s |
+| Bahreïn (12) | 41 % | 70 % | 25 % | +0,8 s | −6,9 s | −13,3 s |
+| Espagne (16) | 42 % | 70 % | 27 % | +0,9 s | −6,4 s | −9,4 s |
+| Hongrie (20) | 42 % | 67 % | 29 % | +0,9 s | −8,6 s | −10,8 s |
+| Monza (33) | 29 % | 49 % | 23 % | +0,3 s | −12,2 s | −14,4 s |
 
 Le gain et les centiles sont exprimés en secondes reprises au rival, pour le scénario où il répond au tour suivant. Plus l'arrêt est tardif, plus l'undercut rapporte, parce que le pneu usé du rival perd davantage à chaque tour. La fenêtre réelle d'arrêt dépend bien sûr d'autres choses, comme la durée du relais suivant, que ce modèle ne regarde pas.
 
 Deux colonnes sont à lire avec prudence :
-- **Le scénario où le rival reste 3 tours de plus** est une limite du modèle plus qu'un résultat. Le rival y perd du temps à chaque tour sur des pneus usés, sans aucune des raisons qui rendent ce choix rationnel en course (voir Limites). Ses 47 à 74 % de réussite surestiment donc l'avantage de l'attaquant.
-- **Les chiffres de Monza sont fragiles.** Ils reposent sur 16 arrêts seulement, dont quelques-uns très lents (de 30 à 39 s pour une médiane de 25,5 s). Ce sont ces arrêts-là qui font l'essentiel du pire cas et de la probabilité de réussite, comme le montre l'analyse de sensibilité.
+- **Le scénario où le rival reste 3 tours de plus** est une limite du modèle plus qu'un résultat. Le rival y perd du temps à chaque tour sur des pneus usés, sans aucune des raisons qui rendent ce choix rationnel en course (voir Limites). Ses 49 à 70 % de réussite surestiment donc l'avantage de l'attaquant.
+- **Les chiffres de Monza sont fragiles.** Ils reposent sur 16 arrêts seulement, dont deux très lents (32 et 39 s pour une médiane de 25,4 s). Ce sont ces arrêts-là qui font l'essentiel du pire cas et de la probabilité de réussite, comme le montre l'analyse de sensibilité.
 
 ### Ce qui fait bouger le résultat
 
@@ -104,12 +104,12 @@ Deux colonnes sont à lire avec prudence :
 
 | Hypothèse | Amplitude |
 |---|---|
-| Variabilité des arrêts (fixe ou doublée) | 20 points (36 à Monza) |
+| Variabilité des arrêts (fixe ou doublée) | 22 points (34 à Monza) |
 | Rythme propre de l'attaquant, ±0,2 s/tour | 18 points |
-| Gain du pneu neuf, bornes de l'IC 95 % | 10 points |
+| Gain du pneu neuf, bornes de l'IC 95 % | 9 points |
 | Pente du pneu usé, bornes de l'IC 95 % | 8 points |
 | Air sale à la sortie, coupé ou doublé | 2 points |
-| Bruit tour par tour | 2 points |
+| Bruit tour par tour | 3 points |
 | Probabilité de SC/VSC, nulle ou doublée | 2 points |
 | Perte aux stands sous SC, 13 % ou 101 % de la normale | 1 point |
 | Évolution de la piste, nulle ou triplée | 0 point |
@@ -123,37 +123,37 @@ J'ai trouvé 43 tentatives d'undercut en 2025. Le simulateur en évalue 36. Les 
 | | Valeur |
 |---|---|
 | Tentatives réussies | 17 sur 36 |
-| Réussites attendues par le simulateur | 16,2 (intervalle à 90 % des tirages [12 ; 21]) |
-| Score de Brier du simulateur | 0,227 |
+| Réussites attendues par le simulateur | 15,6 (intervalle à 90 % des tirages [11 ; 20]) |
+| Score de Brier du simulateur | 0,225 |
 | Score de Brier d'une probabilité constante égale au taux observé | 0,249 |
 | Score de Brier de pile ou face | 0,250 |
 
 | Probabilité prédite | Tentatives | Prédiction moyenne | Taux observé |
 |---|---|---|---|
-| 0 à 25 % | 5 | 20 % | 40 % |
-| 25 à 50 % | 16 | 38 % | 31 % |
-| 50 à 75 % | 13 | 58 % | 69 % |
-| 75 à 100 % | 2 | 81 % | 50 % |
+| 0 à 25 % | 7 | 20 % | 29 % |
+| 25 à 50 % | 15 | 38 % | 33 % |
+| 50 à 75 % | 13 | 59 % | 77 % |
+| 75 à 100 % | 1 | 83 % | 0 % |
 
-Le nombre total de réussites tombe pile dans ce qu'annonce le simulateur, et son score de Brier est un peu meilleur que celui des deux références naïves. Mais avec 36 cas, cette différence n'est pas significative, et les tranches de calibration contiennent trop peu de tentatives pour dire si le modèle est bien calibré. Je ne peux pas conclure que le simulateur prédit bien. Je peux seulement dire que les données de 2025 ne le contredisent pas. Le graphique de chaque tentative est dans [`docs/validation.png`](docs/validation.png).
+Le nombre total de réussites (17) reste dans ce qu'annonce le simulateur (15,6, intervalle [11 ; 20]), et son score de Brier est un peu meilleur que celui des deux références naïves. Mais avec 36 cas, cette différence n'est pas significative, et les tranches de calibration contiennent trop peu de tentatives pour dire si le modèle est bien calibré. Une seule tentative dépasse 75 % de probabilité prédite (Norris sur Russell à Bahreïn, 83 %), et elle a échoué. Je ne peux pas conclure que le simulateur prédit bien. Je peux seulement dire que les données de 2025 ne le contredisent pas. Le graphique de chaque tentative est dans [`docs/validation.png`](docs/validation.png).
 
 ## Ce que j'en retiens
 
-- **Le pire cas d'un undercut ressemble beaucoup au pire cas de ne rien faire.** À Bahreïn, la moyenne des 5 % pires scénarios vaut −13,4 s avec l'undercut et −13,2 s sans. Ce qui coûte cher, c'est un arrêt raté, et il peut arriver au tour N comme au tour N+1. L'analyse de sensibilité rejoue l'undercut sur d'autres tirages, où sa moyenne des 5 % pires vaut −13,2 s au lieu de −13,4 s. Si je fixe la perte aux stands à sa médiane, cette moyenne remonte de −13,2 s à −2,1 s. L'undercut ajoute peu de risque de queue. Comparé à « ne rien faire », il est meilleur dans 81 % (Monza) à 93 % (Bahreïn) des scénarios simulés.
-- **La safety car pèse moins que je ne le pensais sur cette décision précise.** Il y a 5,4 % de chances qu'une neutralisation tombe dans une fenêtre de 3 tours. Quand c'est le cas entre les deux arrêts, c'est grave : A perd environ 8 s. Mais c'est rare. Le risque de safety car compte bien plus pour le choix de la fenêtre d'arrêt sur toute la course, une question que je ne traite pas ici.
-- **À Monza, l'undercut ne fonctionne presque pas, et les chiffres l'expliquent.** Les pneus s'y usent à 0,018 s/tour. Un tour de pneus neufs y rapporte donc moins que la dispersion des arrêts aux stands. Quand je fixe la perte aux stands à sa médiane, la probabilité de réussite tombe de 31 % à 2 %. Presque toutes les chances de l'attaquant viennent donc d'un arrêt plus rapide que celui du rival. Comme cette conclusion repose sur 16 arrêts, je la considère comme fragile.
+- **Le pire cas d'un undercut ressemble beaucoup au pire cas de ne rien faire.** À Bahreïn, la moyenne des 5 % pires scénarios vaut −13,3 s avec l'undercut et −12,9 s sans. Ce qui coûte cher, c'est un arrêt raté, et il peut arriver au tour N comme au tour N+1. L'analyse de sensibilité rejoue l'undercut sur d'autres tirages, où sa moyenne des 5 % pires vaut −13,1 s au lieu de −13,3 s. Si je fixe la perte aux stands à sa médiane, cette moyenne remonte de −13,1 s à −2,9 s. L'undercut ajoute peu de risque de queue. Comparé à « ne rien faire », il est meilleur dans 83 % (Monza) à 92 % (Bahreïn) des scénarios simulés.
+- **La safety car pèse moins que je ne le pensais sur cette décision précise.** Dans le simulateur, une neutralisation (safety car ou VSC) tombe dans la fenêtre de 3 tours dans 5,6 % des cas. Le calcul direct avec les taux observés (26 neutralisations sur 1 421 tours) donne 5,4 % : l'écart vient de l'a priori de Jeffreys, qui ajoute une demi-neutralisation à chacun des deux taux avant de les tirer. Sur les 20 000 tirages de chaque circuit, la fréquence obtenue va de 5,6 à 5,8 %, un peu au-dessus de 5,6 % par le seul hasard des tirages (écart-type de 0,15 point). Quand c'est le cas entre les deux arrêts, c'est grave : A perd de 8 à 10 s de plus que sans neutralisation, selon le circuit. Mais c'est rare. Le risque de safety car compte bien plus pour le choix de la fenêtre d'arrêt sur toute la course, une question que je ne traite pas ici.
+- **À Monza, l'undercut ne fonctionne presque pas, et les chiffres l'expliquent.** Les pneus s'y usent à 0,021 s/tour. Un tour de pneus neufs y rapporte donc moins que la dispersion des arrêts aux stands. Quand je fixe la perte aux stands à sa médiane, la probabilité de réussite tombe de 29 % à 2 %. Presque toutes les chances de l'attaquant viennent donc d'un arrêt plus rapide que celui du rival. Comme cette conclusion repose sur 16 arrêts, je la considère comme fragile.
 - **Après les arrêts, c'est le rythme propre des pilotes qui compte le plus.** Deux dixièmes par tour d'écart de rythme pèsent plus que l'incertitude sur les pneus. Le modèle suppose deux voitures de même rythme, ce qui est rarement vrai dans un duel réel.
 - **Les ratios de perte sous safety car sont très bruités.** Brut, ils allaient de −1,7 à 4,2. Les valeurs extrêmes venaient d'arrêts au premier tour avec des dégâts, d'un accrochage (Sainz et Lawson à Zandvoort) ou d'une safety car déclenchée pendant le tour d'entrée. J'ai écarté les arrêts des tours 1 et 2 et les ratios hors de [0 ; 1,5]. C'est un choix de ma part, et la table complète est gardée dans `docs/results/neutralised_pit_losses.csv`.
 
 ## Limites
 
 - **La validation reste optimiste.** Les paramètres de chaque circuit viennent de la même course que la tentative testée, même si j'en retire les deux pilotes concernés. Les conditions du jour (température, usure réelle, piste) sont donc en partie connues du modèle. Un vrai test hors échantillon demanderait une autre saison sur les mêmes circuits.
-- **Échantillon de validation réduit.** 36 tentatives évaluées, dont deux seulement au-dessus de 75 % de probabilité. Ma définition d'une tentative est aussi une approximation : je ne sais pas si l'équipe visait vraiment l'undercut, si le rival a répondu volontairement ou avait prévu de s'arrêter à ce tour, ni s'il y avait des consignes d'équipe.
-- **Comportement du rival.** Dans le modèle, le rival s'arrête à un tour fixé à l'avance. En réalité, il réagit à ce qu'il voit, et une équipe peut aussi doubler ses arrêts (deux voitures à la suite) et perdre du temps dans les stands. Le scénario « le rival reste 3 tours de plus » est le point le plus faible du modèle. Il donne de 47 à 74 % de réussite à l'attaquant, parce que le rival y perd simplement du temps sur des pneus usés. Le modèle ignore tout ce qui rend l'overcut efficace en course : pneus neufs qui chauffent mal, attaquant bloqué dans le trafic, rival qui prépare une fin de course sur des pneus plus frais. Ces chiffres ne doivent pas servir à décider, et la validation ne les teste presque pas (3 tentatives réelles avec une réponse au 3e tour).
-- **Trafic simplifié.** Le trafic à la sortie est tiré dans la distribution observée, sans tenir compte de la position réelle des autres voitures ce jour-là. L'attaquant reste derrière la voiture qu'il rattrape, sans possibilité de dépasser. L'écart OpenF1 est mesuré à la voiture qui précède au classement, pas forcément celle qui est physiquement devant. Le coût de l'air sale (0,34 s/tour) est une moyenne sur toute la saison. Il peut aussi refléter le fait que les pilotes en trafic gèrent leurs pneus.
+- **Échantillon de validation réduit.** 36 tentatives évaluées, dont une seule au-dessus de 75 % de probabilité, qui a échoué. Ma définition d'une tentative est aussi une approximation : je ne sais pas si l'équipe visait vraiment l'undercut, si le rival a répondu volontairement ou avait prévu de s'arrêter à ce tour, ni s'il y avait des consignes d'équipe.
+- **Comportement du rival.** Dans le modèle, le rival s'arrête à un tour fixé à l'avance. En réalité, il réagit à ce qu'il voit, et une équipe peut aussi doubler ses arrêts (deux voitures à la suite) et perdre du temps dans les stands. Le scénario « le rival reste 3 tours de plus » est le point le plus faible du modèle. Il donne de 49 à 70 % de réussite à l'attaquant, parce que le rival y perd simplement du temps sur des pneus usés. Le modèle ignore tout ce qui rend l'overcut efficace en course : pneus neufs qui chauffent mal, attaquant bloqué dans le trafic, rival qui prépare une fin de course sur des pneus plus frais. Ces chiffres ne doivent pas servir à décider, et la validation ne les teste presque pas (3 tentatives réelles avec une réponse au 3e tour).
+- **Trafic simplifié.** Le trafic à la sortie est tiré dans la distribution observée, sans tenir compte de la position réelle des autres voitures ce jour-là. L'attaquant reste derrière la voiture qu'il rattrape, sans possibilité de dépasser. L'écart OpenF1 est mesuré à la voiture qui précède au classement, pas forcément celle qui est physiquement devant. L'écart de 0 qu'OpenF1 donne au leader est traité comme de l'air libre ; avant la correction, il comptait comme du trafic. Le coût de l'air sale (0,36 s/tour) est une moyenne sur toute la saison. Il peut aussi refléter le fait que les pilotes en trafic gèrent leurs pneus.
 - **Safety cars difficiles à prévoir.** 26 neutralisations sur une saison, c'est peu. Le taux est le même pour tous les circuits et pour tous les tours, alors que certains circuits (Melbourne, Zandvoort) en concentrent beaucoup et que les incidents arrivent plus en début de course. Je ne modélise pas le regroupement du peloton derrière la safety car ni les drapeaux rouges (un seul en 2025, au 1er tour à Spa, exclu). L'ordre en piste est juste, mais l'écart en secondes après une neutralisation ne l'est pas.
 - **Pertes aux stands.** Elles incluent les pénalités purgées à l'arrêt et les problèmes mécaniques, que je ne sais pas séparer. Tous les arrêts d'un circuit sont mélangés, comme si toutes les équipes avaient le même équipage aux stands. Or c'est la première source d'incertitude du modèle. La séparation entre perte aux stands et bruit des tours reste approximative : le tour normal de référence est une moyenne de tours voisins, sur pneus usés et neufs mélangés.
-- **Monza est le circuit le plus fragile.** Seulement 16 arrêts mesurables, dont 3 au-dessus de 29 s (Norris, Ocon, Stroll). Retirer ou ajouter un arrêt lent change visiblement la probabilité de réussite et le pire cas. Les conclusions sur Monza sont des ordres de grandeur.
+- **Monza est le circuit le plus fragile.** Seulement 16 arrêts mesurables, dont 2 au-dessus de 29 s (Ocon, Stroll) et celui de Norris à 28,4 s. Retirer ou ajouter un arrêt lent change visiblement la probabilité de réussite et le pire cas. Les conclusions sur Monza sont des ordres de grandeur.
 - **Peu de courses par circuit.** Une seule course par circuit pour la dégradation, avec un écart de rythme entre gommes fragile (le moteur de stratégie le notait déjà). Sur Melbourne, Silverstone et Spa, courses mouillées ou très perturbées, la régression n'est pas identifiable.
 - **Ce que le modèle ignore.** La montée en température des pneus neufs (en partie comprise dans la perte aux stands mesurée), une dégradation non linéaire, les consignes d'équipe et les écarts de rythme entre pilotes, supposés nuls dans les scénarios de référence.
 
@@ -173,7 +173,7 @@ python -m f1risk all   # ingestion de la saison + paramètres, simulations, vali
 pytest                 # 16 tests ; celui de cohérence avec le moteur de stratégie demande la base locale
 ```
 
-Le premier lancement télécharge environ 170 réponses d'OpenF1 (près de 100 Mo, gardés dans `data/raw/`). À cause de la limite de débit de l'API, cela prend de 6 à 7 minutes. Les lancements suivants lisent le cache, et l'analyse prend une quinzaine de secondes. On peut lancer les étapes séparément : `python -m f1risk ingest` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1risk ingest` après la fin de la session.
+Le premier lancement télécharge environ 170 réponses d'OpenF1 (près de 100 Mo, gardés dans `data/raw/`). À cause de la limite de débit de l'API, cela prend de 6 à 7 minutes. Les lancements suivants lisent le cache, et `python -m f1risk all` prend environ 7 secondes. On peut lancer les étapes séparément : `python -m f1risk ingest` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1risk ingest` après la fin de la session.
 
 Ce qui est produit :
 - `data/f1_2025.db` : la base SQLite de la saison, avec le schéma du moteur de stratégie (non versionnée, régénérable) ;

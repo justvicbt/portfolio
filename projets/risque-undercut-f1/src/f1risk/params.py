@@ -120,6 +120,8 @@ def rejoin_gaps(data: SeasonData, circuit: str, exclude_drivers=()) -> np.ndarra
 def circuit_params(data: SeasonData, circuit: str, exclude_drivers=()) -> CircuitParams:
     clean = data.clean[(data.clean["circuit"] == circuit) & ~data.clean["driver"].isin(exclude_drivers)]
     fit = fit_race(clean, estimate_trend=True)   # modèle B du moteur de stratégie
+    # statsmodels émet alors un SingularMatrixWarning (Spa : dur des seuls pilotes sans medium propre) ;
+    # il est laissé visible, car l'ajustement est rejeté juste après par ce contrôle de rang.
     exog = fit.result.model.exog
     if np.linalg.matrix_rank(exog) < exog.shape[1]:
         # Arrive sur les courses mouillées ou avec trop peu de relais : paramètres non identifiés.

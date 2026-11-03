@@ -22,7 +22,7 @@ Le centre de commande a sa propre base (`data/f1cc.db`) et son propre cache (`da
 - Bahreïn (Sakhir), Hongrie (Hungaroring) et Italie (Monza), déjà étudiées dans le moteur de stratégie, ce qui permet de vérifier que je retrouve les mêmes pentes ;
 - Grande-Bretagne (Silverstone), une course sous la pluie, pour voir comment l'outil réagit quand les modèles ne tiennent plus.
 
-Elles représentent 4 301 tours, dont 1 796 propres, 593 mesures météo et environ 24 800 points de télémétrie. Les endpoints OpenF1 utilisés sont `sessions`, `drivers`, `laps`, `stints`, `pit`, `race_control`, `intervals`, `car_data` (moteur de stratégie), plus `weather` et `session_result`. Cela fait 112 réponses et 22 Mo en cache. OpenF1 n'a pas d'endpoint d'état de la piste : je le reconstruis à partir des messages de la direction de course (code du moteur de stratégie) et de la température de piste.
+Elles représentent 4 301 tours, dont 1 959 propres, 593 mesures météo et environ 24 800 points de télémétrie. Les endpoints OpenF1 utilisés sont `sessions`, `drivers`, `laps`, `stints`, `pit`, `race_control`, `intervals`, `car_data` (moteur de stratégie), plus `weather` et `session_result`. Cela fait 112 réponses et 22 Mo en cache. OpenF1 n'a pas d'endpoint d'état de la piste : je le reconstruis à partir des messages de la direction de course (code du moteur de stratégie) et de la température de piste.
 
 **L'ETL** (`python -m f1cc etl`) :
 
@@ -119,12 +119,12 @@ Le tableau de bord a six pages. La course et le tour courant se choisissent dans
 
 | Course | Tours | Tours propres | Mesures météo | Pluie signalée | Piste (°C) |
 |---|---|---|---|---|---|
-| Bahreïn | 1 129 | 448 (40 %) | 158 | 0 | 30,2 à 34,8 |
-| Hongrie | 1 369 | 751 (55 %) | 136 | 0 | 30,6 à 36,5 |
-| Monza | 976 | 503 (52 %) | 144 | 0 | 39,8 à 45,9 |
-| Silverstone | 827 | 94 (11 %) | 155 | 28 | 20,0 à 29,6 |
+| Bahreïn | 1 129 | 495 (44 %) | 158 | 0 | 30,2 à 34,8 |
+| Hongrie | 1 369 | 814 (59 %) | 136 | 0 | 30,6 à 36,5 |
+| Monza | 976 | 549 (56 %) | 144 | 0 | 39,8 à 45,9 |
+| Silverstone | 827 | 101 (12 %) | 155 | 28 | 20,0 à 29,6 |
 
-La colonne « Piste » couvre toutes les mesures de la séance, y compris celles d'avant le départ. Pendant les tours de course, la plage est plus étroite : de 30,6 à 32,3 °C en Hongrie, par exemple. La météo couvre 100 % des tours des quatre courses, sans interpolation. Les pentes de dégradation de Bahreïn, de la Hongrie et de Monza recoupent celles du moteur de stratégie à 0,0015 s/tour près (test `test_consistency.py`). C'est le même écart que celui déjà constaté dans le projet Risque d'undercut F1, dû à une révision des données OpenF1.
+La colonne « Piste » couvre toutes les mesures de la séance, y compris celles d'avant le départ. Pendant les tours de course, la plage est plus étroite : de 30,6 à 32,3 °C en Hongrie, par exemple. La météo couvre 100 % des tours des quatre courses, sans interpolation. Les pentes de dégradation de Bahreïn, de la Hongrie et de Monza recoupent celles du moteur de stratégie à 0,0018 s/tour près (test `test_consistency.py`). C'est le même écart que celui déjà constaté dans le projet Risque d'undercut F1, dû à une révision des données OpenF1.
 
 **Des heures de passage fausses dans OpenF1.** En relisant le tableau de bord, j'ai vu Russell tomber à la 20e place à Bahreïn au tour 37, avec 70 s de retard, puis revenir 2e au tour suivant. C'était un artefact : OpenF1 publie un début de tour 38 décalé de 70 s, alors que les durées des tours 37 et 38 s'enchaînent à 0,5 s près avec le début du tour 39. La correction décrite plus haut traite ce cas, et 7 autres à Silverstone (décalages de 3 à 12 s, dont 6 pilotes sur le même tour 47, sans doute un défaut ponctuel du flux). La Vue d'ensemble signale les tours corrigés.
 
@@ -139,22 +139,22 @@ Deux autres contrôles restent « à vérifier » sur toutes les courses, et je 
 | Bahreïn | données insuffisantes | sur les tours propres, la piste ne varie que de 1,8 °C |
 | Hongrie | données insuffisantes | 1,7 °C de variation |
 | Silverstone | données insuffisantes | 1,2 °C sur les tours propres, qui sont presque tous en fin de course |
-| Monza | non concluant | +0,025 s par °C [0,007 ; 0,043] sans tendance, mais +0,044 [−0,06 ; 0,15] avec, et une corrélation de −0,95 entre température et numéro de tour |
+| Monza | non concluant | +0,014 s par °C [−0,009 ; 0,037] sans tendance, +0,022 [−0,08 ; 0,13] avec, et une corrélation de −0,95 entre température et numéro de tour |
 
-Je m'y attendais en partie, mais pas à ce point. Sur une course, la température de piste suit l'heure. Elle évolue donc avec le carburant brûlé et la gomme déposée, et une seule course ne permet pas de séparer ces effets. Monza est le seul cas où la température varie assez, et elle y baisse presque en ligne droite pendant la course. Le chiffre sans tendance a l'air significatif, mais il disparaît dès qu'on laisse le modèle estimer la tendance. La page le dit en clair.
+Je m'y attendais en partie, mais pas à ce point. Sur une course, la température de piste suit l'heure. Elle évolue donc avec le carburant brûlé et la gomme déposée, et une seule course ne permet pas de séparer ces effets. Monza est le seul cas où la température varie assez, et elle y baisse presque en ligne droite pendant la course. Aucun des deux intervalles n'exclut 0. Avant la correction, le chiffre sans tendance semblait significatif (+0,025 s par °C [0,007 ; 0,043]), mais il disparaissait dès qu'on laissait le modèle estimer la tendance. Depuis que l'écart de 0 donné par OpenF1 au leader n'est plus compté comme du trafic, il n'est plus significatif non plus. La page le dit en clair.
 
 ### Stratégie : le modèle et la course divergent souvent
 
 | Course | Verdict du modèle (moteur de stratégie) | Fenêtre du 1er arrêt (80 % des tirages) | 1er arrêt médian en course |
 |---|---|---|---|
-| Bahreïn | 2 arrêts dans 100 % des tirages | tours 18 à 20 | tour 12 |
-| Hongrie | 2 arrêts dans 84 % des tirages | tours 19 à 22 | tour 20 |
-| Monza | 1 arrêt dans 100 % des tirages | tours 19 à 25 | tour 33 |
+| Bahreïn | 2 arrêts dans 100 % des tirages | tours 18 à 21 | tour 12 |
+| Hongrie | ne tranche pas : 2 arrêts dans 68 % des tirages | pas de fenêtre affichée | tour 20 |
+| Monza | 1 arrêt dans 100 % des tirages | tours 19 à 24 | tour 33 |
 | Silverstone | pas de simulation (pente négative, piste qui sèche) | | |
 
-Pour la Hongrie, ces 84 % viennent de la simulation du centre de commande (1 000 tirages), alors que le [Moteur de stratégie F1](../moteur-strategie-f1) annonce 82 % (2 000 tirages) : ce sont deux simulations différentes du même modèle.
+Pour la Hongrie, ces 68 % viennent de la simulation du centre de commande (1 000 tirages). Le [Moteur de stratégie F1](../moteur-strategie-f1) annonce lui aussi 68 % (2 000 tirages), avec deux simulations différentes du même modèle. La page ne désigne ni un nombre d'arrêts ni une fenêtre : les deux familles de stratégies sont trop proches pour que le modèle tranche.
 
-Le nombre d'arrêts correspond à ce qui s'est passé, comme dans le moteur de stratégie. Le moment de l'arrêt, lui, ne correspond qu'en Hongrie. À Bahreïn, les pilotes se sont arrêtés de six à huit tours plus tôt que le modèle ne l'aurait voulu. À Monza, ils se sont arrêtés dix tours plus tard. Le modèle ne connaît ni la chute brutale du pneu, ni la position en piste, ni les safety cars, et à Monza la dégradation est si faible que le moment de l'arrêt n'y change presque rien. La page signale ce désaccord au lieu de présenter la fenêtre du modèle comme le bon moment.
+Là où le modèle tranche, à Bahreïn et à Monza, le nombre d'arrêts correspond à ce qui s'est passé, comme dans le moteur de stratégie. Le moment de l'arrêt, lui, ne correspond nulle part. À Bahreïn, les pilotes se sont arrêtés de six à neuf tours plus tôt que le modèle ne l'aurait voulu. À Monza, ils se sont arrêtés dix tours plus tard. Le modèle ne connaît ni la chute brutale du pneu, ni la position en piste, ni les safety cars, et à Monza la dégradation est si faible que le moment de l'arrêt n'y change presque rien. La page signale ce désaccord au lieu de présenter la fenêtre du modèle comme le bon moment.
 
 Pour l'undercut, la page choisit par défaut la paire de pilotes qui a passé le plus de tours de la fenêtre d'arrêt à moins de 3 s l'un de l'autre. Sur les trois courses sèches, la probabilité de réussite varie peu d'un tour à l'autre. Avec les paires proposées par défaut, aucun tour ne se détache du suivant de plus de 5 points. Le tableau de bord n'en désigne donc aucun.
 
@@ -176,8 +176,8 @@ Pour l'undercut, la page choisit par défaut la paire de pilotes qui a passé le
   - Certaines heures de début de tour sont fausses (1 à Bahreïn, 7 à Silverstone). Je les corrige quand les deux tours voisins concordent. Une erreur sur deux tours de suite, ou un tour voisin sans durée, passerait sans correction et fausserait la position et l'écart de ce tour. Le moteur de stratégie et la validation du projet Risque d'undercut F1 utilisent ces heures brutes : je ne les ai pas modifiés, mais ce défaut peut les toucher aussi.
   - La télémétrie est échantillonnée à environ 3,7 Hz, et sa distance est approximative.
   - Je n'ai pas de quoi recouper les âges des pneus et les durées d'arrêt.
-- **Hypothèses héritées du moteur de stratégie.** La correction carburant (0,03 s par kg, 100 kg, débit constant) pèse directement sur les pentes et sur le résidu de rythme (calcul C). La dégradation est linéaire, sans falaise. Les règles de tour propre, notamment le seuil de trafic de 1,5 s mesuré à la voiture précédente au classement, écartent de 45 à 60 % des tours sur piste sèche et 89 % à Silverstone. Le simulateur suppose des pneus neufs, aucune safety car et ignore la position en piste.
-- **Hypothèses héritées du simulateur d'undercut.** Le rival répond au tour suivant. Les deux voitures ont le même rythme propre. Les paramètres de safety car sont des moyennes de saison. Sa validation sur 36 vraies tentatives ne contredit pas le modèle, mais ne prouve pas qu'il prédit bien (score de Brier de 0,227 contre 0,249 pour une probabilité constante). Ici, les paramètres du circuit sont estimés sur la course étudiée, pilotes concernés compris : c'est plus optimiste encore que la validation du simulateur d'undercut.
+- **Hypothèses héritées du moteur de stratégie.** La correction carburant (0,03 s par kg, 100 kg, débit constant) pèse directement sur les pentes et sur le résidu de rythme (calcul C). La dégradation est linéaire, sans falaise. Les règles de tour propre, notamment le seuil de trafic de 1,5 s mesuré à la voiture précédente au classement (le 0 qu'OpenF1 donne au leader compte comme de l'air libre), écartent de 41 à 56 % des tours sur piste sèche et 88 % à Silverstone. Le simulateur suppose des pneus neufs, aucune safety car et ignore la position en piste.
+- **Hypothèses héritées du simulateur d'undercut.** Le rival répond au tour suivant. Les deux voitures ont le même rythme propre. Les paramètres de safety car sont des moyennes de saison. Sa validation sur 36 vraies tentatives ne contredit pas le modèle, mais ne prouve pas qu'il prédit bien (score de Brier de 0,225 contre 0,249 pour une probabilité constante). Ici, les paramètres du circuit sont estimés sur la course étudiée, pilotes concernés compris : c'est plus optimiste encore que la validation du simulateur d'undercut.
 - **Limites des calculs d'écart.**
   - Le cumul des écarts au tour (B) saute les tours sans temps et ne compte pas l'écart sur la grille. Il peut donc s'éloigner de l'écart réel sur la ligne.
   - L'écart de rythme moyen entre deux pilotes compare des tours où les pneus ne sont pas forcément les mêmes, et son intervalle est un peu trop étroit parce que des tours consécutifs ne sont pas indépendants.

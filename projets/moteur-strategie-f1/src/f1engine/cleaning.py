@@ -102,9 +102,11 @@ def attach_tyres(laps: pd.DataFrame, stints: pd.DataFrame) -> pd.DataFrame:
 
 
 def gap_ahead(laps: pd.DataFrame, intervals: pd.DataFrame, tolerance_s: float = 20) -> pd.Series:
-    """Écart à la voiture devant, dernière mesure avant le début du tour ; "+1 LAP" (OpenF1) devient NaN."""
+    """Écart à la voiture devant, dernière mesure avant le début du tour ; "+1 LAP" (OpenF1) et le 0 du leader
+    deviennent NaN (air libre)."""
     iv = intervals[["date", "driver_number", "interval"]].copy()
     iv["interval"] = pd.to_numeric(iv["interval"], errors="coerce")
+    iv["interval"] = iv["interval"].mask(iv["interval"] == 0)  # OpenF1 renvoie 0 pour le leader : personne devant
     iv = iv.dropna(subset=["date"]).sort_values("date")
     left = laps[["driver_number", "date_start"]].reset_index().dropna(subset=["date_start"]).sort_values("date_start")
     merged = pd.merge_asof(

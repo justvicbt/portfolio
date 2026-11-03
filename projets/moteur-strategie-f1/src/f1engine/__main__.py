@@ -14,7 +14,7 @@ from . import ingest, queries
 from .config import RESULTS_DIR, SQL_DIR, fuel_model
 from .db import get_engine, read_sql
 from .degradation import fit_all, robustness
-from .plots import degradation_chart, strategy_chart, telemetry_chart
+from .plots import COMPOUND_LABEL, degradation_chart, fr, strategy_chart, telemetry_chart
 from .strategy import compare
 
 
@@ -72,8 +72,8 @@ def analyze(duel_circuit: str = "Monza", duel_drivers: tuple[str, str] = ("VER",
     info = {}
     for drv, g in tel.groupby("acronym"):
         lap_time = g["lap_time_s"].iloc[0]
-        info[drv] = (f"{int(lap_time // 60)}:{lap_time % 60:06.3f}, "
-                     f"{g['compound'].iloc[0].lower()} {int(g['tyre_age'].iloc[0])} tours")
+        info[drv] = (f"{int(lap_time // 60)}:{fr(lap_time % 60, 3).zfill(6)}, "
+                     f"{COMPOUND_LABEL[g['compound'].iloc[0]].lower()} {int(g['tyre_age'].iloc[0])} tours")
     paths = [degradation_chart(table), strategy_chart(comparisons, pit_loss),
              telemetry_chart(tel, duel_circuit, duel_drivers, info)]
     print("\nGraphiques :", *paths, sep="\n  ")

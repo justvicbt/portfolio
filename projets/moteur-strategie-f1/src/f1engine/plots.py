@@ -12,9 +12,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+from matplotlib.ticker import FuncFormatter  # noqa: E402
 
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
 COMPOUND_COLOR = {"SOFT": SERIES[0], "MEDIUM": SERIES[1], "HARD": SERIES[2]}
+COMPOUND_LABEL = {"SOFT": "Tendre", "MEDIUM": "Medium", "HARD": "Dur"}
 SURFACE, INK, INK_2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 CIRCUIT_LABEL = {"Sakhir": "Bahreïn", "Catalunya": "Espagne", "Hungaroring": "Hongrie", "Monza": "Italie (Monza)"}
 
@@ -25,6 +27,11 @@ plt.rcParams.update({
     "axes.spines.top": False, "axes.spines.right": False, "font.size": 10,
     "axes.titlesize": 12, "axes.titleweight": "bold", "axes.titlelocation": "left",
 })
+
+
+def fr(x: float, nd: int) -> str:
+    """Nombre à la française : virgule décimale."""
+    return f"{x:.{nd}f}".replace(".", ",")
 
 
 def _save(fig, name: str) -> str:
@@ -45,16 +52,17 @@ def degradation_chart(table: pd.DataFrame) -> str:
         color = COMPOUND_COLOR[row.compound]
         ax.plot([row.slope_ci_low, row.slope_ci_high], [y, y], color=color, lw=2, solid_capstyle="round")
         ax.plot(row.slope_s_per_lap, y, "o", ms=8, color=color, mec=SURFACE, mew=2)
-        ax.annotate(f"{row.compound.capitalize()}  {row.slope_s_per_lap:.3f}", (row.slope_ci_high, y),
+        ax.annotate(f"{COMPOUND_LABEL[row.compound]}  {fr(row.slope_s_per_lap, 3)}", (row.slope_ci_high, y),
                     xytext=(6, 0), textcoords="offset points", va="center", fontsize=8.5, color=INK_2)
     ax.set_yticks(range(len(circuits)), [CIRCUIT_LABEL[c] for c in circuits])
     ax.invert_yaxis()
     ax.axvline(0, color=AXIS, lw=1)
     ax.set_xlim(-0.01, 0.19)
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
     ax.grid(axis="y", visible=False)
     ax.set_xlabel("Secondes perdues par tour d'âge du pneu (corrigé du carburant)")
     ax.set_title("Dégradation des pneus par course, Grands Prix 2025")
-    handles = [plt.Line2D([], [], marker="o", ls="", ms=8, color=COMPOUND_COLOR[c], label=c.capitalize())
+    handles = [plt.Line2D([], [], marker="o", ls="", ms=8, color=COMPOUND_COLOR[c], label=COMPOUND_LABEL[c])
                for c in COMPOUND_COLOR]
     ax.legend(handles=handles, loc="lower right", frameon=False, ncol=3)
     fig.text(0.01, -0.07, "Point : estimation OLS (effet fixe pilote). Trait : intervalle de confiance à 95 %, "
@@ -77,7 +85,7 @@ def strategy_chart(comparisons: list, pit_loss: pd.DataFrame) -> str:
     for c in circuits:
         y = circuits.index(c)
         ax.plot(loss[c], y, marker="D", ms=8, color=INK, mec=SURFACE, mew=1.5, ls="")
-        ax.annotate(f"{loss[c]:.1f} s", (loss[c], y), xytext=(-9, 0), textcoords="offset points",
+        ax.annotate(f"{fr(loss[c], 1)} s", (loss[c], y), xytext=(-9, 0), textcoords="offset points",
                     ha="right", va="center", fontsize=8.5, color=INK)
     ax.set_yticks(range(len(circuits)), [CIRCUIT_LABEL[c] for c in circuits])
     ax.invert_yaxis()
@@ -99,7 +107,7 @@ def telemetry_chart(tel: pd.DataFrame, circuit: str, drivers: tuple[str, str], l
     for i, drv in enumerate(drivers):
         d = tel[tel["acronym"] == drv]
         color = SERIES[i]
-        axes[0].plot(d["distance_m"], d["speed_kmh"], color=color, lw=1.6, label=f"{drv} — {lap_info[drv]}")
+        axes[0].plot(d["distance_m"], d["speed_kmh"], color=color, lw=1.6, label=f"{drv}, {lap_info[drv]}")
         axes[1].plot(d["distance_m"], d["throttle_pct"], color=color, lw=1.4)
         axes[2].fill_between(d["distance_m"], i, i + 0.8 * d["brake_on"], step="post", color=color, lw=0)
     first = tel[tel["acronym"] == drivers[0]]
@@ -116,7 +124,7 @@ def telemetry_chart(tel: pd.DataFrame, circuit: str, drivers: tuple[str, str], l
     axes[2].grid(False)
     axes[2].set_xlabel("Distance depuis la ligne (m, intégrée depuis la vitesse)")
     axes[0].legend(loc="lower left", bbox_to_anchor=(0, 1.0), frameon=False, fontsize=9, ncol=2)
-    axes[0].set_title(f"Tour le plus rapide, {CIRCUIT_LABEL.get(circuit, circuit)} 2025 : {drivers[0]} vs {drivers[1]}",
+    axes[0].set_title(f"Tour le plus rapide, {CIRCUIT_LABEL.get(circuit, circuit)} 2025 : {drivers[0]} contre {drivers[1]}",
                       pad=26)
     fig.text(0.01, -0.01, "Source : OpenF1, ~3,7 mesures par seconde. Les pics très courts (freinages) peuvent "
              "être lissés ou manqués.", fontsize=8, color=MUTED)

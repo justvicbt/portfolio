@@ -20,7 +20,7 @@ J'avais prévu d'utiliser FastF1. Au moment de commencer, l'archive officielle d
 - le premier tour, à cause du départ arrêté ;
 - les tours d'entrée et de sortie des stands ;
 - les tours sous safety car, VSC, drapeau rouge ou drapeau jaune. Je reconstruis les fenêtres de neutralisation à partir des messages de la direction de course (« SAFETY CAR DEPLOYED » … « TRACK CLEAR »), et le tour de relance est écarté lui aussi ;
-- les tours dans le trafic, quand la voiture de devant est à moins de 1,5 s au début du tour ;
+- les tours dans le trafic, quand la voiture de devant est à moins de 1,5 s au début du tour. OpenF1 donne un écart de 0 au leader : je le traite comme une absence de voiture devant, donc de l'air libre ;
 - les tours aberrants, au-delà de 107 % du temps médian du pilote ;
 - les tours en pneus pluie ou de gomme inconnue.
 
@@ -48,17 +48,17 @@ Ensuite, je corrige l'effet du carburant. Une voiture part avec environ 100 kg d
 
 | Course | Composé | Pente (s/tour) | IC 95 % | Tours propres |
 |---|---|---|---|---|
-| Bahreïn | Tendre | 0,100 | [0,078 ; 0,123] | 67 |
-| Bahreïn | Medium | 0,096 | [0,075 ; 0,116] | 218 |
-| Bahreïn | Dur | 0,122 | [0,109 ; 0,135] | 163 |
-| Espagne | Tendre | 0,113 | [0,091 ; 0,135] | 269 |
-| Espagne | Medium | 0,056 | [0,040 ; 0,071] | 358 |
-| Hongrie | Medium | 0,053 | [0,040 ; 0,066] | 248 |
-| Hongrie | Dur | 0,051 | [0,037 ; 0,064] | 492 |
-| Monza | Medium | 0,017 | [0,011 ; 0,024] | 212 |
-| Monza | Dur | 0,013 | [0,006 ; 0,020] | 277 |
+| Bahreïn | Tendre | 0,101 | [0,080 ; 0,122] | 79 |
+| Bahreïn | Medium | 0,085 | [0,066 ; 0,105] | 253 |
+| Bahreïn | Dur | 0,121 | [0,108 ; 0,134] | 163 |
+| Espagne | Tendre | 0,111 | [0,091 ; 0,130] | 303 |
+| Espagne | Medium | 0,055 | [0,040 ; 0,070] | 376 |
+| Hongrie | Medium | 0,056 | [0,043 ; 0,069] | 275 |
+| Hongrie | Dur | 0,049 | [0,037 ; 0,060] | 528 |
+| Monza | Medium | 0,020 | [0,014 ; 0,027] | 252 |
+| Monza | Dur | 0,013 | [0,006 ; 0,019] | 283 |
 
-Bahreïn, avec sa piste abrasive et sa chaleur, use les pneus de six à neuf fois plus vite que Monza. En Espagne, le tendre se dégrade deux fois plus vite que le medium. Une gomme n'apparaît que si elle a au moins 30 tours propres et 3 relais. Le dur en Espagne n'a servi qu'une fois, et le tendre a très peu tourné en Hongrie et à Monza.
+Bahreïn, avec sa piste abrasive et sa chaleur, use les pneus de quatre à dix fois plus vite que Monza (quatre fois pour le medium, dix fois pour le dur). En Espagne, le tendre se dégrade deux fois plus vite que le medium. Une gomme n'apparaît que si elle a au moins 30 tours propres et 3 relais. Le dur en Espagne n'a servi qu'une fois, et le tendre a très peu tourné en Hongrie et à Monza.
 
 ### 1 arrêt ou 2 arrêts ?
 
@@ -66,12 +66,12 @@ Bahreïn, avec sa piste abrasive et sa chaleur, use les pneus de six à neuf foi
 
 | Course | Seuil (modèle A) | Intervalle 90 % | Perte aux stands mesurée | Verdict du modèle | Ce qui s'est passé en course |
 |---|---|---|---|---|---|
-| Bahreïn | 31,7 s | [27,9 ; 34,8] | 23,3 s | 2 arrêts | Les 20 pilotes se sont arrêtés au moins deux fois |
-| Espagne | 28,8 s | [24,0 ; 33,6] | 22,7 s | 2 arrêts | 19 pilotes sur 20 à 2 arrêts ou plus |
-| Hongrie | 23,9 s | [20,5 ; 27,0] | 22,0 s | Limite (2 arrêts dans 82 % des tirages) | Stratégies mélangées : 9 pilotes à 2 arrêts, et Norris gagne avec 1 seul |
-| Monza | 3,9 s | [2,7 ; 5,1] | 25,5 s | 1 arrêt, sans hésitation | Tout le monde à 1 arrêt |
+| Bahreïn | 30,5 s | [26,7 ; 33,8] | 23,2 s | 2 arrêts | Les 20 pilotes se sont arrêtés au moins deux fois |
+| Espagne | 28,7 s | [24,2 ; 33,1] | 22,6 s | 2 arrêts | 19 pilotes sur 20 à 2 arrêts ou plus |
+| Hongrie | 22,8 s | [19,8 ; 25,8] | 22,0 s | Ne tranche pas (2 arrêts dans 68 % des tirages) | Stratégies mélangées : 9 pilotes à 2 arrêts, et Norris gagne avec 1 seul |
+| Monza | 3,8 s | [2,8 ; 5,0] | 25,4 s | 1 arrêt, sans hésitation | Tout le monde à 1 arrêt |
 
-La « perte aux stands mesurée » vient de la requête `04_pit_loss.sql` : le temps du tour d'entrée et du tour de sortie, moins deux tours normaux du même pilote. Sur ces quatre courses, ce modèle très simple retrouve la stratégie dominante. La Hongrie est le seul cas limite pour le modèle. C'est aussi la course où Norris a gagné avec un seul arrêt, alors que 9 pilotes se sont arrêtés deux fois.
+La « perte aux stands mesurée » vient de la requête `04_pit_loss.sql` : le temps du tour d'entrée et du tour de sortie, moins deux tours normaux du même pilote. Sur trois courses, ce modèle très simple retrouve la stratégie dominante. En Hongrie, il ne tranche pas : le seuil (22,8 s) est à 0,8 s de la perte aux stands mesurée (22,0 s), son intervalle la contient largement, et 2 arrêts ne l'emportent que dans 68 % des tirages. C'est aussi la course où Norris a gagné avec un seul arrêt, alors que 9 pilotes se sont arrêtés deux fois.
 
 ### Télémétrie
 
@@ -81,10 +81,10 @@ Voici les tours les plus rapides de Verstappen (1:21,003, en pneus durs de 14 to
 
 ## Ce que j'en retiens
 
-- Le nettoyage m'a pris la moitié du travail. Selon la course, j'ai gardé seulement de 40 à 55 % des tours. Le trafic en écarte à lui seul de 29 à 45 %. Sans ce filtre, la pente mesurerait surtout la difficulté à dépasser.
-- L'hypothèse carburant pèse directement sur les pentes. Dans un relais, l'âge du pneu et le numéro de tour augmentent ensemble. Les données seules ne peuvent donc pas séparer l'usure des pneus de l'allègement de la voiture : c'est l'hypothèse qui tranche. Si je passe de 0,03 à 0,02 ou 0,04 s/kg, les pentes bougent de ±0,01 à 0,02 s/tour, soit autant que toute l'usure mesurée à Monza (fichier `docs/results/degradation_robustness.csv`).
-- Je peux quand même tester cette hypothèse. Pour ça, j'ai ajouté une variante (le modèle B) qui estime la tendance de course directement à partir des données. C'est possible parce que l'âge du pneu repart à zéro à chaque arrêt, alors que le numéro de tour continue. Sur trois courses, la tendance estimée colle à l'hypothèse 0,03 s/kg à 0,007 s/tour près. À Bahreïn, il reste 0,023 s/tour inexpliqué, probablement la piste qui gagne en adhérence en refroidissant (c'est une course de nuit). Avec cette correction, les pentes de Bahreïn montent et vont de 0,12 à 0,15 s/tour.
-- Les écarts de rythme entre gommes sont fragiles. Le modèle A trouvait le dur 0,5 s plus rapide que le medium à Bahreïn, ce qui est peu crédible. En réalité, les relais en dur ont surtout eu lieu en fin de course, sur une piste plus rapide. Le modèle B ramène cet écart à 0,1 s. Les pentes sont beaucoup plus solides que les niveaux.
+- Le nettoyage m'a pris la moitié du travail. Selon la course, j'ai gardé seulement de 44 à 59 % des tours. Le trafic en écarte à lui seul de 24 à 41 %. Sans ce filtre, la pente mesurerait surtout la difficulté à dépasser.
+- L'hypothèse carburant pèse directement sur les pentes. Dans un relais, l'âge du pneu et le numéro de tour augmentent ensemble. Les données seules ne peuvent donc pas séparer l'usure des pneus de l'allègement de la voiture : c'est l'hypothèse qui tranche. Si je passe de 0,03 à 0,02 ou 0,04 s/kg, les pentes bougent de 0,008 à 0,042 s/tour selon la course et la gomme (de 0,014 à 0,019 avec un effet fixe par relais au lieu d'un effet fixe par pilote), soit autant ou plus que toute l'usure mesurée à Monza (fichier `docs/results/degradation_robustness.csv`).
+- Je peux quand même tester cette hypothèse. Pour ça, j'ai ajouté une variante (le modèle B) qui estime la tendance de course directement à partir des données. C'est possible parce que l'âge du pneu repart à zéro à chaque arrêt, alors que le numéro de tour continue. Sur trois courses, la tendance estimée colle à l'hypothèse 0,03 s/kg à 0,009 s/tour près. À Bahreïn, il reste 0,023 s/tour inexpliqué, probablement la piste qui gagne en adhérence en refroidissant (c'est une course de nuit). Avec cette correction, les pentes de Bahreïn montent et vont de 0,11 à 0,15 s/tour.
+- Les écarts de rythme entre gommes sont fragiles. Le modèle A trouvait le dur 0,6 s plus rapide que le medium à Bahreïn, ce qui est peu crédible. En réalité, les relais en dur ont surtout eu lieu en fin de course, sur une piste plus rapide. Le modèle B ramène cet écart à 0,2 s. Les pentes sont beaucoup plus solides que les niveaux.
 - Les tests m'ont montré que mes intervalles étaient trop étroits. Sur des données simulées dont je connaissais la vraie pente, mes intervalles à « 95 % » la contenaient seulement de 85 à 90 % du temps. Je suis passé à une loi de Student. À une taille comparable aux vraies données, la couverture remonte : elle va de 91 à 95 %.
 
 ## Limites
@@ -92,10 +92,11 @@ Voici les tours les plus rapides de Verstappen (1:21,003, en pneus durs de 14 to
 - **Effet carburant approximatif.** J'ai supposé 100 kg au départ, une consommation constante et 0,03 s par kg. En réalité, la consommation dépend du rythme, des phases de gestion et des safety cars. Toutes les pentes en dépendent directement (voir plus haut).
 - **Évolution de la piste.** La piste gagne en adhérence pendant la course, et la température change. Le modèle A ne le corrige pas. Le modèle B le fait avec une tendance linéaire, ce qui reste une simplification.
 - **Trafic.** Mon seuil de 1,5 s est arbitraire. En plus, l'écart fourni par OpenF1 est celui avec la voiture qui précède au classement, pas forcément la voiture physiquement devant : une voiture qu'on prend un tour, par exemple, n'est pas comptée. Les tours retenus viennent surtout de voitures en air libre, souvent les premières : c'est un biais de sélection.
+- **Une définition du trafic différente de celle du projet [Usure des pneus F1](../usure-pneus-f1).** Ici, je prends l'écart OpenF1 à la voiture qui précède au classement, au début du tour seulement. Le projet Usure des pneus F1 mesure l'écart sur la ligne avec la voiture physiquement devant, retardataires compris, au début et à la fin du tour. En Hongrie, Norris a ainsi 17 tours dans le trafic ici, contre 22 là-bas. Ces deux différences sont l'explication probable de l'écart, mais je ne l'ai pas mesurée composante par composante. Avant la correction, l'écart de 0 qu'OpenF1 donne au leader était compté comme du trafic : Norris avait alors 51 tours écartés en Hongrie. Tous les chiffres de cette page ont été recalculés après la correction.
 - **Safety cars.** Je reconstruis les neutralisations à partir des messages texte de la direction de course. Pour un drapeau jaune, j'écarte tout le tour, même si le pilote n'est pas passé dans la zone concernée. Surtout, le simulateur ignore la probabilité d'une safety car, alors qu'en vrai elle pèse beaucoup sur le choix du moment de l'arrêt (en Espagne, une safety car au 55e tour a relancé les arrêts).
-- **Un simulateur volontairement simple.** La dégradation y est linéaire, sans « falaise » où le pneu s'effondre. C'est pour cela qu'il propose 30 tours en tendre à Bahreïn, alors que personne n'a dépassé 25. Il suppose aussi des pneus neufs à chaque relais et ignore la position en piste : en Hongrie, Norris a gagné avec 1 arrêt alors que le modèle penchait légèrement pour 2. L'incertitude du Monte Carlo suppose des paramètres qui suivent une loi normale.
+- **Un simulateur volontairement simple.** La dégradation y est linéaire, sans « falaise » où le pneu s'effondre. C'est pour cela que le modèle B propose 26 tours en tendre à Bahreïn, alors que personne n'a dépassé 25. Il suppose aussi des pneus neufs à chaque relais et ignore la position en piste : en Hongrie, Norris a gagné avec 1 arrêt, sur une course où le modèle ne départage pas les deux stratégies. L'incertitude du Monte Carlo suppose des paramètres qui suivent une loi normale.
 - **Qualité des données OpenF1.** La télémétrie est échantillonnée à environ 3,7 Hz, donc un freinage très court peut être lissé. La distance est intégrée à partir de la vitesse (je n'ai pas utilisé les positions GPS), et elle sort de 1 à 1,5 % plus courte que la longueur officielle du circuit. Les écarts entre voitures sont mesurés toutes les quelques secondes. Je prends l'âge des pneus au départ et les durées d'arrêt tels qu'OpenF1 les donne, sans pouvoir les recouper.
-- **Petit échantillon.** Quatre courses, une saison. Avec de 12 à 39 relais par gomme, les intervalles restent légèrement optimistes (couverture de 91 à 95 % en simulation).
+- **Petit échantillon.** Quatre courses, une saison. Avec de 13 à 42 relais par gomme, les intervalles restent légèrement optimistes (couverture de 91 à 95 % en simulation).
 
 ## Lancer le projet
 
@@ -112,7 +113,7 @@ pip install -e .
 cp .env.example .env
 
 python -m f1engine all   # ingestion + requêtes SQL + modèle, simulateur, graphiques
-pytest                   # 21 tests, sans réseau
+pytest                   # 22 tests, sans réseau
 ```
 
 Le premier lancement télécharge environ 110 réponses d'OpenF1, ce qui prend environ 4 minutes à cause de la limite de débit. Les lancements suivants lisent le cache dans `data/raw/` et prennent quelques secondes. On peut aussi lancer les étapes une par une : `python -m f1engine ingest`, `queries` ou `analyze`. Pendant une session de F1 en direct, OpenF1 refuse les requêtes anonymes, même sur les courses passées (erreur 401, « Live F1 session in progress ») : il faut relancer `python -m f1engine ingest` après la fin de la session.

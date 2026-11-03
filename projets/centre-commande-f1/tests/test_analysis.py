@@ -132,4 +132,5 @@ def test_season_parameters_read_from_project_2_results():
     assert (sp.sc_events, sp.vsc_events, sp.exposure_laps) == (13, 13, 1421)
     assert len(sp.sc_ratios) == 36 and len(sp.vsc_ratios) == 11      # « 36 arrêts », « 11 arrêts » dans le CSV
     assert np.isclose(np.median(sp.sc_ratios), 0.6552, atol=1e-3)
-    assert np.isclose(sp.traffic_cost_s, 0.3381) and np.isclose(sp.traffic_cost_se, 0.025)
+    # Valeur du CSV de Risque d'undercut depuis que le 0 OpenF1 du leader compte comme air libre (0,3381 avant).
+    assert np.isclose(sp.traffic_cost_s, 0.3552) and np.isclose(sp.traffic_cost_se, 0.026)
