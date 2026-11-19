@@ -23,7 +23,7 @@ def mean_ci(values):
     return mean, mean - half, mean + half
 
 
-def duplicate_match(candidate, opponent, n_deals, n_players=4, seed=0, ticks=200, log_file=None):
+def duplicate_match(candidate, opponent, n_deals, n_players=4, seed=0, duration=240.0, log_file=None):
     """Gain moyen du candidat sur chaque donne (moyenne sur toutes les rotations de sièges)."""
     per_deal = []
     for d in range(n_deals):
@@ -33,7 +33,7 @@ def duplicate_match(candidate, opponent, n_deals, n_players=4, seed=0, ticks=200
         for seat in range(n_players):
             bots = [opponent] * n_players
             bots[seat] = candidate
-            result = play_round(bots, seed=deal_seed, ticks=ticks)
+            result = play_round(bots, seed=deal_seed, duration=duration)
             total += result.profits[seat]
             if log_file:
                 log_file.write(json.dumps(result.log) + "\n")
@@ -41,20 +41,24 @@ def duplicate_match(candidate, opponent, n_deals, n_players=4, seed=0, ticks=200
     return per_deal
 
 
-def zoo_report(candidate, n_deals, n_players=4, seed=0, ticks=200, log_file=None):
+def zoo_report(candidate, n_deals, n_players=4, seed=0, duration=240.0, log_file=None):
     """Pour chaque adversaire du zoo, sauf le candidat lui-même : (moyenne, borne basse, borne haute) du gain par manche."""
     return {
-        name: mean_ci(duplicate_match(candidate, opp, n_deals, n_players, seed, ticks, log_file))
+        name: mean_ci(duplicate_match(candidate, opp, n_deals, n_players, seed, duration, log_file))
         for name, opp in ZOO.items() if opp is not candidate
     }
 
 
+GATE_REFERENCES = ("heuristique", "sniper")
+
+
 def gate(report):
-    """Règle d'entrée : un bot est refusé s'il ne bat pas nettement l'heuristique (IC entièrement au-dessus de 0).
-    Renvoie None si l'heuristique n'est pas dans le rapport (c'est elle le candidat)."""
-    if "heuristique" not in report:
+    """Règle d'entrée : un bot est refusé s'il ne bat pas nettement chaque référence (IC entièrement au-dessus de 0).
+    Une référence absente du rapport (parce que c'est elle le candidat) est ignorée ; None s'il n'en reste aucune."""
+    refs = [name for name in GATE_REFERENCES if name in report]
+    if not refs:
         return None
-    return report["heuristique"][1] > 0
+    return all(report[name][1] > 0 for name in refs)
 
 
 def main():
@@ -62,7 +66,7 @@ def main():
     parser.add_argument("--candidate", default="bayesien", choices=sorted(ZOO))
     parser.add_argument("--deals", type=int, default=300)
     parser.add_argument("--players", type=int, default=4, choices=(4, 5))
-    parser.add_argument("--ticks", type=int, default=200)
+    parser.add_argument("--duration", type=float, default=240.0, help="durée d'une manche en secondes")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--logs", help="fichier JSONL où écrire le journal de chaque manche")
     parser.add_argument("--out", help="fichier JSON où écrire le rapport")
@@ -72,7 +76,7 @@ def main():
 
     log_file = open(args.logs, "w") if args.logs else None
     try:
-        report = zoo_report(ZOO[args.candidate], args.deals, args.players, args.seed, args.ticks, log_file)
+        report = zoo_report(ZOO[args.candidate], args.deals, args.players, args.seed, args.duration, log_file)
     finally:
         if log_file:
             log_file.close()
@@ -85,7 +89,8 @@ def main():
     worst = min(report, key=lambda k: report[k][0])
     print(f"\nPire adversaire : {worst} ({report[worst][0]:+.2f} $/manche)")
     verdict = gate(report)
-    print("Porte (bat l'heuristique) :", "sans objet" if verdict is None else "ACCEPTÉ" if verdict else "REFUSÉ")
+    refs = [name for name in GATE_REFERENCES if name in report]
+    print(f"Porte (bat {' et '.join(refs) or 'les références'}) :", "sans objet" if verdict is None else "ACCEPTÉ" if verdict else "REFUSÉ")
     if args.out:
         with open(args.out, "w") as f:
             json.dump({"args": vars(args), "report": report, "worst": worst, "gate": gate(report)}, f, indent=2)

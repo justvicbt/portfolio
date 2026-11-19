@@ -68,7 +68,7 @@ The project has an entry rule. A new bot is accepted only if its interval agains
 
 ## Results
 
-Average profit in dollars per round for the row bot, facing copies of the column bot (3 copies with 4 players, 4 with 5). Confidence intervals are in the [`resultats/`](../resultats/) folder. Their half-width is under ±$4 everywhere.
+Average profit in dollars per round for the row bot, facing copies of the column bot (3 copies with 4 players, 4 with 5). Confidence intervals are in the [`resultats/phase0/`](../resultats/phase0/) folder. Their half-width is under ±$4 everywhere.
 
 ### With 4 players
 
@@ -115,6 +115,8 @@ Tables do not mix styles. Each match puts the candidate against copies of a sing
 When there is a tie, the pot split is not rounded ($33.33 each for $100 split three ways). I do not know yet how figgie.com rounds it.
 
 ## Reproduce
+
+The code has changed since. To get exactly the phase 0 code back, first check out its git tag: `git checkout phase0-figgie`.
 
 ```bash
 cd projets/bot-figgie

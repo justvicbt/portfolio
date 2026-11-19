@@ -1,9 +1,9 @@
-"""Seam « manche complète » : donne, score et conservation de l'argent."""
+"""Seam « manche complète » : donne, score, conservation de l'argent et temps continu."""
 import math
 import random
 import unittest
 
-from figgie.engine import TWIN, deal, play_round, score
+from figgie.engine import SUITS, TWIN, deal, play_round, score
 from figgie.bots import ZOO, RandomBot
 
 
@@ -36,27 +36,78 @@ class TestScore(unittest.TestCase):
         self.assertEqual(score([2, 2, 2, 1, 1]), [60, 60, 60, 10, 10])
 
 
+class Seller:
+    """Affiche une carte à 1 $ dès le début, une seule fois."""
+    reaction, idle = 0.05, 1000
+    done = False
+
+    def act(self, view, rng):
+        if self.done:
+            return None
+        self.done = True
+        return ("ask", next(s for s in SUITS if view.hand[s] > 0), 1)
+
+
+class Buyer:
+    """Achète tout ce qui est affiché."""
+    idle = 1000
+
+    def __init__(self, reaction):
+        self.reaction = reaction
+
+    def act(self, view, rng):
+        return next((("buy", s, view.best(s, "ask")[0]) for s in SUITS if view.best(s, "ask")), None)
+
+
+class Idle:
+    def act(self, view, rng):
+        return None
+
+
 class TestPlayRound(unittest.TestCase):
     def test_money_is_conserved(self):
         for seed in range(30):
             for n in (4, 5):
-                result = play_round([RandomBot] * n, seed=seed, ticks=60)
+                result = play_round([RandomBot] * n, seed=seed, duration=30)
                 self.assertTrue(math.isclose(sum(result.profits), 0, abs_tol=1e-9))
 
-    def test_zoo_bots_only_play_legal_actions(self):
+    def test_zoo_bots_are_only_refused_when_the_market_moved(self):
+        # Avec la latence, une action peut arriver sur un marché qui a changé. Un bot du zoo
+        # ne doit être refusé que pour ça : un autre joueur a agi entre son regard et l'arrivée.
         for name, bot in ZOO.items():
             if name == "aleatoire":
                 continue  # lui tente n'importe quoi, exprès
             for n in (4, 5):
-                result = play_round([bot] * n, seed=11, ticks=100)
-                refused = [a for a in result.log["actions"] if not a[3]]
-                self.assertEqual(refused, [], name)
+                result = play_round([bot] * n, seed=11, duration=60)
+                changes = []  # (instant, siège) de chaque action acceptée
+                for t, seat, action, ok, seen_at in result.log["actions"]:
+                    if not ok:
+                        moved = any(seen_at <= tc <= t and sc != seat for tc, sc in changes)
+                        self.assertTrue(moved, (name, t, action))
+                    else:
+                        changes.append((t, seat))
                 self.assertTrue(math.isclose(sum(result.profits), 0, abs_tol=1e-9))
 
+    def test_actions_happen_within_the_round(self):
+        result = play_round([RandomBot] * 4, seed=2, duration=20)
+        times = [a[0] for a in result.log["actions"]]
+        self.assertTrue(times)
+        self.assertTrue(all(0 <= t < 20 for t in times))
+        self.assertEqual(times, sorted(times))
+
+    def test_faster_player_wins_the_race(self):
+        for seed in range(10):
+            bots = [Seller, lambda: Buyer(0.5), lambda: Buyer(0.1), Idle]
+            result = play_round(bots, seed=seed, duration=5)
+            trades = [a for a in result.log["actions"] if a[3] and a[2][0] == "buy"]
+            self.assertEqual(trades[0][1], 2, seed)  # le siège 2 réagit en 0,1 s
+            refused = [a for a in result.log["actions"] if not a[3]]
+            self.assertTrue(any(a[1] == 1 for a in refused))  # le lent arrive après la bataille
+
     def test_same_seed_same_round(self):
-        a = play_round([RandomBot] * 4, seed=7, ticks=60)
-        b = play_round([RandomBot] * 4, seed=7, ticks=60)
-        self.assertEqual(a.profits, b.profits)
+        a = play_round([RandomBot] * 4, seed=7, duration=30)
+        b = play_round([RandomBot] * 4, seed=7, duration=30)
+        self.assertEqual(a.log, b.log)
 
 
 if __name__ == "__main__":

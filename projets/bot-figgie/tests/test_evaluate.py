@@ -19,7 +19,7 @@ class TestDuplicateMatch(unittest.TestCase):
         # Même bot partout : en passant par chaque siège, on additionne les gains de toute
         # la table, qui font zéro. Une rotation incomplète donnerait autre chose que zéro.
         for n in (4, 5):
-            values = duplicate_match(RandomBot, RandomBot, n_deals=10, n_players=n, ticks=60)
+            values = duplicate_match(RandomBot, RandomBot, n_deals=10, n_players=n, duration=30)
             self.assertEqual(len(values), 10)
             for v in values:
                 self.assertAlmostEqual(v, 0, places=9)
@@ -28,14 +28,21 @@ class TestDuplicateMatch(unittest.TestCase):
 class TestZooReport(unittest.TestCase):
     def test_candidate_never_faces_itself(self):
         from figgie.bots import PassiveBot
-        report = zoo_report(PassiveBot, n_deals=2, ticks=20)
+        report = zoo_report(PassiveBot, n_deals=2, duration=10)
         self.assertNotIn("passif", report)
-        self.assertEqual(len(report), 4)
+        self.assertEqual(len(report), 5)
 
 
 class TestGate(unittest.TestCase):
-    def test_gate_does_not_apply_to_the_heuristic_itself(self):
+    def test_gate_does_not_apply_when_no_reference_is_in_the_report(self):
         self.assertIsNone(gate({"aleatoire": (5.0, 1.0, 9.0)}))
+
+    def test_gate_requires_beating_heuristic_and_sniper(self):
+        win, tie = (5.0, 1.0, 9.0), (5.0, -1.0, 11.0)
+        self.assertTrue(gate({"heuristique": win, "sniper": win}))
+        self.assertFalse(gate({"heuristique": win, "sniper": tie}))
+        self.assertFalse(gate({"heuristique": tie, "sniper": win}))
+        self.assertTrue(gate({"sniper": win}))  # le candidat est l'heuristique : seule l'autre référence compte
 
     def test_gate_requires_ci_above_zero_against_heuristic(self):
         self.assertTrue(gate({"heuristique": (5.0, 1.0, 9.0)}))

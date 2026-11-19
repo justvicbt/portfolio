@@ -68,7 +68,7 @@ Le projet s'impose une règle d'entrée. Un nouveau bot n'est accepté que si so
 
 ## Résultats
 
-Gain moyen en dollars par manche du bot en ligne, face à des copies du bot en colonne (3 copies à 4 joueurs, 4 à 5). Les intervalles de confiance sont dans le dossier [`resultats/`](../resultats/). Ils font tous moins de ±4 $ de demi-largeur.
+Gain moyen en dollars par manche du bot en ligne, face à des copies du bot en colonne (3 copies à 4 joueurs, 4 à 5). Les intervalles de confiance sont dans le dossier [`resultats/phase0/`](../resultats/phase0/). Ils font tous moins de ±4 $ de demi-largeur.
 
 ### À 4 joueurs
 
@@ -115,6 +115,8 @@ Les tables ne mélangent pas les styles. Chaque match oppose le candidat à des 
 En cas d'égalité, le partage du pot n'est pas arrondi (33,33 $ chacun pour 100 $ partagés en trois). Je ne sais pas encore comment figgie.com arrondit.
 
 ## Reproduire
+
+Le code a évolué depuis. Pour retrouver exactement celui de la phase 0, il faut d'abord revenir à son étiquette git : `git checkout phase0-figgie`.
 
 ```bash
 cd projets/bot-figgie
