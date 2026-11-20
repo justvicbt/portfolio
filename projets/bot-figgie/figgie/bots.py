@@ -180,7 +180,8 @@ class MarginalBot(ValueBot):
         return by_player[player] if player is not None else max(by_player.values())
 
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "modeles" / "signaux.json"
+MODELS_DIR = Path(__file__).resolve().parent.parent / "modeles"
+MODEL_PATH = MODELS_DIR / "signaux.json"
 UNIFORM = dict.fromkeys(SUITS, 0.25)
 
 
@@ -192,16 +193,18 @@ class ReaderBot(MarginalBot):
     name = "lecteur"
     constraint_counting = True
     resample = 0.03  # nouveau Monte Carlo si une probabilité a bougé de plus de 3 points
-    _model = None
+    model_file = "signaux.json"
+    _models = {}  # fichier -> (modèle, atténuation), chargé une fois
 
     @classmethod
     def model(cls):
-        if cls._model is None:
-            if not MODEL_PATH.exists():
-                raise FileNotFoundError(f"{MODEL_PATH} manque : lancer d'abord python3 -m figgie.learn")
-            data = json.loads(MODEL_PATH.read_text())
-            cls._model = (SignalModel.from_dict(data), data["temper"])
-        return cls._model
+        if cls.model_file not in ReaderBot._models:
+            path = MODELS_DIR / cls.model_file
+            if not path.exists():
+                raise FileNotFoundError(f"{path} manque : lancer d'abord python3 -m figgie.learn")
+            data = json.loads(path.read_text())
+            ReaderBot._models[cls.model_file] = (SignalModel.from_dict(data), data["temper"])
+        return ReaderBot._models[cls.model_file]
 
     def __init__(self):
         super().__init__()
@@ -235,6 +238,20 @@ class ReaderBot(MarginalBot):
         self.opponents().observe_round(self._feed, reveal["goal"], me=reveal["seat"])
 
 
+class ExploiterBot(BayesBot):
+    """Phase 4, trouvé par figgie.exploit : le meilleur adversaire du marginal (et du lecteur à 4 joueurs)
+    quand il joue seul face à leurs copies. Il cote plus près de sa valeur qu'eux, donc ses prix sont
+    les meilleurs du carnet, mais il est plus exigeant pour prendre."""
+    name = "exploiteur"
+    reaction, idle, spread, edge = 0.3, 1.0, 6, 3
+
+
+class ReaderExploiterBot(MarginalBot):
+    """Phase 4, trouvé par figgie.exploit : le meilleur adversaire du lecteur à 5 joueurs."""
+    name = "exploiteur_lecteur"
+    reaction, idle, pace, spread, edge = 0.2, 0.8, 2.0, 4, 3
+
+
 class CorrectedMarginalBot(MarginalBot):
     """Le marginal avec le seul comptage corrigé de la phase 3, sans lecture du marché.
     Hors du zoo : il sert à mesurer ce que rapporte chaque amélioration du lecteur séparément."""
@@ -242,5 +259,70 @@ class CorrectedMarginalBot(MarginalBot):
     constraint_counting = True
 
 
+class IdleBot:
+    """Phase 4, comportement anormal : un joueur qui ne fait jamais rien (déconnecté, ou qui attend)."""
+    name = "inactif"
+    idle = 30.0
+
+    def act(self, view, rng):
+        return None
+
+
+class SpamBot:
+    """Phase 4, comportement anormal : envoie des cotations au hasard aussi vite que le moteur le permet."""
+    name = "spammeur"
+    reaction, idle = 0.001, 0.01
+
+    def act(self, view, rng):
+        suit = rng.choice(SUITS)
+        kind = rng.choice(("bid", "ask", "cancel"))
+        return (kind, suit) if kind == "cancel" else (kind, suit, rng.randint(1, 20))
+
+
+class LiarBot(MarginalBot):
+    """Phase 4, comportement anormal : il joue comme le marginal, mais affiche de temps en temps une
+    offre d'achat chère (`fake_price`) dans la couleur qu'il juge la moins utile, puis l'annule.
+    Il vise les bots qui lisent le marché. Si quelqu'un lui vend pendant ce temps, il paie cher."""
+    name = "menteur"
+    fake_price, fake_for, fake_every = 12, 1.5, 6.0  # prix, durée de l'offre (s), écart entre deux mensonges (s)
+
+    def __init__(self):
+        super().__init__()
+        self.fake, self.fake_until, self.next_fake = None, 0.0, 0.0
+
+    def act(self, view, rng):
+        self.refresh(view, rng)
+        if self.fake and view.mine(self.fake, "bid") != self.fake_price:
+            self.fake = None  # effacée par un échange, ou prise : le mensonge est terminé
+        if self.fake and view.time >= self.fake_until:
+            suit, self.fake = self.fake, None
+            return ("cancel", suit)
+        if not self.fake and view.time >= self.next_fake and view.cash >= self.fake_price:
+            # Une couleur où l'offre ne croise aucune vente, ni celle des autres ni la mienne : sinon elle
+            # serait exécutée ou refusée. Son retrait annule aussi ma vraie vente dans cette couleur ;
+            # je la reposte au regard suivant, une fois le mensonge terminé.
+            safe = [s for s in SUITS if (view.mine(s, "ask") or 10**9) > self.fake_price
+                    and (not view.best(s, "ask") or view.best(s, "ask")[0] > self.fake_price)]
+            if safe:
+                self.fake = min(safe, key=lambda s: self.buy_value(s, None))
+                self.fake_until, self.next_fake = view.time + self.fake_for, view.time + self.fake_every
+                return ("bid", self.fake, self.fake_price)
+        return super().act(view, rng)
+
+    def _decide(self, view, s):
+        return None if s == self.fake else super()._decide(view, s)
+
+
+ABNORMAL = {bot.name: bot for bot in (IdleBot, SpamBot, LiarBot)}
+
+
+class LeagueReaderBot(ReaderBot):
+    """Phase 4. Le lecteur, avec un modèle de signaux réappris sur des parties de la ligue, où jouent
+    aussi des lecteurs, des exploiteurs et des menteurs (figgie.learn --league), et un réglage choisi
+    à 5 joueurs avec le test de minorité (figgie.tune --minority, resultats/phase4/)."""
+    name = "lecteur_ligue"
+    model_file = "signaux_ligue.json"
+    spread, edge = 10, 3  # hors du zoo : pour les tests de robustesse
+
 ZOO = {bot.name: bot for bot in (RandomBot, HeuristicBot, BayesBot, AggressiveBot, PassiveBot, SniperBot,
-                                 MarginalBot, ReaderBot)}
+                                 MarginalBot, ReaderBot, ExploiterBot, ReaderExploiterBot)}

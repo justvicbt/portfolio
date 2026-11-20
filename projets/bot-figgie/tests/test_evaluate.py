@@ -50,6 +50,24 @@ class TestGate(unittest.TestCase):
         self.assertTrue(gate({"heuristique": win, "sniper": win, "bayesien": win, "marginal": win}))
         self.assertFalse(gate({"heuristique": win, "sniper": win, "bayesien": win, "marginal": tie}))
 
+    def test_gate_refuses_a_bot_that_a_lone_opponent_exploits(self):
+        # Test de minorité : chaque référence, seule face à des copies du candidat, ne doit pas gagner nettement.
+        win = (5.0, 1.0, 9.0)
+        report = {"heuristique": win, "sniper": win, "bayesien": win, "marginal": win}
+        self.assertFalse(gate(report, minority={"marginal": (7.3, 6.0, 8.7)}))   # le marginal seul gagne : refusé
+        self.assertTrue(gate(report, minority={"marginal": (0.5, -0.3, 1.3)}))   # pas nettement : accepté
+        self.assertTrue(gate(report, minority={"marginal": (-4.0, -6.0, -2.0)}))
+
+    def test_exploitation_counts_even_without_references(self):
+        self.assertIs(gate({}, minority={"marginal": (7.3, 6.0, 8.7)}), False)
+
+    def test_minority_report_puts_the_reference_alone(self):
+        from figgie.bots import PassiveBot, SniperBot
+        from figgie.evaluate import minority_report
+        report = minority_report(PassiveBot, n_deals=2, references=("sniper",), duration=10)
+        expected = mean_ci(duplicate_match(SniperBot, PassiveBot, n_deals=2, duration=10))
+        self.assertEqual(report, {"sniper": expected})
+
     def test_gate_requires_ci_above_zero_against_heuristic(self):
         self.assertTrue(gate({"heuristique": (5.0, 1.0, 9.0)}))
         self.assertFalse(gate({"heuristique": (5.0, -1.0, 11.0)}))

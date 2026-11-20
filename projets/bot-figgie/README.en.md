@@ -20,7 +20,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 1. Faithful simulator | One quote per player, continuous time, latency, takes at the price seen, new "sniper" opponent | [FR](docs/phase1.fr.md) · [EN](docs/phase1.en.md) | Done |
 | 2. Marginal value | Card value by Monte Carlo depending on the other side, card counting, tuning on separate deals | [FR](docs/phase2.fr.md) · [EN](docs/phase2.en.md) | Done |
 | 3. Reading the market | Signal model learned on simulated games, corrected card counting, multi-round games with opponent memory | [FR](docs/phase3.fr.md) · [EN](docs/phase3.en.md) | Done (bot not promoted) |
-| 4. League and robustness | Self-play, opponents trained to beat the bot, abnormal behavior | | Upcoming |
+| 4. League and robustness | Faster engine, minority test, exploiters found by search, league, idle player, spammer and liars | [FR](docs/phase4.fr.md) · [EN](docs/phase4.en.md) | Done (no bot promoted) |
 | 5. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -29,7 +29,9 @@ figgie.com publishes no terms of use and says nothing about bots. I will not aut
 
 After phase 2, the new "marginal" bot beats every opponent in the zoo, with a 95% confidence interval entirely above zero, with 4 and with 5 players. Its worst opponent is the passive bot, which nobody had beaten so far: +$15.2 per round with 4 players ([+14.0, +16.5]). It also beats the previous reference bot, the bayesian, by +$20.6 per round.
 
-In phase 3, the "reader" bot, which also reads other players' quotes, guesses the goal suit much better (52% at one minute, against 42%). But it wins only a little more than the marginal bot with 4 players (+$2.7 per round) and does not clearly beat it with 5. So it is not promoted: the marginal bot remains the reference. Full tables are in each phase's doc.
+In phase 3, the "reader" bot, which also reads other players' quotes, guesses the goal suit much better (52% at one minute, against 42%). But it wins only a little more than the marginal bot with 4 players (+$2.7 per round) and does not clearly beat it with 5. So it is not promoted: the marginal bot remains the reference.
+
+In phase 4, an automatic search found opponents that beat the marginal bot when it is in the minority (+$4.35 per round alone against three marginal bots, +$7.22 against four). No candidate passes the full entry rule, minority test included. With fixed settings, every bot has its counter-strategy. Full tables are in each phase's doc.
 
 ## What I took away
 
@@ -41,6 +43,8 @@ A goal card is not worth $10: it can tip the majority and be worth $60 or $110, 
 
 Guessing better is not enough to win more: the information arrives when the market is already almost dead. And measuring calibration ("when the bot says 80%, is it right 80% of the time?") revealed a reasoning flaw that had been there since phase 2.
 
+A bot with fixed settings is a target: when it is numerous at the table, its copies compete with each other and a different player profits. Hence the next step of the project, a bot that adapts its play during the game.
+
 ## Limits
 
 All opponents are bots I wrote. No number in this project measures the level against humans until phase 5 has happened. The simulator rests on assumptions: four rules the site does not specify, and made-up reaction times. Tables do not mix styles yet.
@@ -51,11 +55,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 74 tests, one second
+python3 -m unittest                      # 87 tests, about 2 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the full phase 3 tournament almost 2 hours on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase3-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase4-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -64,4 +68,4 @@ One candidate against the whole zoo takes a few minutes, the full phase 3 tourna
 
 ## Status
 
-In progress: phases 0 to 3 done. Next step: a self-play league, so the bot stops getting exploited when it is numerous at the table.
+In progress: phases 0 to 4 done. Proposed next step: a bot that adapts its spread and edge during the game, depending on the table in front of it.

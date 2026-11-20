@@ -5,6 +5,7 @@ qui vaut 100 ou 120 $. Sa valeur dépend donc de combien j'en ai et de combien e
 On ne connaît pas leurs mains : on en tire au hasard des milliers de versions compatibles avec
 ce que l'on sait, et on fait la moyenne. C'est la méthode de Monte Carlo.
 """
+from functools import lru_cache
 from math import comb
 
 from figgie.engine import SUITS, TWIN, payout
@@ -23,9 +24,15 @@ def card_gain(mine, others, delta, counterparty):
     La carte quitte une main pour en rejoindre une autre : vendre au meneur peut lui offrir
     la majorité, acheter au meneur peut la lui reprendre. C'est pour ça que le joueur d'en face compte.
     """
+    return _card_gain(mine, tuple(others), delta, counterparty)
+
+
+@lru_cache(maxsize=None)
+def _card_gain(mine, others, delta, counterparty):
+    # Les mêmes situations reviennent des millions de fois : on garde chaque résultat (calcul exact, inchangé).
     after = list(others)
     after[counterparty] -= delta
-    return payout(mine + delta, after) - payout(mine, others)
+    return payout(mine + delta, after) - payout(mine, list(others))
 
 
 def known_minimums(trades, n_players):
@@ -135,13 +142,14 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
         for slot in rng.sample(slots, sizes[goal] - known[goal]):
             others[slot_owner[slot]] += 1
         mine = hand[goal]
+        others = tuple(others)
         for k in range(len(opponents)):
             if others[k] > 0:
-                buy[goal][k] += card_gain(mine, others, +1, k)
+                buy[goal][k] += _card_gain(mine, others, +1, k)
             else:
                 buy_worlds[goal][k] -= 1  # monde impossible si ce joueur me vend une carte objectif
             if mine > 0:
-                sell[goal][k] -= card_gain(mine, others, -1, k)
+                sell[goal][k] -= _card_gain(mine, others, -1, k)
     return {
         s: ({j: buy[s][k] / max(1, buy_worlds[s][k]) for k, j in enumerate(opponents)},
             {j: sell[s][k] / samples for k, j in enumerate(opponents)})

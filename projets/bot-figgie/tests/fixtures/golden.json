@@ -1,0 +1,98 @@
+{
+ "rounds": [
+  {
+   "bots": [
+    "marginal",
+    "heuristique",
+    "aleatoire",
+    "sniper"
+   ],
+   "seed": 0,
+   "profits": [
+    46.0,
+    -48.0,
+    -27.0,
+    29.0
+   ],
+   "log_sha256": "c89a0b35be131e826e2db8eb3ed1fff9af3ce64071151da6e54ffc0bbbc19de1"
+  },
+  {
+   "bots": [
+    "marginal",
+    "heuristique",
+    "aleatoire",
+    "sniper"
+   ],
+   "seed": 1,
+   "profits": [
+    37.0,
+    48.0,
+    -103.0,
+    18.0
+   ],
+   "log_sha256": "81382db8ecf18e08ed3ca1fde33718213e8f627ae65e6aef370f270eb5d1ea8c"
+  },
+  {
+   "bots": [
+    "lecteur",
+    "passif",
+    "agressif",
+    "bayesien",
+    "marginal"
+   ],
+   "seed": 2,
+   "profits": [
+    -12.0,
+    -20.0,
+    38.0,
+    -5.0,
+    -1.0
+   ],
+   "log_sha256": "7b415d9bf53382c626537fc6975af41a59f6772e0c6e7b1bff482f4821ea7c61"
+  },
+  {
+   "bots": [
+    "lecteur",
+    "lecteur",
+    "aleatoire",
+    "marginal"
+   ],
+   "seed": 3,
+   "profits": [
+    -10.0,
+    -59.0,
+    20.0,
+    49.0
+   ],
+   "log_sha256": "c4893dda491e9236afc7eb54ccfa8d0bebf6ff5cc5c5ef1af26cc137de5ee6b8"
+  },
+  {
+   "bots": [
+    "bayesien",
+    "passif",
+    "sniper",
+    "agressif",
+    "heuristique"
+   ],
+   "seed": 4,
+   "profits": [
+    0.0,
+    13.0,
+    41.0,
+    12.0,
+    -66.0
+   ],
+   "log_sha256": "a4fa38e49b7715ea4f462d5232501b32c9ab1e19aa3456aac2758d9b8bfd8023"
+  }
+ ],
+ "match": {
+  "profits": [
+   295.0,
+   -261.0,
+   -66.0,
+   32.0
+  ],
+  "log_sha256": "816b2dab0d4546b02afd1303a3c475a8db1c77ffcecaa337ba812366bc76ca9d"
+ },
+ "model_sha256": "46f763707b277d2f7cf612944be551a272996782e0b00fd0415d0c7bba6074db"
+}

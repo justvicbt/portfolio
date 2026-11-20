@@ -6,6 +6,7 @@ de vente, ou une carte change de main. Le marché tient le fil public de ces év
 avec nature = "bid", "ask", "bought" ou "sold".
 """
 import math
+from functools import lru_cache
 
 from figgie.engine import TWIN, IllegalAction, Market
 
@@ -27,6 +28,7 @@ PRICE_BUCKETS = ((1, 2), (3, 5), (6, 9), (10, 14), (15, 10**9))
 SMOOTHING = 0.5  # pseudo-compte ajouté à chaque case : évite les rapports infinis pour un événement jamais vu
 
 
+@lru_cache(maxsize=None)
 def price_bucket(price):
     return next(f"{lo}-{hi}" if hi < 10**9 else f"{lo}+" for lo, hi in PRICE_BUCKETS if lo <= price <= hi)
 

@@ -10,9 +10,9 @@ import argparse
 import json
 from multiprocessing import Pool
 
-from figgie.bots import ZOO, ReaderBot
+from figgie.bots import ReaderBot
 from figgie.engine import play_match
-from figgie.evaluate import mean_ci
+from figgie.evaluate import CANDIDATES, mean_ci
 
 TABLE = ("aleatoire", "heuristique", "marginal")
 
@@ -28,7 +28,7 @@ class ForgetfulReader(ReaderBot):
 def _deal(job):
     """Pour une donne : gain de chaque version à chaque manche (moyenne sur les rotations) et poids finaux."""
     d, rounds, seed, table = job
-    opponents = [ZOO[name] for name in table]
+    opponents = [CANDIDATES[name] for name in table]
     n = len(opponents) + 1
     out = {}
     for bot in (ReaderBot, ForgetfulReader):

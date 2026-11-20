@@ -219,6 +219,7 @@ def _view(market, seat, time, duration):
 
 
 LOG_FORMAT = 2  # 1 = phase 0 (ticks), 2 = phase 1 (temps continu, instant du regard, prix des prises)
+MIN_DELAY = 0.05  # au plus 20 actions par seconde et par joueur : protège la manche contre le spam
 DEFAULT_REACTION = 0.3  # secondes entre ce qu'un bot voit et l'arrivée de son action
 DEFAULT_IDLE = 1.0      # secondes en moyenne avant de regarder à nouveau quand rien ne bouge
 
@@ -278,7 +279,8 @@ def play_round(bots, seed, duration=240.0, memories=None):
                 look_at(seat, t + time_rngs[seat].expovariate(1 / idle[seat]))
             else:
                 in_flight[seat] = True
-                push(t + reaction[seat] * time_rngs[seat].uniform(0.5, 1.5), seat, (action, t))
+                delay = max(MIN_DELAY, reaction[seat] * time_rngs[seat].uniform(0.5, 1.5))
+                push(t + delay, seat, (action, t))
             continue
         # l'action arrive au marché
         action, seen_at = sent

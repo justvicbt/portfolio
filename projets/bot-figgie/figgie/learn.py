@@ -10,7 +10,8 @@
 
 Aucune de ces graines ne sert aux tournois (graine 1) ni au réglage de la phase 2 (graine 2).
 
-Usage : python3 -m figgie.learn --train 4000 --valid 1000
+Usage : python3 -m figgie.learn --train 4000 --valid 1000            (phase 3)
+        python3 -m figgie.learn --train 4000 --valid 1000 --league   (phase 4, la ligue)
 """
 import argparse
 import json
@@ -19,32 +20,37 @@ import random
 from multiprocessing import Pool
 from pathlib import Path
 
-from figgie.bots import MODEL_PATH, ZOO
+from figgie.bots import ABNORMAL, MODEL_PATH, MODELS_DIR, ZOO
 from figgie.engine import play_round
 from figgie.bots import UNIFORM
 from figgie.signals import ALL_KINDS, SignalModel, events_from_log
 from figgie.valuation import goal_probabilities, known_minimums
 
 TRAIN_SEED, VALID_SEED = 3, 4
+LEAGUE_TRAIN_SEED, LEAGUE_VALID_SEED = 7, 8
 CHECKPOINTS = (5, 15, 30, 60, 120, 240)  # secondes
 TEMPERS = (0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0)
-LEARNERS = [name for name in ZOO if name != "lecteur"]  # le lecteur n'apprend pas sur lui-même
+LEARNERS = [name for name in ZOO if name != "lecteur"]  # phase 3 : le lecteur n'apprend pas sur lui-même
+# Phase 4, la ligue : on apprend aussi sur des parties où jouent des lecteurs et des menteurs,
+# pour que le modèle corresponde aux tables où le lecteur se faisait exploiter.
+LEAGUE = list(ZOO) + ["menteur"]
+POOL = {**ZOO, **ABNORMAL}
 
 
-def _play(i_and_base):
+def _play(job):
     """Une manche à une table mixte : renvoie (main initiale du siège 0, événements, objectif)."""
-    i, base = i_and_base
+    i, base, names = job
     seed = base * 1_000_000 + i
     rng = random.Random(seed)
     n = rng.choice((4, 5))
-    bots = [ZOO[rng.choice(LEARNERS)] for _ in range(n)]
+    bots = [POOL[rng.choice(names)] for _ in range(n)]
     log = play_round(bots, seed=seed).log
     return log["hands"][0], events_from_log(log), log["goal"]
 
 
-def play_rounds(n, base):
+def play_rounds(n, base, names=LEARNERS):
     with Pool() as pool:
-        return pool.map(_play, [(i, base) for i in range(n)], chunksize=20)
+        return pool.map(_play, [(i, base, names) for i in range(n)], chunksize=20)
 
 
 def state_at(hand, events, t):
@@ -100,12 +106,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--train", type=int, default=4000)
     parser.add_argument("--valid", type=int, default=1000)
-    parser.add_argument("--out", default=str(MODEL_PATH))
+    parser.add_argument("--league", action="store_true", help="apprendre sur les tables de la ligue (phase 4)")
+    parser.add_argument("--out")
     parser.add_argument("--report", help="fichier JSON où écrire les mesures de validation")
     args = parser.parse_args()
 
-    train = play_rounds(args.train, TRAIN_SEED)
-    valid = play_rounds(args.valid, VALID_SEED)
+    if args.league:
+        train = play_rounds(args.train, LEAGUE_TRAIN_SEED, LEAGUE)
+        valid = play_rounds(args.valid, LEAGUE_VALID_SEED, LEAGUE)
+        args.out = args.out or str(MODELS_DIR / "signaux_ligue.json")
+    else:
+        train = play_rounds(args.train, TRAIN_SEED)
+        valid = play_rounds(args.valid, VALID_SEED)
+        args.out = args.out or str(MODEL_PATH)
     best = None  # (log-score total, variante, atténuation, modèle)
     report = {}
     for variant, kinds in VARIANTS.items():

@@ -64,6 +64,13 @@ class TestDuplicateMatches(unittest.TestCase):
         for v in values:
             self.assertAlmostEqual(v, 0, places=9)
 
+    def test_deals_can_be_split_into_chunks(self):
+        # Couper les donnes en morceaux (pour les répartir sur plusieurs cœurs) ne change rien aux valeurs.
+        whole = duplicate_match(RandomBot, ZOO["heuristique"], n_deals=4, duration=15)
+        parts = duplicate_match(RandomBot, ZOO["heuristique"], n_deals=2, duration=15) + \
+            duplicate_match(RandomBot, ZOO["heuristique"], n_deals=2, duration=15, first_deal=2)
+        self.assertEqual(whole, parts)
+
     def test_mixed_table_runs(self):
         values = duplicate_match(ZOO["marginal"], [RandomBot, ZOO["heuristique"], ZOO["passif"]],
                                  n_deals=2, rounds=2, duration=15)

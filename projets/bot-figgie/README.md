@@ -20,7 +20,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 1. Simulateur fidèle | Une cotation par joueur, temps continu, latence, prises au prix vu, nouvel adversaire « sniper » | [FR](docs/phase1.fr.md) · [EN](docs/phase1.en.md) | Terminée |
 | 2. Valeur marginale | Valeur d'une carte par Monte Carlo selon le joueur d'en face, comptage des cartes, réglage sur des donnes séparées | [FR](docs/phase2.fr.md) · [EN](docs/phase2.en.md) | Terminée |
 | 3. Lire le marché | Modèle de signaux appris sur des parties simulées, comptage corrigé, parties de plusieurs manches avec mémoire des adversaires | [FR](docs/phase3.fr.md) · [EN](docs/phase3.en.md) | Terminée (bot non promu) |
-| 4. Ligue et robustesse | Auto-jeu, adversaires entraînés à battre le bot, comportements anormaux | | À venir |
+| 4. Ligue et robustesse | Moteur accéléré, test de minorité, exploiteurs trouvés par recherche, ligue, joueur inactif, spammeur et menteurs | [FR](docs/phase4.fr.md) · [EN](docs/phase4.en.md) | Terminée (aucun bot promu) |
 | 5. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -29,7 +29,9 @@ Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des 
 
 Après la phase 2, le nouveau bot « marginal » gagne contre chaque adversaire du zoo, avec un intervalle de confiance à 95 % entièrement au-dessus de zéro, à 4 comme à 5 joueurs. Son pire adversaire est le joueur passif, que personne ne battait jusque-là : +15,2 $ par manche à 4 joueurs ([+14,0 ; +16,5]). Il bat aussi l'ancien bot de référence, le bayésien, de +20,6 $ par manche.
 
-En phase 3, le bot « lecteur », qui lit aussi les cotations des autres, devine beaucoup mieux la couleur objectif (52 % à une minute, contre 42 %). Mais il ne gagne qu'un peu plus que le marginal à 4 joueurs (+2,7 $ par manche) et ne le bat pas nettement à 5. Il n'est donc pas promu : le marginal reste le bot de référence. Les tableaux complets sont dans les docs de chaque phase.
+En phase 3, le bot « lecteur », qui lit aussi les cotations des autres, devine beaucoup mieux la couleur objectif (52 % à une minute, contre 42 %). Mais il ne gagne qu'un peu plus que le marginal à 4 joueurs (+2,7 $ par manche) et ne le bat pas nettement à 5. Il n'est donc pas promu : le marginal reste le bot de référence.
+
+En phase 4, une recherche automatique a trouvé des adversaires qui battent le marginal quand il est en minorité (+4,35 $ par manche seul face à trois marginaux, +7,22 $ face à quatre). Aucun candidat ne passe la règle d'entrée complète, test de minorité compris. Avec des réglages fixes, chaque bot a sa contre-stratégie. Les tableaux complets sont dans les docs de chaque phase.
 
 ## Ce que j'en retiens
 
@@ -41,6 +43,8 @@ Une carte objectif ne vaut pas 10 $ : elle peut faire basculer la majorité et v
 
 Mieux deviner ne suffit pas à mieux gagner : l'information arrive quand le marché est déjà presque mort. Et mesurer la calibration (« quand le bot annonce 80 %, a-t-il raison 80 % du temps ? ») a révélé un défaut de raisonnement présent depuis la phase 2.
 
+Un bot à réglages fixes est une cible : quand il est nombreux à la table, ses copies se font concurrence et un joueur différent en profite. D'où la suite du projet, un bot qui adapte son jeu en cours de partie.
+
 ## Limites
 
 Tous les adversaires sont des bots que j'ai écrits. Aucun chiffre de ce projet ne mesure le niveau face à des humains tant que la phase 5 n'a pas eu lieu. Le simulateur repose sur des hypothèses : quatre règles que le site ne précise pas, et des temps de réaction inventés. Les tables ne mélangent pas encore les styles.
@@ -51,11 +55,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 74 tests, une seconde
+python3 -m unittest                      # 87 tests, environ 2 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi complet de la phase 3 près de 2 heures sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase3-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase4-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -64,4 +68,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi complet de la 
 
 ## Statut
 
-En cours : phases 0 à 3 terminées. Prochaine étape : une ligue d'auto-jeu, pour que le bot ne se fasse plus exploiter quand il est nombreux à la table.
+En cours : phases 0 à 4 terminées. Prochaine étape proposée : un bot qui adapte son spread et sa marge en cours de partie, selon la table qu'il a en face.
