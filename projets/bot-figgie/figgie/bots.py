@@ -4,10 +4,13 @@ Tous sauf l'aléatoire suivent la même mécanique (ValueBot) : estimer ce que v
 de chaque couleur, prendre les cotations avantageuses, sinon coter autour de cette valeur.
 Ils diffèrent par l'estimation de la valeur et par leur tempérament.
 """
+import json
 from math import ceil, floor
+from pathlib import Path
 
 from figgie.engine import GOAL_CARD_VALUE, SUITS, TWIN
-from figgie.valuation import goal_probabilities, known_minimums, marginal_values
+from figgie.signals import OpponentModel, SignalModel
+from figgie.valuation import goal_probabilities, initial_hand, known_minimums, marginal_values
 
 
 class RandomBot:
@@ -152,6 +155,7 @@ class MarginalBot(ValueBot):
     Les valeurs sont recalculées dès que sa main ou les échanges publics changent."""
     name = "marginal"
     samples = 300
+    constraint_counting = False  # phase 3 : True = les cartes connues des autres ne sont qu'une contrainte
     spread, edge = 8, 1  # réglés sur les donnes d'entraînement (graine 2), voir figgie/tune.py et resultats/phase2/
 
     def __init__(self):
@@ -162,7 +166,9 @@ class MarginalBot(ValueBot):
         key = (tuple(view.hand.values()), len(view.trades))
         if key != self._key:
             mins = known_minimums(view.trades, view.n_players)
-            self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples)
+            drawn = initial_hand(view.hand, view.trades, view.seat) if self.constraint_counting else None
+            self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
+                                           drawn=drawn)
             self._key = key
 
     def buy_value(self, s, player):
@@ -174,4 +180,67 @@ class MarginalBot(ValueBot):
         return by_player[player] if player is not None else max(by_player.values())
 
 
-ZOO = {bot.name: bot for bot in (RandomBot, HeuristicBot, BayesBot, AggressiveBot, PassiveBot, SniperBot, MarginalBot)}
+MODEL_PATH = Path(__file__).resolve().parent.parent / "modeles" / "signaux.json"
+UNIFORM = dict.fromkeys(SUITS, 0.25)
+
+
+class ReaderBot(MarginalBot):
+    """Phase 3. Le bot marginal, plus la lecture du marché : les cotations et les échanges des autres
+    déplacent la probabilité de chaque couleur objectif (modèle appris, figgie/learn.py).
+    Dans une partie de plusieurs manches, il apprend aussi à qui se fier : à la fin de chaque
+    manche, il compare les signaux de chaque adversaire à l'objectif révélé (OpponentModel)."""
+    name = "lecteur"
+    constraint_counting = True
+    resample = 0.03  # nouveau Monte Carlo si une probabilité a bougé de plus de 3 points
+    _model = None
+
+    @classmethod
+    def model(cls):
+        if cls._model is None:
+            if not MODEL_PATH.exists():
+                raise FileNotFoundError(f"{MODEL_PATH} manque : lancer d'abord python3 -m figgie.learn")
+            data = json.loads(MODEL_PATH.read_text())
+            cls._model = (SignalModel.from_dict(data), data["temper"])
+        return cls._model
+
+    def __init__(self):
+        super().__init__()
+        self.memory = {}  # remplacée par la mémoire de la partie quand il y en a une (play_match)
+        self._feed = []   # le fil public de la manche, lu dans la vue
+        self._n_seen = -1
+        self._market = None
+
+    def opponents(self):
+        if "opponents" not in self.memory:
+            self.memory["opponents"] = OpponentModel(self.model()[0])
+        return self.memory["opponents"]
+
+    def refresh(self, view, rng):
+        self._feed = view.events
+        if len(view.events) != self._n_seen:  # nouvel événement : on relit le marché
+            model, temper = self.model()
+            self._n_seen = len(view.events)
+            self._new_market = model.posterior(UNIFORM, view.events, temper=temper,
+                                               player_weights=self.opponents().weights(), me=view.seat)
+        market = self._new_market
+        key = (tuple(view.hand.values()), len(view.trades))
+        moved = self._market is None or max(abs(market[s] - self._market[s]) for s in SUITS) > self.resample
+        if key != self._key or moved:
+            mins = known_minimums(view.trades, view.n_players)
+            self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
+                                           goal_weights=market, drawn=initial_hand(view.hand, view.trades, view.seat))
+            self._key, self._market = key, market
+
+    def end_round(self, reveal):
+        self.opponents().observe_round(self._feed, reveal["goal"], me=reveal["seat"])
+
+
+class CorrectedMarginalBot(MarginalBot):
+    """Le marginal avec le seul comptage corrigé de la phase 3, sans lecture du marché.
+    Hors du zoo : il sert à mesurer ce que rapporte chaque amélioration du lecteur séparément."""
+    name = "marginal_corrige"
+    constraint_counting = True
+
+
+ZOO = {bot.name: bot for bot in (RandomBot, HeuristicBot, BayesBot, AggressiveBot, PassiveBot, SniperBot,
+                                 MarginalBot, ReaderBot)}

@@ -47,7 +47,8 @@ class TestGate(unittest.TestCase):
     def test_gate_also_requires_beating_the_previous_reference(self):
         win, tie = (5.0, 1.0, 9.0), (5.0, -1.0, 11.0)
         self.assertFalse(gate({"heuristique": win, "sniper": win, "bayesien": tie}))
-        self.assertTrue(gate({"heuristique": win, "sniper": win, "bayesien": win}))
+        self.assertTrue(gate({"heuristique": win, "sniper": win, "bayesien": win, "marginal": win}))
+        self.assertFalse(gate({"heuristique": win, "sniper": win, "bayesien": win, "marginal": tie}))
 
     def test_gate_requires_ci_above_zero_against_heuristic(self):
         self.assertTrue(gate({"heuristique": (5.0, 1.0, 9.0)}))

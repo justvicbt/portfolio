@@ -79,13 +79,25 @@ class Market:
         self.cash = [START_CASH - POT / n] * n
         self.book = empty_book()
         self.trades = []  # (acheteur, vendeur, couleur, prix)
+        self.events = []  # fil public : (instant, joueur, "bid" | "ask" | "bought" | "sold", couleur, prix)
         self._seq = 0
 
     def best(self, suit, side, exclude=None):
         return best_quote(self.book, suit, side, exclude)
 
-    def apply(self, player, action):
-        """Applique une action. Renvoie l'échange réalisé ou None. Lève IllegalAction si refusée.
+    def apply(self, player, action, t=0.0):
+        """Applique une action arrivée à l'instant `t`, et l'ajoute au fil public si elle se voit à l'écran.
+        Renvoie l'échange réalisé ou None. Lève IllegalAction si refusée."""
+        trade = self._apply(player, action)
+        if trade:
+            buyer, seller, suit, price = trade
+            self.events += [(t, buyer, "bought", suit, price), (t, seller, "sold", suit, price)]
+        elif action[0] in ("bid", "ask"):
+            self.events.append((t, player, action[0], action[1], action[2]))
+        return trade
+
+    def _apply(self, player, action):
+        """Règles du carnet.
 
         ("bid", couleur, prix)   propose d'acheter
         ("ask", couleur, prix)   propose de vendre
@@ -175,6 +187,8 @@ class View:
     card_counts: list
     time: float
     duration: float
+    events: list  # le fil public de la manche, à lire sans le modifier
+
 
     def best(self, suit, side):
         """Meilleure cotation des autres joueurs : (prix, joueur) ou None."""
@@ -190,6 +204,7 @@ class View:
 class RoundResult:
     profits: list  # gain de chaque siège (argent final moins 350 $)
     log: dict      # journal complet, rejouable avec replay()
+    events: list   # fil public de la manche
 
 
 def _final_profits(market, goal):
@@ -200,7 +215,7 @@ def _final_profits(market, goal):
 def _view(market, seat, time, duration):
     return View(seat, len(market.hands), dict(market.hands[seat]), market.cash[seat],
                 {s: {side: dict(q) for side, q in sides.items()} for s, sides in market.book.items()},
-                list(market.trades), [sum(h.values()) for h in market.hands], time, duration)
+                list(market.trades), [sum(h.values()) for h in market.hands], time, duration, market.events)
 
 
 LOG_FORMAT = 2  # 1 = phase 0 (ticks), 2 = phase 1 (temps continu, instant du regard, prix des prises)
@@ -208,7 +223,7 @@ DEFAULT_REACTION = 0.3  # secondes entre ce qu'un bot voit et l'arrivée de son 
 DEFAULT_IDLE = 1.0      # secondes en moyenne avant de regarder à nouveau quand rien ne bouge
 
 
-def play_round(bots, seed, duration=240.0):
+def play_round(bots, seed, duration=240.0, memories=None):
     """Joue une manche en temps continu. `bots` : une classe (ou fabrique) de bot par siège.
 
     Chaque bot regarde le marché quand il change, ou de lui-même de temps en temps (attribut
@@ -221,6 +236,9 @@ def play_round(bots, seed, duration=240.0):
     hands, goal = deal(random.Random(seed), n)
     market = Market(hands)
     players = [make() for make in bots]
+    if memories is not None:
+        for p, memory in zip(players, memories):
+            p.memory = memory  # ce que le bot garde d'une manche à l'autre (parties de plusieurs manches)
     bot_rngs = [random.Random(f"{seed}:bot:{i}") for i in range(n)]
     time_rngs = [random.Random(f"{seed}:time:{i}") for i in range(n)]
     reaction = [getattr(p, "reaction", DEFAULT_REACTION) for p in players]
@@ -266,7 +284,7 @@ def play_round(bots, seed, duration=240.0):
         action, seen_at = sent
         in_flight[seat] = False
         try:
-            market.apply(seat, action)
+            market.apply(seat, action, t)
             ok = True
         except IllegalAction:
             ok = False  # une action refusée est ignorée mais gardée dans le journal
@@ -282,7 +300,33 @@ def play_round(bots, seed, duration=240.0):
     }
     profits = _final_profits(market, goal)
     log["profits"] = profits
-    return RoundResult(profits, log)
+    for seat, p in enumerate(players):
+        if hasattr(p, "end_round"):  # comme sur figgie.com : à la fin, objectif et mains révélés à tous
+            p.end_round({"seat": seat, "goal": goal, "hands": [dict(h) for h in market.hands]})
+    return RoundResult(profits, log, market.events)
+
+
+@dataclass
+class MatchResult:
+    profits: list   # gain total de chaque siège sur la partie
+    logs: list      # journal de chaque manche
+    memories: list  # mémoire de chaque bot en fin de partie
+
+
+def play_match(bots, seed, rounds, duration=240.0):
+    """Une partie de plusieurs manches à la même table. Chaque bot garde une mémoire (un dict)
+    d'une manche à l'autre. shortcut: l'argent repart de 350 $ à chaque manche, alors que sur
+    figgie.com il se cumule ; sans effet tant qu'aucun bot n'approche de la limite d'argent."""
+    memories = [{} for _ in bots]
+    profits = [0.0] * len(bots)
+    logs = []
+    for r in range(rounds):
+        # Manche 0 : la donne de la manche isolée de même graine. Les suivantes : des graines en texte,
+        # qui ne peuvent croiser aucune graine entière (tournois, réglage, apprentissage).
+        result = play_round(bots, seed=seed if r == 0 else f"{seed}:{r}", duration=duration, memories=memories)
+        profits = [a + b for a, b in zip(profits, result.profits)]
+        logs.append(result.log)
+    return MatchResult(profits, logs, memories)
 
 
 def replay(log):

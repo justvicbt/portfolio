@@ -10,8 +10,10 @@ import argparse
 import json
 import statistics
 
-from figgie.bots import ZOO
-from figgie.engine import play_round
+from figgie.bots import ZOO, CorrectedMarginalBot
+
+CANDIDATES = {**ZOO, CorrectedMarginalBot.name: CorrectedMarginalBot}  # le zoo, plus les variantes de mesure
+from figgie.engine import play_match, play_round
 
 
 def mean_ci(values):
@@ -23,20 +25,37 @@ def mean_ci(values):
     return mean, mean - half, mean + half
 
 
-def duplicate_match(candidate, opponent, n_deals, n_players=4, seed=0, duration=240.0, log_file=None):
-    """Gain moyen du candidat sur chaque donne (moyenne sur toutes les rotations de sièges)."""
+def duplicate_match(candidate, opponent, n_deals, n_players=None, seed=0, duration=240.0, log_file=None, rounds=1):
+    """Gain moyen du candidat par manche, pour chaque donne (moyenne sur toutes les rotations de sièges).
+
+    `opponent` : une classe (table de `n_players` copies, 4 par défaut) ou une liste de classes (table mixte).
+    `rounds` : nombre de manches par partie ; avec plus d'une manche, chaque donne est une partie
+    entière, rejouée à chaque rotation, et les bots gardent leur mémoire d'une manche à l'autre.
+    """
+    if isinstance(opponent, (list, tuple)):
+        opponents = list(opponent)
+        if n_players not in (None, len(opponents) + 1):
+            raise ValueError(f"{len(opponents)} adversaires : la table a {len(opponents) + 1} joueurs, pas {n_players}")
+    else:
+        opponents = [opponent] * ((n_players or 4) - 1)
+    n_players = len(opponents) + 1
     per_deal = []
     for d in range(n_deals):
         # mêmes donnes pour tous les adversaires (comparaison plus juste), sans chevauchement entre graines voisines
         deal_seed = seed * 1_000_000 + d
         total = 0.0
         for seat in range(n_players):
-            bots = [opponent] * n_players
-            bots[seat] = candidate
-            result = play_round(bots, seed=deal_seed, duration=duration)
-            total += result.profits[seat]
+            bots = opponents[:seat] + [candidate] + opponents[seat:]
+            if rounds == 1:
+                result = play_round(bots, seed=deal_seed, duration=duration)
+                profit, logs = result.profits[seat], [result.log]
+            else:
+                match = play_match(bots, seed=deal_seed, rounds=rounds, duration=duration)
+                profit, logs = match.profits[seat] / rounds, match.logs
+            total += profit
             if log_file:
-                log_file.write(json.dumps(result.log) + "\n")
+                for log in logs:
+                    log_file.write(json.dumps(log) + "\n")
         per_deal.append(total / n_players)
     return per_deal
 
@@ -49,7 +68,7 @@ def zoo_report(candidate, n_deals, n_players=4, seed=0, duration=240.0, log_file
     }
 
 
-GATE_REFERENCES = ("heuristique", "sniper", "bayesien")  # bayesien = référence des phases 0 et 1
+GATE_REFERENCES = ("heuristique", "sniper", "bayesien", "marginal")  # bayesien : phases 0-1, marginal : phase 2
 
 
 def gate(report):
@@ -63,7 +82,7 @@ def gate(report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--candidate", default="bayesien", choices=sorted(ZOO))
+    parser.add_argument("--candidate", default="bayesien", choices=sorted(CANDIDATES))
     parser.add_argument("--deals", type=int, default=300)
     parser.add_argument("--players", type=int, default=4, choices=(4, 5))
     parser.add_argument("--duration", type=float, default=240.0, help="durée d'une manche en secondes")
@@ -76,7 +95,7 @@ def main():
 
     log_file = open(args.logs, "w") if args.logs else None
     try:
-        report = zoo_report(ZOO[args.candidate], args.deals, args.players, args.seed, args.duration, log_file)
+        report = zoo_report(CANDIDATES[args.candidate], args.deals, args.players, args.seed, args.duration, log_file)
     finally:
         if log_file:
             log_file.close()

@@ -3,7 +3,7 @@ import random
 import unittest
 
 from figgie.engine import SUITS, TWIN
-from figgie.valuation import (card_gain, goal_probabilities, known_minimums,
+from figgie.valuation import (card_gain, goal_probabilities, initial_hand, known_minimums,
                               marginal_values, sample_world)
 
 
@@ -58,6 +58,36 @@ class TestMonteCarlo(unittest.TestCase):
         self.assertAlmostEqual(got["C"], 0.6091, places=4)
         self.assertAlmostEqual(got["S"], 0.1163, places=4)
         self.assertAlmostEqual(sum(got.values()), 1)
+
+    def test_bought_cards_are_a_constraint_not_a_draw(self):
+        # Un adversaire qui a acheté 4 trèfles les a choisis : ce n'est pas un tirage au hasard.
+        # Avec drawn (ma donne, seul vrai tirage), ces cartes ne servent qu'à exclure les paquets impossibles.
+        h = hand(S=1, C=3, H=3, D=3)
+        mins = [hand(), hand(C=4), hand(), hand()]
+        free = goal_probabilities(h, [hand()] * 4, seat=0)
+        got = goal_probabilities(h, mins, seat=0, drawn=h)
+        for s in SUITS:
+            self.assertAlmostEqual(got[s], free[s])  # 7 trèfles connus : possible dans tous les paquets
+        mins = [hand(), hand(C=8), hand(), hand()]  # 11 trèfles connus : seul un paquet à 12 trèfles convient
+        self.assertAlmostEqual(goal_probabilities(h, mins, seat=0, drawn=h)["S"], 1.0)
+
+    def test_initial_hand_undoes_my_trades(self):
+        trades = [(0, 1, "H", 5), (2, 0, "S", 3), (0, 3, "H", 4)]  # j'achète 2 cœurs et vends 1 pique
+        self.assertEqual(initial_hand(hand(S=1, C=2, H=5, D=2), trades, seat=0), hand(S=2, C=2, H=3, D=2))
+
+    def test_market_weights_multiply_the_probabilities(self):
+        # Le marché rend le cœur deux fois plus probable : P(trèfle) = 0,6091 / (1 + 0,1163) = 0,5456.
+        weights = {"S": 1, "C": 1, "H": 2, "D": 1}
+        got = goal_probabilities(hand(S=6, C=1, H=2, D=1), [hand()] * 4, seat=0, goal_weights=weights)
+        self.assertAlmostEqual(got["C"], 0.5456, places=4)
+        self.assertAlmostEqual(got["H"], 2 * 0.1163 / 1.1163, places=3)
+
+    def test_marginal_values_follow_the_market_weights(self):
+        # Si le marché désigne presque sûrement le carreau, acheter du carreau vaut plus que du trèfle.
+        h = hand(S=6, C=1, H=2, D=1)
+        weights = {"S": 0.01, "C": 0.01, "H": 0.01, "D": 1}
+        values = marginal_values(h, 0, [10] * 4, [hand()] * 4, random.Random(2), samples=400, goal_weights=weights)
+        self.assertGreater(min(values["D"][0].values()), min(values["C"][0].values()))
 
     def test_known_cards_shift_the_probabilities(self):
         # Si un adversaire a acheté 4 trèfles, les trèfles sont plus nombreux : le pique (leur jumeau) devient plus probable.
