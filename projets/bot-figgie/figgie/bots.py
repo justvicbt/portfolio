@@ -4,9 +4,10 @@ Tous sauf l'aléatoire suivent la même mécanique (ValueBot) : estimer ce que v
 de chaque couleur, prendre les cotations avantageuses, sinon coter autour de cette valeur.
 Ils diffèrent par l'estimation de la valeur et par leur tempérament.
 """
-from math import ceil, comb, floor
+from math import ceil, floor
 
 from figgie.engine import GOAL_CARD_VALUE, SUITS, TWIN
+from figgie.valuation import goal_probabilities, known_minimums, marginal_values
 
 
 class RandomBot:
@@ -30,26 +31,6 @@ class RandomBot:
         return (kind, suit, rng.randint(1, 20))
 
 
-def goal_posterior(hand):
-    """P(couleur objectif = s) sachant ma main, sur les 12 compositions possibles du paquet.
-
-    Une composition = quelle couleur a 12 cartes et laquelle en a 8. Sa vraisemblance est
-    le nombre de façons de tirer ma main dans ce paquet (loi hypergéométrique).
-    """
-    weights = dict.fromkeys(SUITS, 0.0)
-    for twelve in SUITS:
-        for eight in SUITS:
-            if eight == twelve:
-                continue
-            sizes = {s: 12 if s == twelve else 8 if s == eight else 10 for s in SUITS}
-            likelihood = 1
-            for s in SUITS:
-                likelihood *= comb(sizes[s], hand[s])
-            weights[TWIN[twelve]] += likelihood
-    total = sum(weights.values())
-    return {s: w / total for s, w in weights.items()}
-
-
 class ValueBot:
     """Mécanique commune. Les sous-classes définissent values(), et les paramètres de tempérament.
 
@@ -67,38 +48,51 @@ class ValueBot:
         self.next_time = 0.0
 
     def values(self, hand, rng):
+        """Une valeur par couleur, calculée une fois sur la donne."""
         raise NotImplementedError
 
-    def act(self, view, rng):
+    def refresh(self, view, rng):
+        """Met à jour les valeurs. Par défaut, calculées une fois sur la donne : les cartes achetées
+        ensuite ne changent pas le paquet."""
         if self._values is None:
-            # Valeurs calculées une fois, sur la donne : les cartes achetées ensuite ne changent pas le paquet.
             self._values = self.values(dict(view.hand), rng)
+
+    def buy_value(self, s, player):
+        """Ce que me rapporte une carte de `s` achetée à `player` (None = je ne sais pas encore qui)."""
+        return self._values[s]
+
+    def sell_value(self, s, player):
+        """Ce que me coûte une carte de `s` vendue à `player` (None = je ne sais pas encore qui)."""
+        return self._values[s]
+
+    def act(self, view, rng):
         if self.pace and view.time < self.next_time:
             return None
+        self.refresh(view, rng)
         suits = list(SUITS)
         rng.shuffle(suits)
         for s in suits:
-            action = self._decide(view, s, self._values[s])
+            action = self._decide(view, s)
             if action:
                 if self.pace:
                     self.next_time = view.time + rng.expovariate(1 / self.pace)
                 return action
         return None
 
-    def _decide(self, view, s, value):
-        bid, ask = view.best(s, "bid"), view.best(s, "ask")  # meilleures cotations des autres
+    def _decide(self, view, s):
+        bid, ask = view.best(s, "bid"), view.best(s, "ask")  # meilleures cotations des autres : (prix, joueur)
         if self.edge is not None:
-            if ask and ask[0] <= value - self.edge and ask[0] <= view.cash:
+            if ask and ask[0] <= self.buy_value(s, ask[1]) - self.edge and ask[0] <= view.cash:
                 return ("buy", s, ask[0])  # le prix vu : refusé s'il a empiré entre-temps
-            if bid and bid[0] >= value + self.edge and view.hand[s] > 0:
+            if bid and bid[0] >= self.sell_value(s, bid[1]) + self.edge and view.hand[s] > 0:
                 return ("sell", s, bid[0])
         if not self.quotes:
             return None
         # Mes cotations restent du bon côté des autres : prendre, c'est la règle ci-dessus qui en décide.
-        my_bid = floor(value - self.spread)
+        my_bid = floor(self.buy_value(s, None) - self.spread)
         if ask:
             my_bid = min(my_bid, ask[0] - 1)
-        my_ask = max(1, ceil(value + self.spread))
+        my_ask = max(1, ceil(self.sell_value(s, None) + self.spread))
         if bid:
             my_ask = max(my_ask, bid[0] + 1)
         if 1 <= my_bid <= view.cash and view.mine(s, "bid") != my_bid and my_bid < (view.mine(s, "ask") or 10**9):
@@ -133,7 +127,7 @@ class BayesBot(ValueBot):
     spread, edge = 2, 1
 
     def values(self, hand, rng):
-        p = goal_posterior(hand)
+        p = goal_probabilities(hand, minimums=[], seat=None)  # ma main seule
         return {s: p[s] * (GOAL_CARD_VALUE + self.bonus) for s in SUITS}
 
 
@@ -150,4 +144,34 @@ class SniperBot(BayesBot):
     reaction, idle, edge, quotes = 0.15, 0.5, 1, False
 
 
-ZOO = {bot.name: bot for bot in (RandomBot, HeuristicBot, BayesBot, AggressiveBot, PassiveBot, SniperBot)}
+class MarginalBot(ValueBot):
+    """Phase 2. Valeur d'une carte calculée par Monte Carlo (figgie/valuation.py), majorité du pot
+    comprise, selon le joueur d'en face : vendre au meneur coûte plus cher que vendre à un autre.
+    Quand il prend une cotation, il sait qui est en face. Quand il affiche la sienne, il ne sait pas
+    qui la prendra : il achète au prix de la pire provenance et vend au prix du pire acheteur.
+    Les valeurs sont recalculées dès que sa main ou les échanges publics changent."""
+    name = "marginal"
+    samples = 300
+    spread, edge = 8, 1  # réglés sur les donnes d'entraînement (graine 2), voir figgie/tune.py et resultats/phase2/
+
+    def __init__(self):
+        super().__init__()
+        self._key = None
+
+    def refresh(self, view, rng):
+        key = (tuple(view.hand.values()), len(view.trades))
+        if key != self._key:
+            mins = known_minimums(view.trades, view.n_players)
+            self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples)
+            self._key = key
+
+    def buy_value(self, s, player):
+        by_player = self._values[s][0]
+        return by_player[player] if player is not None else min(by_player.values())
+
+    def sell_value(self, s, player):
+        by_player = self._values[s][1]
+        return by_player[player] if player is not None else max(by_player.values())
+
+
+ZOO = {bot.name: bot for bot in (RandomBot, HeuristicBot, BayesBot, AggressiveBot, PassiveBot, SniperBot, MarginalBot)}

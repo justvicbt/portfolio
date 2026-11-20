@@ -49,7 +49,7 @@ def zoo_report(candidate, n_deals, n_players=4, seed=0, duration=240.0, log_file
     }
 
 
-GATE_REFERENCES = ("heuristique", "sniper")
+GATE_REFERENCES = ("heuristique", "sniper", "bayesien")  # bayesien = référence des phases 0 et 1
 
 
 def gate(report):

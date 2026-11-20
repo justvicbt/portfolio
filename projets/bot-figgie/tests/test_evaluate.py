@@ -1,7 +1,7 @@
 """Seam « évaluation dupliquée » : rotation des sièges, intervalle de confiance et porte d'entrée."""
 import unittest
 
-from figgie.bots import RandomBot
+from figgie.bots import ZOO, RandomBot
 from figgie.evaluate import duplicate_match, gate, mean_ci, zoo_report
 
 
@@ -30,7 +30,7 @@ class TestZooReport(unittest.TestCase):
         from figgie.bots import PassiveBot
         report = zoo_report(PassiveBot, n_deals=2, duration=10)
         self.assertNotIn("passif", report)
-        self.assertEqual(len(report), 5)
+        self.assertEqual(len(report), len(ZOO) - 1)
 
 
 class TestGate(unittest.TestCase):
@@ -43,6 +43,11 @@ class TestGate(unittest.TestCase):
         self.assertFalse(gate({"heuristique": win, "sniper": tie}))
         self.assertFalse(gate({"heuristique": tie, "sniper": win}))
         self.assertTrue(gate({"sniper": win}))  # le candidat est l'heuristique : seule l'autre référence compte
+
+    def test_gate_also_requires_beating_the_previous_reference(self):
+        win, tie = (5.0, 1.0, 9.0), (5.0, -1.0, 11.0)
+        self.assertFalse(gate({"heuristique": win, "sniper": win, "bayesien": tie}))
+        self.assertTrue(gate({"heuristique": win, "sniper": win, "bayesien": win}))
 
     def test_gate_requires_ci_above_zero_against_heuristic(self):
         self.assertTrue(gate({"heuristique": (5.0, 1.0, 9.0)}))

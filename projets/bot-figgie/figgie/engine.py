@@ -40,14 +40,19 @@ def deal(rng, n_players):
     return hands, TWIN[twelve]
 
 
+def payout(mine, others):
+    """Ce que touche en fin de manche un joueur qui a `mine` cartes objectif, face aux nombres `others`.
+    10 $ par carte, plus sa part du reste du pot s'il fait partie de la majorité."""
+    rest = POT - GOAL_CARD_VALUE * (mine + sum(others))
+    best = max(others)
+    # shortcut: partage exact en float (33,33 $), l'arrondi de figgie.com n'est pas documenté.
+    share = rest if mine > best else rest / (1 + others.count(best)) if mine == best else 0
+    return GOAL_CARD_VALUE * mine + share
+
+
 def score(goal_counts):
     """Gain de fin de manche de chaque joueur, à partir de son nombre de cartes objectif."""
-    rest = POT - GOAL_CARD_VALUE * sum(goal_counts)
-    best = max(goal_counts)
-    winners = [i for i, n in enumerate(goal_counts) if n == best]
-    # shortcut: partage exact en float (33,33 $), l'arrondi de figgie.com n'est pas documenté.
-    share = rest / len(winners)
-    return [GOAL_CARD_VALUE * n + (share if i in winners else 0) for i, n in enumerate(goal_counts)]
+    return [payout(n, goal_counts[:i] + goal_counts[i + 1:]) for i, n in enumerate(goal_counts)]
 
 
 def best_quote(book, suit, side, exclude=None):
