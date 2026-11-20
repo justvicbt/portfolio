@@ -79,7 +79,7 @@ class Market:
         self.cash = [START_CASH - POT / n] * n
         self.book = empty_book()
         self.trades = []  # (acheteur, vendeur, couleur, prix)
-        self.events = []  # fil public : (instant, joueur, "bid" | "ask" | "bought" | "sold", couleur, prix)
+        self.events = []  # fil public : (instant, joueur, "bid" | "ask" | "bought" | "sold" | "cancel", couleur, prix)
         self._seq = 0
 
     def best(self, suit, side, exclude=None):
@@ -94,6 +94,8 @@ class Market:
             self.events += [(t, buyer, "bought", suit, price), (t, seller, "sold", suit, price)]
         elif action[0] in ("bid", "ask"):
             self.events.append((t, player, action[0], action[1], action[2]))
+        elif action[0] == "cancel":  # la cotation disparaît de l'écran (phase 5) ; prix sans objet
+            self.events.append((t, player, "cancel", action[1], 0))
         return trade
 
     def _apply(self, player, action):

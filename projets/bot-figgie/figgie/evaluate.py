@@ -10,10 +10,13 @@ import argparse
 import json
 import statistics
 
+from figgie.adapt import AdaptiveBot, AdaptiveV2Bot
 from figgie.bots import ABNORMAL, ZOO, CorrectedMarginalBot, LeagueReaderBot
 
-# Le zoo, plus les variantes de mesure, les comportements anormaux et le candidat de la ligue (phase 4).
-CANDIDATES = {**ZOO, CorrectedMarginalBot.name: CorrectedMarginalBot, **ABNORMAL, LeagueReaderBot.name: LeagueReaderBot}
+# Le zoo, plus les variantes de mesure, les comportements anormaux, le candidat de la ligue (phase 4)
+# et le bot adaptatif (phase 5).
+CANDIDATES = {**ZOO, CorrectedMarginalBot.name: CorrectedMarginalBot, **ABNORMAL,
+              LeagueReaderBot.name: LeagueReaderBot, AdaptiveBot.name: AdaptiveBot, AdaptiveV2Bot.name: AdaptiveV2Bot}
 from figgie.engine import play_match, play_round
 
 

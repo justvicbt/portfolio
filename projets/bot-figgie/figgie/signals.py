@@ -79,7 +79,7 @@ class SignalModel:
     @classmethod
     def fit(cls, rounds, kinds=ALL_KINDS):
         """`rounds` : suite de (événements, couleur objectif). `kinds` : natures d'événements à apprendre."""
-        rounds = [([e for e in distinct(events) if e[2] in kinds], goal) for events, goal in rounds]
+        rounds = [(distinct([e for e in events if e[2] in kinds]), goal) for events, goal in rounds]
         counts = {}
         for events, goal in rounds:
             for _t, _p, kind, suit, price in events:

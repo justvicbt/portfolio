@@ -182,6 +182,17 @@ class MarginalBot(ValueBot):
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "modeles"
 MODEL_PATH = MODELS_DIR / "signaux.json"
+_LOADED = {}  # fichier de modèle -> objet chargé, une fois par processus
+
+
+def load_model(filename, build, command):
+    """Charge un modèle appris (modeles/<filename>) une seule fois. `build` transforme le JSON en objet."""
+    if filename not in _LOADED:
+        path = MODELS_DIR / filename
+        if not path.exists():
+            raise FileNotFoundError(f"{path} manque : lancer d'abord python3 -m {command}")
+        _LOADED[filename] = build(json.loads(path.read_text()))
+    return _LOADED[filename]
 UNIFORM = dict.fromkeys(SUITS, 0.25)
 
 
@@ -194,17 +205,10 @@ class ReaderBot(MarginalBot):
     constraint_counting = True
     resample = 0.03  # nouveau Monte Carlo si une probabilité a bougé de plus de 3 points
     model_file = "signaux.json"
-    _models = {}  # fichier -> (modèle, atténuation), chargé une fois
 
     @classmethod
     def model(cls):
-        if cls.model_file not in ReaderBot._models:
-            path = MODELS_DIR / cls.model_file
-            if not path.exists():
-                raise FileNotFoundError(f"{path} manque : lancer d'abord python3 -m figgie.learn")
-            data = json.loads(path.read_text())
-            ReaderBot._models[cls.model_file] = (SignalModel.from_dict(data), data["temper"])
-        return ReaderBot._models[cls.model_file]
+        return load_model(cls.model_file, lambda data: (SignalModel.from_dict(data), data["temper"]), "figgie.learn")
 
     def __init__(self):
         super().__init__()

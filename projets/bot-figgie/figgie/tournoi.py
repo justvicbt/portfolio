@@ -6,6 +6,7 @@ Trois sortes de tâches, toutes en donnes dupliquées sur les donnes des tournoi
 - un candidat face à une table mixte précise (comportements anormaux), sur une ou plusieurs manches.
 
 Usage : python3 -m figgie.tournoi --candidates marginal lecteur lecteur_ligue --out resultats/phase4/tournoi.json
+        python3 -m figgie.tournoi --candidates marginal adaptatif --rounds 10 --deals 300 --out resultats/phase5/tournoi.json
 """
 import argparse
 import json
@@ -20,18 +21,19 @@ TABLES = {  # comportements anormaux, à 4 joueurs : (adversaires, manches par p
     "menteurs": (("menteur", "menteur", "heuristique"), 1),
     "menteurs, 10 manches": (("menteur", "menteur", "heuristique"), 10),
 }
-CHUNK = 100  # donnes par tâche
+CHUNK = 25  # donnes par tâche
 
 
 def _run(job):
-    kind, cand, other, players, first, deals, seed = job
+    kind, cand, other, players, first, deals, seed, rounds = job
     if kind == "zoo":
-        return duplicate_match(CANDIDATES[cand], ZOO[other], deals, players, seed=seed, first_deal=first)
+        return duplicate_match(CANDIDATES[cand], ZOO[other], deals, players, seed=seed, first_deal=first, rounds=rounds)
     if kind == "minority":  # gain de la référence seule face aux copies du candidat
-        return duplicate_match(CANDIDATES[other], CANDIDATES[cand], deals, players, seed=seed, first_deal=first)
-    names, rounds = TABLES[other]
+        return duplicate_match(CANDIDATES[other], CANDIDATES[cand], deals, players, seed=seed, first_deal=first,
+                               rounds=rounds)
+    names, table_rounds = TABLES[other]
     return duplicate_match(CANDIDATES[cand], [CANDIDATES[n] for n in names], deals, seed=seed,
-                           first_deal=first, rounds=rounds)
+                           first_deal=first, rounds=max(rounds, table_rounds))
 
 
 def main():
@@ -40,6 +42,10 @@ def main():
     parser.add_argument("--deals", type=int, default=1000)
     parser.add_argument("--table-deals", type=int, default=300, help="donnes par table anormale")
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--rounds", type=int, default=1, help="manches par partie (phase 5 : le bot adaptatif en a besoin)")
+    parser.add_argument("--references", nargs="+", default=list(GATE_REFERENCES), choices=sorted(CANDIDATES),
+                        help="références du test de minorité")
+    parser.add_argument("--no-tables", action="store_true", help="sauter les tables anormales")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
@@ -47,16 +53,20 @@ def main():
     def add(key, kind, cand, other, players, deals):
         for first in range(0, deals, CHUNK):
             keys.append(key)
-            jobs.append((kind, cand, other, players, first, min(CHUNK, deals - first), args.seed))
+            jobs.append((kind, cand, other, players, first, min(CHUNK, deals - first), args.seed, args.rounds))
     for cand in args.candidates:
         for p in (4, 5):
             for opp in ZOO:
                 if ZOO[opp] is not CANDIDATES[cand]:
                     add((cand, p, "zoo", opp), "zoo", cand, opp, p, args.deals)
-            for ref in GATE_REFERENCES:
+            for ref in args.references:
                 if CANDIDATES[ref] is not CANDIDATES[cand]:
                     add((cand, p, "minority", ref), "minority", cand, ref, p, args.deals)
-        for table in TABLES:
+        scheduled = set()
+        for table, (names, table_rounds) in ([] if args.no_tables else TABLES.items()):
+            if (names, max(args.rounds, table_rounds)) in scheduled:
+                continue  # avec --rounds, la table d'une manche devient la même que celle de 10 manches
+            scheduled.add((names, max(args.rounds, table_rounds)))
             add((cand, 4, "table", table), "table", cand, table, 4, args.table_deals)
 
     with Pool() as pool:
@@ -85,7 +95,8 @@ def main():
             for ref, (m, lo, hi) in r["minority"].items():
                 print(f"  {ref + ' seul':27s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]  (gain de la référence)")
         for table, (m, lo, hi) in res["tables"].items():
-            print(f"  table {table:20s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]")
+            rounds = max(args.rounds, TABLES[table][1])
+            print(f"  table {', '.join(TABLES[table][0]):35s} ({rounds} manche(s)) {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]")
     with open(args.out, "w") as f:
         json.dump({"args": vars(args), "results": {c: {str(k): v for k, v in r.items()} for c, r in results.items()}},
                   f, indent=2)
