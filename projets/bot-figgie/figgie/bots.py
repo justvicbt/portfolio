@@ -5,6 +5,7 @@ de chaque couleur, prendre les cotations avantageuses, sinon coter autour de cet
 Ils diffèrent par l'estimation de la valeur et par leur tempérament.
 """
 import json
+import math
 from math import ceil, floor
 from pathlib import Path
 
@@ -109,9 +110,16 @@ class ValueBot:
         my_ask = max(1, ceil(self.sell_value(s, None) + spread))
         if bid:
             my_ask = max(my_ask, bid[0] + 1)
-        if 1 <= my_bid <= view.cash and view.mine(s, "bid") != my_bid and my_bid < (view.mine(s, "ask") or 10**9):
+        can_bid = can_ask = True
+        if view.single_quote:  # phase 5c, règle du site : une offre doit battre celle qui est affichée
+            mine_bid, mine_ask = view.mine(s, "bid"), view.mine(s, "ask")
+            if (mine_bid is not None and my_bid < mine_bid) or (mine_ask is not None and my_ask > mine_ask):
+                return ("cancel", s)  # je ne peux pas reculer mon prix : je retire la cotation
+            can_bid = not bid or my_bid > bid[0]
+            can_ask = not ask or my_ask < ask[0]
+        if can_bid and 1 <= my_bid <= view.cash and view.mine(s, "bid") != my_bid and my_bid < (view.mine(s, "ask") or 10**9):
             return ("bid", s, my_bid)
-        if view.hand[s] > 0 and view.mine(s, "ask") != my_ask and my_ask > (view.mine(s, "bid") or 0):
+        if can_ask and view.hand[s] > 0 and view.mine(s, "ask") != my_ask and my_ask > (view.mine(s, "bid") or 0):
             return ("ask", s, my_ask)
         return None
 
@@ -346,6 +354,90 @@ class LiarBot(MarginalBot):
 
 ABNORMAL = {bot.name: bot for bot in (IdleBot, SpamBot, LiarBot)}
 
+
+class HardBot:
+    """Phase 5c : une imitation des bots « Hard » de figgie.com, réglée sur les journaux de Rasmus Suonio
+    (figgie.calibrate). Ce que montrent les journaux : ils montent leur offre d'achat d'un dollar à la
+    fois au-dessus de la meilleure (et descendent leur vente de même), cotent sans cesse, et échangent
+    surtout en fin de manche. Faite pour la règle du site (single_quote).
+
+    Valeur d'une carte : base + goal_worth x P(couleur objectif), d'après ma donne et les cartes
+    échangées. Je n'achète pas au-dessus de valeur - marge, je ne vends pas en dessous de valeur + marge,
+    et la marge fond au fil de la manche (margin x temps restant ^ margin_power). Les bots du site ne
+    sont pas d'accord entre eux (une carte bradée est presque toujours rachetée plus cher) : chaque valeur
+    reçoit un écart tiré au hasard (écart-type `noise`), retiré après chaque échange. Et ils lisent le
+    marché : sur le site, ce sont les plus hautes offres d'achat qui désignent l'objectif (d'après Rasmus
+    Suonio). Une couleur où les autres ont proposé plus cher devient plus probablement l'objectif :
+    poids exp(read x (plus haut prix proposé par les autres dans la couleur - moyenne sur les couleurs)).
+    """
+    name = "hard_simule"
+    # Réglage de figgie.calibrate (resultats/phase5c/calibration_hard.md), sauf reaction, idle, start et open_bid.
+    reaction, idle = 0.3, 0.5
+    pace = 0.6         # secondes entre deux actions, en moyenne
+    start = 5.0        # instant de ma première cotation
+    base, goal_worth = 0, 30
+    margin, margin_power = 6, 0.5
+    open_bid, open_ask = 1, 20  # premiers prix, quand personne n'a encore coté
+    noise = 6
+    read = 0.05
+
+    def __init__(self):
+        self.next_time = 0.0
+        self._offsets, self._n_trades = None, -1
+        self._top, self._seen = dict.fromkeys(SUITS, 0), 0
+        self._key, self._values = None, None
+
+    def values(self, view):
+        for _t, player, kind, suit, price in view.events[self._seen:]:
+            if kind == "bid" and player != view.seat:
+                self._top[suit] = max(self._top[suit], price)
+        self._seen = len(view.events)
+        key = (tuple(view.hand.values()), len(view.trades), tuple(self._top.values()))
+        if key == self._key:
+            return self._values
+        mean_top = sum(self._top.values()) / len(SUITS)
+        weights = {s: math.exp(self.read * (self._top[s] - mean_top)) for s in SUITS} if self.read else None
+        p = goal_probabilities(view.hand, known_minimums(view.trades, view.n_players), view.seat, goal_weights=weights,
+                               drawn=initial_hand(view.hand, view.trades, view.seat))
+        self._key, self._values = key, {s: self.base + self.goal_worth * p[s] for s in SUITS}
+        return self._values
+
+    def act(self, view, rng):
+        if view.time < max(self.start, self.next_time):
+            return None
+        if len(view.trades) != self._n_trades:
+            self._offsets = {s: rng.gauss(0, self.noise) for s in SUITS}
+            self._n_trades = len(view.trades)
+        values = {s: v + self._offsets[s] for s, v in self.values(view).items()}
+        m = self.margin * (1 - view.time / view.duration) ** self.margin_power
+        suits = list(SUITS)
+        rng.shuffle(suits)
+        for s in suits:
+            action = self._decide(view, s, floor(values[s] - m), max(1, ceil(values[s] + m)), rng)
+            if action:
+                self.next_time = view.time + rng.expovariate(1 / self.pace)
+                return action
+        return None
+
+    def _decide(self, view, s, limit, floor_, rng):
+        bid, ask = view.best(s, "bid"), view.best(s, "ask")
+        mine_bid, mine_ask = view.mine(s, "bid"), view.mine(s, "ask")
+        if (mine_bid is not None and mine_bid > limit) or (mine_ask is not None and mine_ask < floor_):
+            return ("cancel", s)  # mon prix affiché ne me convient plus
+        if ask and ask[0] <= limit and ask[0] <= view.cash:
+            return ("buy", s, ask[0])
+        if bid and bid[0] >= floor_ and view.hand[s] > 0:
+            return ("sell", s, bid[0])
+        options = []
+        if mine_bid is None or (bid and bid[0] >= mine_bid):  # je ne suis pas le meilleur acheteur : je monte d'un dollar
+            target = bid[0] + 1 if bid else self.open_bid
+            if target <= min(limit, view.cash) and (not ask or target < ask[0]) and target < (mine_ask or 10**9):
+                options.append(("bid", s, target))
+        if (mine_ask is None or (ask and ask[0] <= mine_ask)) and view.hand[s] > 0:
+            target = ask[0] - 1 if ask else max(self.open_ask, floor_)
+            if target >= floor_ and (not bid or target > bid[0]) and target > (mine_bid or 0):
+                options.append(("ask", s, target))
+        return rng.choice(options) if options else None
 
 class LeagueReaderBot(ReaderBot):
     """Phase 4. Le lecteur, avec un modèle de signaux réappris sur des parties de la ligue, où jouent

@@ -110,5 +110,19 @@ class TestPlayRound(unittest.TestCase):
         self.assertEqual(a.log, b.log)
 
 
+class TestSiteRule(unittest.TestCase):
+    """Phase 5c : avec la règle du site, une offre qui ne bat pas celle qui est affichée est refusée.
+    Les bots doivent le savoir, sinon ils la renvoient sans fin."""
+
+    def test_bots_do_not_resend_quotes_the_rule_refuses(self):
+        for table in ([ZOO["marginal"]] * 4, [ZOO["heuristique"], ZOO["bayesien"], ZOO["sniper"], ZOO["marginal"]]):
+            for seed in range(3):
+                log = play_round(table, seed=seed, single_quote=True).log
+                refused = sum(not ok for _t, _seat, _action, ok, _seen in log["actions"])
+                # quelques refus restent normaux : le marché bouge pendant que l'action est en route
+                self.assertLess(refused, 40, (seed, refused, len(log["actions"])))
+                self.assertTrue(log["single_quote"])
+
+
 if __name__ == "__main__":
     unittest.main()

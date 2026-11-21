@@ -7,6 +7,8 @@ Trois sortes de tâches, toutes en donnes dupliquées sur les donnes des tournoi
 
 Usage : python3 -m figgie.tournoi --candidates marginal lecteur lecteur_ligue --out resultats/phase4/tournoi.json
         python3 -m figgie.tournoi --candidates marginal adaptatif --rounds 10 --deals 300 --out resultats/phase5/tournoi.json
+Phase 5c : --site joue avec la règle du site (une offre doit battre celle qui est affichée), et
+--opponents remplace le zoo par une liste d'adversaires, le Hard simulé par exemple.
 """
 import argparse
 import json
@@ -25,15 +27,16 @@ CHUNK = 25  # donnes par tâche
 
 
 def _run(job):
-    kind, cand, other, players, first, deals, seed, rounds = job
+    kind, cand, other, players, first, deals, seed, rounds, site = job
     if kind == "zoo":
-        return duplicate_match(CANDIDATES[cand], ZOO[other], deals, players, seed=seed, first_deal=first, rounds=rounds)
+        return duplicate_match(CANDIDATES[cand], CANDIDATES[other], deals, players, seed=seed, first_deal=first,
+                               rounds=rounds, single_quote=site)
     if kind == "minority":  # gain de la référence seule face aux copies du candidat
         return duplicate_match(CANDIDATES[other], CANDIDATES[cand], deals, players, seed=seed, first_deal=first,
-                               rounds=rounds)
+                               rounds=rounds, single_quote=site)
     names, table_rounds = TABLES[other]
     return duplicate_match(CANDIDATES[cand], [CANDIDATES[n] for n in names], deals, seed=seed,
-                           first_deal=first, rounds=max(rounds, table_rounds))
+                           first_deal=first, rounds=max(rounds, table_rounds), single_quote=site)
 
 
 def main():
@@ -46,6 +49,9 @@ def main():
     parser.add_argument("--references", nargs="+", default=list(GATE_REFERENCES), choices=sorted(CANDIDATES),
                         help="références du test de minorité")
     parser.add_argument("--no-tables", action="store_true", help="sauter les tables anormales")
+    parser.add_argument("--opponents", nargs="+", default=list(ZOO), choices=sorted(CANDIDATES),
+                        help="adversaires du tournoi (le zoo par défaut)")
+    parser.add_argument("--site", action="store_true", help="règle du site : une offre doit battre celle qui est affichée")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
@@ -53,11 +59,12 @@ def main():
     def add(key, kind, cand, other, players, deals):
         for first in range(0, deals, CHUNK):
             keys.append(key)
-            jobs.append((kind, cand, other, players, first, min(CHUNK, deals - first), args.seed, args.rounds))
+            jobs.append((kind, cand, other, players, first, min(CHUNK, deals - first), args.seed, args.rounds,
+                         args.site))
     for cand in args.candidates:
         for p in (4, 5):
-            for opp in ZOO:
-                if ZOO[opp] is not CANDIDATES[cand]:
+            for opp in args.opponents:
+                if CANDIDATES[opp] is not CANDIDATES[cand]:
                     add((cand, p, "zoo", opp), "zoo", cand, opp, p, args.deals)
             for ref in args.references:
                 if CANDIDATES[ref] is not CANDIDATES[cand]:

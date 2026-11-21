@@ -89,6 +89,21 @@ def _config_weights(known, goal_weights=None, drawn=None):
     return weights
 
 
+def _consistent(hand, seat, minimums, goal_weights, drawn):
+    """(minimums, cartes connues, poids des paquets) : les minimums des autres, ou aucun s'ils sont
+    impossibles avec tous les paquets. Ça n'arrive pas
+    dans le simulateur, seulement dans le rejeu de vraies manches (figgie.reel.paper_replay), où une
+    carte achetée sur le papier peut être revendue pour de vrai par son ancien propriétaire.
+    shortcut: on oublie alors tout ce qu'on savait des autres ; suffisant pour un rejeu sur le papier."""
+    known = _known_cards(hand, seat, minimums)
+    weights = _config_weights(known, goal_weights, drawn)
+    if not any(weights):
+        minimums = [dict.fromkeys(SUITS, 0) for _ in minimums]
+        known = _known_cards(hand, seat, minimums)
+        weights = _config_weights(known, goal_weights, drawn)
+    return minimums, known, weights
+
+
 def initial_hand(hand, trades, seat):
     """Ma donne de départ : ma main actuelle, moins ce que j'ai acheté, plus ce que j'ai vendu."""
     h = dict(hand)
@@ -100,7 +115,7 @@ def initial_hand(hand, trades, seat):
 def goal_probabilities(hand, minimums, seat, goal_weights=None, drawn=None):
     """P(couleur objectif = s) sachant ma main, les cartes connues des autres et, si fourni, le marché.
     `drawn` : ma donne de départ, pour ne compter que le vrai tirage (voir _config_weights)."""
-    weights = _config_weights(_known_cards(hand, seat, minimums), goal_weights, drawn)
+    _minimums, _known, weights = _consistent(hand, seat, minimums, goal_weights, drawn)
     probs = dict.fromkeys(SUITS, 0.0)
     for (twelve, _eight, _sizes), w in zip(CONFIGS, weights):
         probs[TWIN[twelve]] += w
@@ -141,9 +156,9 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
     Renvoie {couleur: (achat, vente)} où achat = {siège: ce que me rapporte une carte achetée à ce joueur}
     et vente = {siège: ce que me coûte une carte vendue à ce joueur}.
     """
+    minimums, known, weights = _consistent(hand, seat, minimums, goal_weights, drawn)
     # Même tirage que sample_world, mais on ne place que les cartes objectif : ce sont les seules
     # qui comptent pour le gain, et c'est beaucoup plus rapide que de distribuer toute la table.
-    known = _known_cards(hand, seat, minimums)
     opponents = [j for j in range(len(card_counts)) if j != seat]
     slot_owner = []  # pour chaque place inconnue chez les adversaires : à qui elle appartient
     for k, j in enumerate(opponents):
@@ -152,7 +167,7 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
     buy = {s: [0.0] * len(opponents) for s in SUITS}
     buy_worlds = {s: [samples] * len(opponents) for s in SUITS}
     sell = {s: [0.0] * len(opponents) for s in SUITS}
-    for twelve, _eight, sizes in rng.choices(CONFIGS, weights=_config_weights(known, goal_weights, drawn), k=samples):
+    for twelve, _eight, sizes in rng.choices(CONFIGS, weights=weights, k=samples):
         goal = TWIN[twelve]
         others = [minimums[j][goal] for j in opponents]
         for slot in rng.sample(slots, sizes[goal] - known[goal]):

@@ -1,0 +1,125 @@
+"""Phase 5c, seam « statistiques du marché » : les mêmes mesures sur les vraies manches de figgie.com
+(journaux de Rasmus Suonio) et sur nos manches simulées."""
+import unittest
+
+from figgie.reel import market_stats, parse_rasmus_round
+
+# Une manche écrite à la main, au format des journaux de Rasmus : genre, secondes restantes, couleur
+# (0 = pique, 1 = trèfle, 2 = cœur, 3 = carreau), prix, joueur (acheteur>vendeur pour un échange).
+# Son bot est au siège 0, les bots Hard aux sièges 1 à 3.
+ROUND = {"goal": "hearts", "me": 0, "log": ";".join([
+    "b,236,2,3,1,,",       # t = 4 s : le siège 1 propose 3 $ pour un cœur
+    "o,235,2,9,2,,",       # t = 5 s : le siège 2 vend un cœur à 9 $
+    "b,230,2,4,3,,",       # t = 10 s : le siège 3 propose 4 $
+    "t,200,2,9,3>2,0.5/0.5/0/0,F",  # t = 40 s : le siège 3 achète le cœur du siège 2 à 9 $
+    "o,190,0,2,1,,",       # t = 50 s : le siège 1 vend un pique à 2 $
+    "xo,185,0,2,1,,",      # t = 55 s : et le retire
+    "t,30,0,2,2>1,,",      # t = 210 s : le siège 2 achète un pique au siège 1 à 2 $
+    "t,20,0,3,0>3,,",      # t = 220 s : le bot de Rasmus achète un pique au siège 3 (pas entre bots Hard)
+])}
+
+
+class TestRealLogs(unittest.TestCase):
+    def test_a_real_round_becomes_our_public_feed(self):
+        r = parse_rasmus_round(ROUND)
+        self.assertEqual(r["goal"], "H")
+        self.assertEqual(r["hard"], [1, 2, 3])
+        self.assertEqual(r["events"][:4], [(4, 1, "bid", "H", 3), (5, 2, "ask", "H", 9), (10, 3, "bid", "H", 4),
+                                           (40, 3, "bought", "H", 9)])
+        self.assertEqual(r["events"][4:7], [(40, 2, "sold", "H", 9), (50, 1, "ask", "S", 2), (55, 1, "cancel", "S", 0)])
+        self.assertEqual(len(r["events"]), 11)
+
+    def test_market_statistics_of_a_hand_written_round(self):
+        stats = market_stats([parse_rasmus_round(ROUND)])
+        self.assertEqual(stats["trades"], 3)
+        self.assertAlmostEqual(stats["hard_trades_per_pair"], 2 / 3)  # 2 échanges entre bots Hard, 3 paires
+        self.assertEqual(stats["by_minute"], [0.5, 0.0, 0.0, 0.5])
+        self.assertEqual(stats["quotes_per_min"], 0.25)  # médiane : 2, 1 et 1 cotations en 4 minutes
+        self.assertEqual(stats["first_quote"], 5)
+        self.assertEqual(stats["goal_price"], 9)
+        self.assertEqual(stats["other_price"], 2)
+        self.assertEqual(stats["goal_top_bid"], 3)  # plus haut prix proposé pour un cœur : 3, 0 et 4
+        self.assertEqual(stats["other_top_bid"], 0)
+
+
+
+def close_to_the_site(stats, real):
+    """Une table simulée ressemble au site : chaque mesure entre 0,6 et 1,5 fois celle des journaux,
+    et des échanges de plus en plus nombreux au fil de la manche."""
+    keys = ["hard_trades_per_pair", "quotes_per_min", "goal_price", "other_price", "goal_top_bid", "other_top_bid"]
+    off = {k: (stats[k], real[k]) for k in keys if not stats[k] or not 0.6 <= stats[k] / real[k] <= 1.5}
+    quarters = stats["by_minute"]
+    if not all(a < b for a, b in zip(quarters, quarters[1:])):
+        off["by_minute"] = (quarters, real["by_minute"])
+    return off
+
+
+class TestSimulatedHardBot(unittest.TestCase):
+    """Le Hard simulé, réglé sur les journaux (figgie.calibrate), joué avec la règle du site."""
+
+    def test_a_table_of_simulated_hard_bots_looks_like_the_site(self):
+        from figgie.bots import HardBot
+        from figgie.engine import play_round
+        from figgie.reel import load_rasmus, simulated_round
+        real = market_stats(load_rasmus())
+        def table(bot):
+            return market_stats([simulated_round(play_round([bot] * 4, seed=33_000_000 + g, single_quote=True))
+                                 for g in range(30)])
+        self.assertEqual(close_to_the_site(table(HardBot), real), {})
+        from figgie.bots import ZOO
+        self.assertNotEqual(close_to_the_site(table(ZOO["marginal"]), real), {})  # le test sait dire non
+
+
+
+class CheapHeartBuyer:
+    """Bot de test : achète tout cœur proposé à 5 $ ou moins, et cote un pique à 2 $ (jamais servi)."""
+    def act(self, view, rng):
+        ask = view.best("H", "ask")
+        if ask and ask[0] <= 5:
+            return ("buy", "H", ask[0])
+        if view.mine("S", "bid") is None:
+            return ("bid", "S", 2)
+        return None
+
+
+PAPER_ROUND = {"goal": "hearts", "me": 0, "dealt": [2, 2, 3, 3], "log": ";".join([
+    "b,239,0,1,0,,",      # t = 1 s : le bot de Rasmus cote (il est remplacé par le nôtre : ignoré)
+    "o,236,2,6,1,,",      # t = 4 s : le siège 1 vend un cœur à 6 $ (trop cher)
+    "o,230,2,5,2,,",      # t = 10 s : le siège 2 le vend à 5 $ : on le prend
+    "b,225,0,8,3,,",      # t = 15 s : rien à prendre en cœur, la vente à 5 $ a disparu
+    "t,200,1,4,1>2,,",    # t = 40 s : un échange entre deux autres vide le carnet
+    "o,190,2,3,3,,",      # t = 50 s : le siège 3 vend un cœur à 3 $ : on le prend
+    "t,100,3,6,0>1,,",    # t = 140 s : le bot de Rasmus achète vraiment un carreau (ça a eu lieu)
+])}
+
+
+class TestPaperReplay(unittest.TestCase):
+    """Phase 5c, seam « rejeu des vraies manches » : notre bot à la place de celui de Rasmus, qui peut
+    prendre les vraies cotations des bots du site sans changer le marché."""
+
+    def test_our_bot_takes_the_real_quotes_it_wants(self):
+        from figgie.reel import paper_replay
+        score, takes = paper_replay(parse_rasmus_round(PAPER_ROUND), CheapHeartBuyer)
+        self.assertEqual(takes, [(10, 0, 2, "H", 5), (50, 0, 3, "H", 3)])  # (instant, acheteur, vendeur, couleur, prix)
+        self.assertEqual(score, -8 + 2 * 10)  # 8 $ payés, deux cartes objectif de plus à la cloche
+
+    def test_a_real_sale_of_a_card_already_sold_on_paper_is_struck(self):
+        from figgie.reel import paper_replay
+
+        class HeartSeller:
+            def act(self, view, rng):
+                bid = view.best("H", "bid")
+                return ("sell", "H", bid[0]) if bid and bid[0] >= 4 and view.hand["H"] > 0 else None
+        rnd = {"goal": "hearts", "me": 0, "dealt": [3, 3, 2, 2], "log": ";".join([
+            "b,230,2,5,1,,",     # on vend un cœur au siège 1 à 5 $
+            "b,220,2,4,2,,",     # puis notre dernier cœur au siège 2 à 4 $
+            "t,200,2,6,3>0,,",   # le bot de Rasmus vend vraiment un cœur à 6 $ : impossible sur le papier
+        ])}
+        score, takes = paper_replay(parse_rasmus_round(rnd), HeartSeller)
+        self.assertEqual(len(takes), 2)
+        # +9 $ de prises, -6 $ de la vente rayée ; à la cloche 0 cœur, contre 1 pour le vrai bot de Rasmus
+        self.assertEqual(score, 9 - 6 - 10)
+
+
+if __name__ == "__main__":
+    unittest.main()

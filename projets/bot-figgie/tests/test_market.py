@@ -131,5 +131,46 @@ class TestTrades(unittest.TestCase):
         self.assertEqual(m.apply(0, ("ask", "H", 3)), (2, 0, "H", 6))
 
 
+
+class TestSingleQuoteRule(unittest.TestCase):
+    """Phase 5c, règle du site (figgie.com, d'après le code de Rasmus Suonio) : une seule offre par côté
+    et par couleur. Une nouvelle offre doit battre celle qui est affichée, et elle la remplace."""
+
+    def single(self):
+        return Market([empty_hand(H=3), empty_hand(H=2, S=2), empty_hand(), empty_hand()], single_quote=True)
+
+    def test_a_bid_that_does_not_beat_the_best_is_refused(self):
+        m = self.single()
+        m.apply(2, ("bid", "H", 5))
+        for price in (4, 5):  # moins bien, ou au même prix : refusé
+            with self.assertRaises(IllegalAction):
+                m.apply(3, ("bid", "H", price))
+        self.assertEqual(m.best("H", "bid"), (5, 2))
+
+    def test_a_better_bid_replaces_the_displayed_one(self):
+        m = self.single()
+        m.apply(2, ("bid", "H", 5))
+        m.apply(3, ("bid", "H", 6))
+        self.assertEqual(m.best("H", "bid"), (6, 3))
+        m.apply(3, ("cancel", "H"))
+        self.assertIsNone(m.best("H", "bid"))  # l'offre battue ne revient pas
+
+    def test_an_ask_must_be_lower_than_the_displayed_one(self):
+        m = self.single()
+        m.apply(0, ("ask", "H", 8))
+        with self.assertRaises(IllegalAction):
+            m.apply(1, ("ask", "H", 8))
+        m.apply(1, ("ask", "H", 7))
+        self.assertEqual(m.best("H", "ask"), (7, 1))
+        self.assertEqual(m.apply(2, ("buy", "H", 7)), (2, 1, "H", 7))
+
+    def test_without_the_option_each_player_keeps_a_quote(self):
+        m = market()
+        m.apply(2, ("bid", "H", 5))
+        m.apply(3, ("bid", "H", 4))
+        m.apply(2, ("cancel", "H"))
+        self.assertEqual(m.best("H", "bid"), (4, 3))
+
+
 if __name__ == "__main__":
     unittest.main()

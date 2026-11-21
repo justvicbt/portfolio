@@ -11,12 +11,13 @@ import json
 import statistics
 
 from figgie.adapt import AdaptiveBot, AdaptiveV2Bot, AdaptiveV3Bot
-from figgie.bots import ABNORMAL, ZOO, CorrectedMarginalBot, CountingBot, LeagueReaderBot
+from figgie.bots import ABNORMAL, ZOO, CorrectedMarginalBot, CountingBot, HardBot, LeagueReaderBot
 
 # Le zoo, plus les variantes de mesure, les comportements anormaux, le candidat de la ligue (phase 4)
 # et le bot adaptatif (phase 5).
 CANDIDATES = {**ZOO, CorrectedMarginalBot.name: CorrectedMarginalBot, CountingBot.name: CountingBot, **ABNORMAL,
-              LeagueReaderBot.name: LeagueReaderBot, AdaptiveBot.name: AdaptiveBot, AdaptiveV2Bot.name: AdaptiveV2Bot, AdaptiveV3Bot.name: AdaptiveV3Bot}
+              LeagueReaderBot.name: LeagueReaderBot, AdaptiveBot.name: AdaptiveBot, AdaptiveV2Bot.name: AdaptiveV2Bot, AdaptiveV3Bot.name: AdaptiveV3Bot,
+              HardBot.name: HardBot}
 from figgie.engine import play_match, play_round
 
 
@@ -30,13 +31,14 @@ def mean_ci(values):
 
 
 def duplicate_match(candidate, opponent, n_deals, n_players=None, seed=0, duration=240.0, log_file=None, rounds=1,
-                    first_deal=0):
+                    first_deal=0, single_quote=False):
     """Gain moyen du candidat par manche, pour chaque donne (moyenne sur toutes les rotations de sièges).
 
     `opponent` : une classe (table de `n_players` copies, 4 par défaut) ou une liste de classes (table mixte).
     `rounds` : nombre de manches par partie ; avec plus d'une manche, chaque donne est une partie
     entière, rejouée à chaque rotation, et les bots gardent leur mémoire d'une manche à l'autre.
     `first_deal` : numéro de la première donne, pour couper un long calcul en morceaux parallèles.
+    `single_quote` : règle du site (phase 5c), une nouvelle offre doit battre celle qui est affichée.
     """
     if isinstance(opponent, (list, tuple)):
         opponents = list(opponent)
@@ -53,10 +55,10 @@ def duplicate_match(candidate, opponent, n_deals, n_players=None, seed=0, durati
         for seat in range(n_players):
             bots = opponents[:seat] + [candidate] + opponents[seat:]
             if rounds == 1:
-                result = play_round(bots, seed=deal_seed, duration=duration)
+                result = play_round(bots, seed=deal_seed, duration=duration, single_quote=single_quote)
                 profit, logs = result.profits[seat], [result.log]
             else:
-                match = play_match(bots, seed=deal_seed, rounds=rounds, duration=duration)
+                match = play_match(bots, seed=deal_seed, rounds=rounds, duration=duration, single_quote=single_quote)
                 profit, logs = match.profits[seat] / rounds, match.logs
             total += profit
             if log_file:

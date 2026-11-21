@@ -73,8 +73,10 @@ def empty_book():
 class Market:
     """État d'une manche : argent, mains et carnet."""
 
-    def __init__(self, hands):
+    def __init__(self, hands, single_quote=False):
         n = len(hands)
+        # Phase 5c, règle du site : une seule offre par côté et par couleur, qu'une nouvelle offre doit battre et remplace
+        self.single_quote = single_quote
         self.hands = [dict(h) for h in hands]
         self.cash = [START_CASH - POT / n] * n
         self.book = empty_book()
@@ -134,6 +136,8 @@ class Market:
                 return self._trade(buyer=player, seller=ask[1], suit=suit, price=ask[0])
             if player in book["ask"] and price >= book["ask"][player][0]:
                 raise IllegalAction("une offre ne peut pas croiser ma propre vente")
+            if self.single_quote:
+                self._beat(book["bid"], suit, "bid", price)
             book["bid"][player] = (price, self._next_seq())
             return None
         if kind == "ask":
@@ -144,6 +148,8 @@ class Market:
                 return self._trade(buyer=bid[1], seller=player, suit=suit, price=bid[0])
             if player in book["bid"] and price <= book["bid"][player][0]:
                 raise IllegalAction("une vente ne peut pas croiser ma propre offre")
+            if self.single_quote:
+                self._beat(book["ask"], suit, "ask", price)
             book["ask"][player] = (price, self._next_seq())
             return None
         if kind == "buy":
@@ -157,6 +163,13 @@ class Market:
                 raise IllegalAction("aucune offre à prendre à ce prix")
             return self._trade(buyer=bid[1], seller=player, suit=suit, price=bid[0])
         raise IllegalAction(f"action inconnue : {kind!r}")
+
+    def _beat(self, side_book, suit, side, price):
+        """Règle du site : refuse une offre qui ne bat pas celle qui est affichée, sinon efface l'ancienne."""
+        shown = self.best(suit, side)
+        if shown and (price <= shown[0] if side == "bid" else price >= shown[0]):
+            raise IllegalAction("une nouvelle offre doit battre celle qui est affichée")
+        side_book.clear()
 
     def _next_seq(self):
         self._seq += 1
@@ -190,6 +203,7 @@ class View:
     time: float
     duration: float
     events: list  # le fil public de la manche, à lire sans le modifier
+    single_quote: bool = False  # phase 5c : règle du site, une nouvelle offre doit battre celle qui est affichée
 
 
     def best(self, suit, side):
@@ -217,7 +231,8 @@ def _final_profits(market, goal):
 def _view(market, seat, time, duration):
     return View(seat, len(market.hands), dict(market.hands[seat]), market.cash[seat],
                 {s: {side: dict(q) for side, q in sides.items()} for s, sides in market.book.items()},
-                list(market.trades), [sum(h.values()) for h in market.hands], time, duration, market.events)
+                list(market.trades), [sum(h.values()) for h in market.hands], time, duration, market.events,
+                market.single_quote)
 
 
 LOG_FORMAT = 2  # 1 = phase 0 (ticks), 2 = phase 1 (temps continu, instant du regard, prix des prises)
@@ -226,18 +241,19 @@ DEFAULT_REACTION = 0.3  # secondes entre ce qu'un bot voit et l'arrivée de son 
 DEFAULT_IDLE = 1.0      # secondes en moyenne avant de regarder à nouveau quand rien ne bouge
 
 
-def play_round(bots, seed, duration=240.0, memories=None):
+def play_round(bots, seed, duration=240.0, memories=None, single_quote=False):
     """Joue une manche en temps continu. `bots` : une classe (ou fabrique) de bot par siège.
 
     Chaque bot regarde le marché quand il change, ou de lui-même de temps en temps (attribut
     `idle`). Son action arrive `reaction` secondes plus tard (± 50 %), sur un marché qui a pu
     bouger entre-temps : le plus rapide prend la cotation, le plus lent voit son action refusée.
+    `single_quote` : règle du site (phase 5c), voir Market.
     """
     n = len(bots)
     if n not in (4, 5):
         raise ValueError("Figgie se joue à 4 ou 5 joueurs")
     hands, goal = deal(random.Random(seed), n)
-    market = Market(hands)
+    market = Market(hands, single_quote)
     players = [make() for make in bots]
     if memories is not None:
         for p, memory in zip(players, memories):
@@ -302,6 +318,8 @@ def play_round(bots, seed, duration=240.0, memories=None):
         "format": LOG_FORMAT, "seed": seed, "duration": duration, "bots": [getattr(p, "name", type(p).__name__) for p in players],
         "hands": hands, "goal": goal, "actions": actions,
     }
+    if single_quote:
+        log["single_quote"] = True  # absent sinon : les journaux des phases précédentes ne changent pas
     profits = _final_profits(market, goal)
     log["profits"] = profits
     for seat, p in enumerate(players):
@@ -317,7 +335,7 @@ class MatchResult:
     memories: list  # mémoire de chaque bot en fin de partie
 
 
-def play_match(bots, seed, rounds, duration=240.0):
+def play_match(bots, seed, rounds, duration=240.0, single_quote=False):
     """Une partie de plusieurs manches à la même table. Chaque bot garde une mémoire (un dict)
     d'une manche à l'autre. shortcut: l'argent repart de 350 $ à chaque manche, alors que sur
     figgie.com il se cumule ; sans effet tant qu'aucun bot n'approche de la limite d'argent."""
@@ -327,7 +345,8 @@ def play_match(bots, seed, rounds, duration=240.0):
     for r in range(rounds):
         # Manche 0 : la donne de la manche isolée de même graine. Les suivantes : des graines en texte,
         # qui ne peuvent croiser aucune graine entière (tournois, réglage, apprentissage).
-        result = play_round(bots, seed=seed if r == 0 else f"{seed}:{r}", duration=duration, memories=memories)
+        result = play_round(bots, seed=seed if r == 0 else f"{seed}:{r}", duration=duration, memories=memories,
+                            single_quote=single_quote)
         profits = [a + b for a, b in zip(profits, result.profits)]
         logs.append(result.log)
     return MatchResult(profits, logs, memories)
@@ -337,7 +356,7 @@ def replay(log):
     """Rejoue un journal sans les bots et renvoie les gains. Lève ValueError si le journal est incohérent."""
     if log.get("format") != LOG_FORMAT:
         raise ValueError(f"format de journal {log.get('format')!r} inconnu (attendu : {LOG_FORMAT})")
-    market = Market(log["hands"])
+    market = Market(log["hands"], log.get("single_quote", False))
     for t, seat, action, ok, _seen_at in log["actions"]:
         try:
             market.apply(seat, action)
