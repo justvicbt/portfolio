@@ -22,6 +22,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 3. Reading the market | Signal model learned on simulated games, corrected card counting, multi-round games with opponent memory | [FR](docs/phase3.fr.md) · [EN](docs/phase3.en.md) | Done (bot not promoted) |
 | 4. League and robustness | Faster engine, minority test, exploiters found by search, league, idle player, spammer and liars | [FR](docs/phase4.fr.md) · [EN](docs/phase4.en.md) | Done (no bot promoted) |
 | 5. In-game adaptation | Recognizing the table by nearest neighbors and choosing its spread and edge round after round, tournament in 10-round games | [FR](docs/phase5.fr.md) · [EN](docs/phase5.en.md) | Done (no bot promoted) |
+| 5b. Playing against its copies | Counting with offered sales, a spread that tightens over time, training against its own copies, hand strength | [FR](docs/phase5b.fr.md) · [EN](docs/phase5b.en.md) | Done (no bot promoted) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -34,7 +35,9 @@ In phase 3, the "reader" bot, which also reads other players' quotes, guesses th
 
 In phase 4, an automatic search found opponents that beat the marginal bot when it is in the minority (+$4.35 per round alone against three marginal bots, +$7.22 against four). No candidate passes the full entry rule, minority test included. With fixed settings, every bot has its counter-strategy.
 
-In phase 5, the "adaptive" bot chooses its spread and edge depending on the table it recognizes. It beats the marginal bot head to head (+$2.00 per round with 4 players, +$3.47 with 5), and the phase 4 exploiter now takes only $1.54 per round from it instead of $4.32. But a sniper alone against its copies makes +$3.72 per round: it fails the minority test and is not promoted. Full tables are in each phase's doc.
+In phase 5, the "adaptive" bot chooses its spread and edge depending on the table it recognizes. It beats the marginal bot head to head (+$2.00 per round with 4 players, +$3.47 with 5), and the phase 4 exploiter now takes only $1.54 per round from it instead of $4.32. But a sniper alone against its copies makes +$3.72 per round: it fails the minority test and is not promoted.
+
+In phase 5b, v3 of the adaptive bot trains against its own copies. It beats the marginal bot by +$8.48 per round with 4 players, and the sniper and the phase 5 taker lose again against its copies. But a "tight quoter" found by the automatic search takes +$6.25 per round from it, and the phase 4 exploiter +$7.79 with 5 players. Every candidate has its exploiter, like rock-paper-scissors. No bot is promoted. Full tables are in each phase's doc.
 
 ## What I took away
 
@@ -50,6 +53,8 @@ A bot with fixed settings is a target: when it is numerous at the table, its cop
 
 A bandit learning from its profits sees only noise: a round's profit varies by about $65 from one deal to the next. Recognizing how the others play works better. But when every copy of the bot recognizes the same table, they switch settings together and fall back into the same price war.
 
+Training against its own copies fixes that price war, but each version fixes the previous one's weakness and opens another. And logs of real games show the simulator is far from the site: 53 trades per round on figgie.com, between 6 and 22 at our tables.
+
 ## Limits
 
 All opponents are bots I wrote. No number in this project measures the level against humans until phase 6 (real site) has happened. The simulator rests on assumptions: four rules the site does not specify, and made-up reaction times. Tables do not mix styles yet.
@@ -60,11 +65,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 97 tests, about 5 seconds
+python3 -m unittest                      # 103 tests, about 10 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5b-figgie`) to get the exact code back.
 
 ## Stack
 

@@ -3,7 +3,7 @@ import random
 import unittest
 
 from figgie.engine import SUITS, TWIN
-from figgie.valuation import (card_gain, goal_probabilities, initial_hand, known_minimums,
+from figgie.valuation import (card_gain, goal_probabilities, initial_hand, known_minimums, known_minimums_from_events,
                               marginal_values, sample_world)
 
 
@@ -49,6 +49,29 @@ class TestKnownMinimums(unittest.TestCase):
         self.assertEqual(mins[1], hand(H=1))    # 2 cœurs achetés, 1 revendu
         self.assertEqual(mins[2], hand(H=1))    # a vendu un cœur inconnu, puis en a racheté un
         self.assertEqual(mins[3], hand(S=1))
+
+    def test_an_ask_proves_the_card_is_held(self):
+        # L'exemple de KnifeEdge (fil Reddit r/quant), à 5 joueurs. J'ai 5 trèfles.
+        feed = [
+            (1.0, 1, "ask", "C", 9),      # A propose un trèfle : il en a au moins un
+            (2.0, 2, "bought", "C", 9),   # B le lui achète
+            (2.0, 1, "sold", "C", 9),
+            (3.0, 3, "ask", "C", 8),      # C propose un trèfle
+            (4.0, 1, "ask", "C", 7),      # A en propose un autre
+            (4.5, 1, "cancel", "C", 0),   # et l'annule : il l'avait quand même
+            (5.0, 4, "bid", "C", 3),      # une offre d'achat ne prouve rien
+            (6.0, 2, "bought", "C", 6),   # D vend un trèfle à B
+            (6.0, 4, "sold", "C", 6),
+        ]
+        mins = known_minimums_from_events(feed, n_players=5)
+        self.assertEqual([m["C"] for m in mins], [0, 1, 2, 1, 0])
+        self.assertEqual(5 + sum(m["C"] for m in mins[1:]), 9)  # au moins 9 trèfles, donc 10 ou 12
+
+    def test_without_asks_events_give_the_same_minimums_as_trades(self):
+        trades = [(1, 2, "H", 5), (1, 3, "H", 4), (2, 1, "H", 6), (3, 0, "S", 2)]
+        feed = [e for i, (b, s, suit, p) in enumerate(trades)
+                for e in ((float(i), b, "bought", suit, p), (float(i), s, "sold", suit, p))]
+        self.assertEqual(known_minimums_from_events(feed, 4), known_minimums(trades, 4))
 
 
 class TestMonteCarlo(unittest.TestCase):

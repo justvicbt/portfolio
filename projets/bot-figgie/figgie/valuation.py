@@ -48,6 +48,22 @@ def known_minimums(trades, n_players):
     return mins
 
 
+def known_minimums_from_events(events, n_players, mins=None):
+    """Phase 5b : comme known_minimums, mais d'après le fil public, où une vente proposée compte aussi.
+    Le moteur refuse une vente sans carte : qui propose une couleur en a au moins une, même s'il annule
+    ensuite (idée de KnifeEdge, r/quant). Seul un échange peut faire baisser ce minimum.
+    `mins` : minimums déjà calculés sur le début du fil, mis à jour sur place avec la suite."""
+    mins = mins if mins is not None else [dict.fromkeys(SUITS, 0) for _ in range(n_players)]
+    for _t, player, kind, suit, _price in events:
+        if kind == "ask":
+            mins[player][suit] = max(mins[player][suit], 1)
+        elif kind == "bought":
+            mins[player][suit] += 1
+        elif kind == "sold":
+            mins[player][suit] = max(0, mins[player][suit] - 1)
+    return mins
+
+
 def _known_cards(hand, seat, minimums):
     return {s: hand[s] + sum(m[s] for j, m in enumerate(minimums) if j != seat) for s in SUITS}
 

@@ -13,12 +13,14 @@ import argparse
 import json
 import math
 import random
+import re
 import statistics
 from multiprocessing import Pool
 from pathlib import Path
 
 from figgie.bots import ABNORMAL, MODELS_DIR, ZOO, MarginalBot, load_model
-from figgie.engine import play_round
+from figgie.engine import SUITS, play_round
+from figgie.valuation import goal_probabilities
 
 ARMS = [(6, 3), (8, 1), (10, 3), (12, 3)]  # (spread, marge) possibles ; (8, 1) est le réglage du marginal
 DEFAULT_ARM = (8, 1)
@@ -28,12 +30,12 @@ MISSING = {"spread": 20.0, "latency": 10.0}  # valeurs prises quand personne ne 
 
 
 def arm_key(arm):
-    return f"{arm[0]},{arm[1]}"
+    return ",".join(map(str, arm))
 
 
 def parse_arm(key):
-    spread, edge = key.split(",")
-    return int(spread), int(edge)
+    """(spread, marge), ou en phase 5b (spread, marge, spread en fin de manche, marge en fin de manche)."""
+    return tuple(int(x) for x in key.split(","))
 
 
 def table_profile(events, me, duration, n_players=None):
@@ -124,6 +126,7 @@ class AdaptiveBot(MarginalBot):
     a vu de la table aux manches précédentes. Première manche : le réglage du marginal."""
     name = "adaptatif"
     model_file = "adaptation.json"
+    default_arm = DEFAULT_ARM
 
     @classmethod
     def neighbors(cls):
@@ -141,8 +144,10 @@ class AdaptiveBot(MarginalBot):
     def act(self, view, rng):
         if self._arm is None:  # début de manche : on fixe le réglage pour toute la manche
             profiles = self.memory.get("profiles", [])
-            self._arm = self.choose(profiles) if profiles else DEFAULT_ARM
-            self.spread, self.edge = self._arm
+            self._arm = self.choose(profiles) if profiles else self.default_arm
+            self.spread, self.edge, *late = self._arm
+            if late:
+                self.spread_late, self.edge_late = late
             self.memory.setdefault("arms", []).append(self._arm)
             self._duration, self._n = view.duration, view.n_players
         self._feed = view.events
@@ -166,6 +171,32 @@ class AdaptiveV2Bot(AdaptiveBot):
         return parse_arm(self.neighbors().best_many(profiles))
 
 
+STRONG_HAND = 0.4  # au-delà, ma donne désigne une couleur objectif avec au moins 40 % de chances (23 % des mains)
+DEFAULT_ARM_V3 = (8, 1, 8, 1)
+
+
+def hand_strength(hand, n_players):
+    """La plus forte probabilité de couleur objectif d'après ma seule donne (main concentrée ou plate)."""
+    return max(goal_probabilities(hand, [dict.fromkeys(SUITS, 0)] * n_players, 0).values())
+
+
+class AdaptiveV3Bot(AdaptiveV2Bot):
+    """Phase 5b. Comme la version 2, avec deux différences. Elle a appris sur des tables où jouent aussi
+    des copies des versions précédentes, pour ne plus supposer que les autres ne s'adaptent pas. Et
+    elle tient compte de sa donne : une main forte ne se joue pas comme une main plate."""
+    name = "adaptatif_v3"
+    model_file = "adaptation_v3.json"
+    default_arm = DEFAULT_ARM_V3
+
+    def act(self, view, rng):
+        if self._arm is None:
+            self._strong = float(hand_strength(view.hand, view.n_players) >= STRONG_HAND)
+        return super().act(view, rng)
+
+    def choose(self, profiles):
+        return parse_arm(self.neighbors().best_many([{**p, "main": self._strong} for p in profiles]))
+
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10
@@ -176,7 +207,111 @@ CHOICES = list(POOL) + ["marginal"] * 4
 
 
 def arm_bot(arm):
-    return type("Arm", (MarginalBot,), {"spread": arm[0], "edge": arm[1]})
+    spread, edge, *late = arm
+    settings = {"spread": spread, "edge": edge}
+    if late:
+        settings["spread_late"], settings["edge_late"] = late
+    return type("Arm", (MarginalBot,), settings)
+
+
+# --- Phase 5b : entraînement contre ses propres copies -------------------------------------------
+
+V3_SEED = 11
+ARMS_V3 = [(6, 3, 6, 3), (8, 1, 8, 1), (10, 3, 10, 3), (12, 3, 12, 3)]
+V3_PROFILES = 10  # profils gardés par table et par réglage (comme la version 2)
+
+
+def version_bot(name):
+    """Un joueur d'une table d'entraînement : un bot de la ligue, ou une version du bot adaptatif.
+    adaptatif_v3_<k> : la version entraînée au tour k (modeles/adaptation_v3_<k>.json)."""
+    if name in POOL:
+        return POOL[name]
+    if name == AdaptiveV2Bot.name:
+        return AdaptiveV2Bot
+    k = int(name.rsplit("_", 1)[1])
+    return type(f"AdaptiveV3_{k}", (AdaptiveV3Bot,), {"name": name, "model_file": f"adaptation_v3_{k}.json"})
+
+
+def table_opponents_v3(i, base, previous):
+    """La table d'entraînement numéro i de la phase 5b : sa graine et les noms de ses adversaires.
+    Une table sur deux ressemble au test de minorité : des copies d'une version précédente du bot
+    adaptatif, plus un seul autre joueur. Les autres tables sont tirées dans la ligue, versions comprises."""
+    seed = base * 1000 + i
+    rng = random.Random(seed)
+    n = rng.choice((4, 5))
+    if previous and rng.random() < 0.5:
+        return seed, [rng.choice(previous)] * (n - 2) + [rng.choice(list(POOL))]
+    return seed, [rng.choice(CHOICES + previous * 2) for _ in range(n - 1)]
+
+
+def _table_v3(job):
+    """Pour une table : le gain de chaque réglage, séparé selon que ma donne est forte ou plate, et
+    quelques profils d'une manche vus avec chaque réglage. Parties de `rounds` manches, rejouées à
+    chaque siège sur les mêmes donnes pour tous les réglages ; la première manche, où les versions
+    adaptatives ne se sont pas encore adaptées, ne compte pas dans les gains."""
+    i, base, deals, rounds, previous, arms = job
+    seed, names = table_opponents_v3(i, base, previous)
+    opponents = [version_bot(n) for n in names]
+    n = len(opponents) + 1
+    gains, samples = {}, []
+    for arm in map(tuple, arms):
+        profits = {0.0: [], 1.0: []}
+        for d in range(deals):
+            deal_seed = seed * 1_000_000 + d
+            for seat in range(n):
+                bots = opponents[:seat] + [arm_bot(arm)] + opponents[seat:]
+                memories = [{} for _ in bots]
+                for r in range(rounds):
+                    result = play_round(bots, seed=deal_seed if r == 0 else f"{deal_seed}:{r}", memories=memories)
+                    strong = float(hand_strength(result.log["hands"][seat], n) >= STRONG_HAND)
+                    if r > 0 or rounds == 1:
+                        profits[strong].append(result.profits[seat])
+                    if seat == 0 and len([x for x in samples if x[0] == arm]) < V3_PROFILES:  # donnes variées
+                        samples.append((arm, table_profile(result.events, seat, result.log["duration"], n), strong))
+        overall = statistics.fmean(profits[0.0] + profits[1.0])
+        gains[arm_key(arm)] = {str(c): statistics.fmean(v) if v else overall for c, v in profits.items()}
+        gains[arm_key(arm)]["share_strong"] = len(profits[1.0]) / len(profits[0.0] + profits[1.0])
+    return {"names": names, "gains": gains, "samples": [(arm_key(a), f, c) for a, f, c in samples]}
+
+
+def v3_rows(tables):
+    """Les lignes du modèle : (profil d'une manche + force de la main, gain de chaque réglage pour cette force)."""
+    return [({**f, "main": c}, {a: g[str(c)] for a, g in t["gains"].items()})
+            for t in tables for _a, f, c in t["samples"]]
+
+
+def v3_cross_validation(tables, default=DEFAULT_ARM_V3):
+    """Chaque table jugée par un modèle construit sur les autres, à partir de 3 manches vues au réglage
+    de départ. Gain moyen par manche, en pondérant mains fortes et plates comme elles arrivent."""
+    scores = {"fixe": [], "choisi": [], "meilleur": []}
+    for held, t in enumerate(tables):
+        model = Neighbors(v3_rows(tables[:held] + tables[held + 1:]))
+        seen = [f for a, f, _c in t["samples"] if a == arm_key(default)][:3]
+        share = t["gains"][arm_key(default)]["share_strong"]
+        total = {name: 0.0 for name in scores}
+        for c, w in ((0.0, 1 - share), (1.0, share)):
+            by_arm = {a: g[str(c)] for a, g in t["gains"].items()}
+            chosen = model.best_many([{**f, "main": c} for f in seen])
+            total["fixe"] += w * by_arm[arm_key(default)]
+            total["choisi"] += w * by_arm[chosen]
+            total["meilleur"] += w * max(by_arm.values())
+        for name in scores:
+            scores[name].append(total[name])
+    return scores
+
+
+def build_v3(iteration, previous, tables, deals, rounds, arms=ARMS_V3):
+    """Un tour d'entraînement : mesure les tables, écrit modeles/adaptation_v3_<tour>.json et renvoie
+    les mesures (pour le rapport)."""
+    if tables >= 1000:
+        raise ValueError("au plus 999 tables : au-delà, les graines se chevauchent")
+    with Pool() as pool:
+        measured = pool.map(_table_v3, [(i, V3_SEED + iteration, deals, rounds, previous, arms)
+                                        for i in range(tables)], chunksize=1)
+    model = Neighbors(v3_rows(measured))
+    path = MODELS_DIR / f"adaptation_v3_{iteration}.json"
+    path.write_text(json.dumps(model.to_dict(), indent=1))
+    return measured, path
 
 
 def table_opponents(i, base):
@@ -258,7 +393,41 @@ def main():
     parser.add_argument("--out", default=str(MODELS_DIR / AdaptiveBot.model_file),
                         help="où écrire le modèle (par défaut, celui que charge le bot adaptatif)")
     parser.add_argument("--v2-from", help="construire la version 2 à partir du rapport (--report) de la version 1")
+    parser.add_argument("--v3", type=int, metavar="TOUR", help="phase 5b : un tour d'entraînement contre ses copies")
+    parser.add_argument("--previous", nargs="*", default=[], help="versions précédentes, placées aux tables (avec --v3)")
+    parser.add_argument("--rounds", type=int, default=3, help="manches par partie (avec --v3)")
+    parser.add_argument("--arms", nargs="+", help="réglages possibles, « spread,marge,spread fin,marge fin » (avec --v3)")
     args = parser.parse_args()
+    if args.v3 is not None:
+        from figgie.evaluate import mean_ci
+        arms = [parse_arm(a) for a in args.arms] if args.arms else ARMS_V3
+        if DEFAULT_ARM_V3 not in arms:
+            parser.error(f"--arms doit contenir le réglage de départ {arm_key(DEFAULT_ARM_V3)}")
+        for name in args.previous:
+            if name not in POOL and name != AdaptiveV2Bot.name and not re.fullmatch(r"adaptatif_v3_\d+", name):
+                parser.error(f"--previous : version inconnue {name} (bot de la ligue, adaptatif_v2 ou adaptatif_v3_<tour>)")
+        measured, path = build_v3(args.v3, args.previous, args.tables, args.deals, args.rounds, arms)
+        scores = v3_cross_validation(measured)
+        print(f"Tour {args.v3}, versions aux tables : {', '.join(args.previous) or 'aucune'}, {args.tables} tables, "
+              f"{args.deals} donnes, parties de {args.rounds} manches")
+        print("Validation croisée (gain moyen $/manche, écart au réglage fixe) :")
+        for name, values in scores.items():
+            diff = mean_ci([v - f for v, f in zip(values, scores["fixe"])])
+            print(f"  {name:9s} {statistics.fmean(values):+6.2f}   écart {diff[0]:+.2f} [{diff[1]:+.2f} ; {diff[2]:+.2f}]")
+        for c, label in ((0.0, "main plate"), (1.0, "main forte")):
+            picks = {}
+            for i, t in enumerate(measured):
+                if args.previous and t["names"].count(t["names"][0]) >= len(t["names"]) - 1 and t["names"][0] in args.previous:
+                    seen = [f for a, f, _ in t["samples"] if a == arm_key(DEFAULT_ARM_V3)][:3]
+                    model = Neighbors(v3_rows(measured[:i] + measured[i + 1:]))  # hors échantillon, comme la validation croisée
+                    a = model.best_many([{**f, "main": c} for f in seen])
+                    picks[a] = picks.get(a, 0) + 1
+            if picks:
+                print(f"  tables façon test de minorité, {label} : " + ", ".join(f"{a} x{n}" for a, n in sorted(picks.items())))
+        print(f"Modèle écrit dans {path}")
+        if args.report:
+            Path(args.report).write_text(json.dumps({"args": vars(args), "tables": measured, "scores": scores}, indent=1))
+        return
     if args.v2_from:
         from figgie.evaluate import mean_ci
         out = args.out if args.out != str(MODELS_DIR / AdaptiveBot.model_file) else str(MODELS_DIR / AdaptiveV2Bot.model_file)

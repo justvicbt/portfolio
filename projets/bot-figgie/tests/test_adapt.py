@@ -104,5 +104,40 @@ class TestMultiRoundChunks(unittest.TestCase):
         self.assertEqual(whole, parts)
 
 
+# --- Phase 5b : entraînement contre ses propres copies, et choix selon la main --------------------
+
+class TestSelfPlayTables(unittest.TestCase):
+    def test_training_tables_contain_copies_of_the_previous_version(self):
+        from figgie.adapt import POOL, table_opponents_v3
+        tables = [table_opponents_v3(i, 11, ["adaptatif_v2"])[1] for i in range(60)]
+        for names in tables:
+            self.assertTrue(all(n in POOL or n == "adaptatif_v2" for n in names), names)
+        # comme au test de minorité : toute la table, sauf un joueur, est faite de copies de la version précédente
+        minority_like = [names for names in tables if names.count("adaptatif_v2") >= len(names) - 1]
+        self.assertGreaterEqual(len(minority_like), 15)
+        without = [table_opponents_v3(i, 11, [])[1] for i in range(60)]
+        self.assertTrue(all(n in POOL for names in without for n in names))
+
+
+def _hand_aware_bot():
+    from figgie.adapt import AdaptiveV3Bot
+    # 5 lignes par force de main : le bot consulte ses 5 plus proches voisins
+    model = Neighbors([({"main": 0.0}, {"8,1,8,1": 1.0, "12,3,12,3": 0.0})] * 5 +
+                      [({"main": 1.0}, {"8,1,8,1": 0.0, "12,3,12,3": 1.0})] * 5)
+    return type("HandAware", (AdaptiveV3Bot,), {"neighbors": classmethod(lambda cls: model)})
+
+
+class TestHandAwareChoice(unittest.TestCase):
+    def test_the_setting_follows_the_strength_of_the_starting_hand(self):
+        from figgie.adapt import STRONG_HAND, hand_strength
+        match = play_match([_hand_aware_bot(), ZOO["marginal"], ZOO["heuristique"], ZOO["sniper"]], seed=5,
+                           rounds=8, duration=20)
+        arms = match.memories[0]["arms"]
+        strong = [hand_strength(log["hands"][0], 4) >= STRONG_HAND for log in match.logs]
+        self.assertTrue(any(strong[1:]) and not all(strong[1:]), strong)  # les deux cas se présentent
+        for r in range(1, 8):  # la première manche se joue au réglage de départ
+            self.assertEqual(arms[r], (12, 3, 12, 3) if strong[r] else (8, 1, 8, 1), r)
+
+
 if __name__ == "__main__":
     unittest.main()

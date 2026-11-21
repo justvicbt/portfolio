@@ -22,6 +22,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 3. Lire le marché | Modèle de signaux appris sur des parties simulées, comptage corrigé, parties de plusieurs manches avec mémoire des adversaires | [FR](docs/phase3.fr.md) · [EN](docs/phase3.en.md) | Terminée (bot non promu) |
 | 4. Ligue et robustesse | Moteur accéléré, test de minorité, exploiteurs trouvés par recherche, ligue, joueur inactif, spammeur et menteurs | [FR](docs/phase4.fr.md) · [EN](docs/phase4.en.md) | Terminée (aucun bot promu) |
 | 5. Adaptation en cours de partie | Reconnaître la table par plus proches voisins et choisir son spread et sa marge manche après manche, tournoi en parties de 10 manches | [FR](docs/phase5.fr.md) · [EN](docs/phase5.en.md) | Terminée (aucun bot promu) |
+| 5b. Jouer contre ses copies | Comptage avec les ventes proposées, spread qui se resserre avec le temps, entraînement contre ses propres copies, force de la main | [FR](docs/phase5b.fr.md) · [EN](docs/phase5b.en.md) | Terminée (aucun bot promu) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -34,7 +35,9 @@ En phase 3, le bot « lecteur », qui lit aussi les cotations des autres, devine
 
 En phase 4, une recherche automatique a trouvé des adversaires qui battent le marginal quand il est en minorité (+4,35 $ par manche seul face à trois marginaux, +7,22 $ face à quatre). Aucun candidat ne passe la règle d'entrée complète, test de minorité compris. Avec des réglages fixes, chaque bot a sa contre-stratégie.
 
-En phase 5, le bot « adaptatif » choisit son spread et sa marge selon la table qu'il reconnaît. Il bat le marginal en tête-à-tête (+2,00 $ par manche à 4 joueurs, +3,47 $ à 5), et l'exploiteur de la phase 4 ne lui prend plus que 1,54 $ par manche au lieu de 4,32 $. Mais un sniper seul face à ses copies gagne +3,72 $ par manche : il ne passe pas le test de minorité et n'est pas promu. Les tableaux complets sont dans les docs de chaque phase.
+En phase 5, le bot « adaptatif » choisit son spread et sa marge selon la table qu'il reconnaît. Il bat le marginal en tête-à-tête (+2,00 $ par manche à 4 joueurs, +3,47 $ à 5), et l'exploiteur de la phase 4 ne lui prend plus que 1,54 $ par manche au lieu de 4,32 $. Mais un sniper seul face à ses copies gagne +3,72 $ par manche : il ne passe pas le test de minorité et n'est pas promu.
+
+En phase 5b, la v3 du bot adaptatif s'entraîne contre ses propres copies. Elle bat le marginal de +8,48 $ par manche à 4 joueurs, et le sniper comme le preneur de la phase 5 perdent de nouveau face à ses copies. Mais un « coteur serré » trouvé par la recherche automatique lui prend +6,25 $ par manche, et l'exploiteur de la phase 4 +7,79 $ à 5 joueurs. Chaque candidat a son exploiteur, comme à pierre-feuille-ciseaux. Aucun bot n'est promu. Les tableaux complets sont dans les docs de chaque phase.
 
 ## Ce que j'en retiens
 
@@ -50,6 +53,8 @@ Un bot à réglages fixes est une cible : quand il est nombreux à la table, ses
 
 Un bandit qui apprend sur ses gains ne voit que du bruit : le gain d'une manche varie d'environ 65 $ d'une donne à l'autre. Reconnaître la façon de jouer des autres marche mieux. Mais quand toutes les copies du bot reconnaissent la même table, elles changent de réglage ensemble et retombent dans la même guerre des prix.
 
+S'entraîner contre ses propres copies corrige cette guerre des prix, mais chaque version corrige la faiblesse de la précédente et en rouvre une autre. Et les journaux de vraies parties montrent que le simulateur est loin du site : 53 échanges par manche sur figgie.com, entre 6 et 22 sur nos tables.
+
 ## Limites
 
 Tous les adversaires sont des bots que j'ai écrits. Aucun chiffre de ce projet ne mesure le niveau face à des humains tant que la phase 6 (site réel) n'a pas eu lieu. Le simulateur repose sur des hypothèses : quatre règles que le site ne précise pas, et des temps de réaction inventés. Les tables ne mélangent pas encore les styles.
@@ -60,11 +65,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 97 tests, environ 5 secondes
+python3 -m unittest                      # 103 tests, environ 10 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5b-figgie`) pour retrouver le code exact.
 
 ## Stack
 

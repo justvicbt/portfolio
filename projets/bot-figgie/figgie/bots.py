@@ -10,7 +10,8 @@ from pathlib import Path
 
 from figgie.engine import GOAL_CARD_VALUE, SUITS, TWIN
 from figgie.signals import OpponentModel, SignalModel
-from figgie.valuation import goal_probabilities, initial_hand, known_minimums, marginal_values
+from figgie.valuation import (goal_probabilities, initial_hand, known_minimums, known_minimums_from_events,
+                              marginal_values)
 
 
 class RandomBot:
@@ -43,8 +44,11 @@ class ValueBot:
     spread   : écart entre ma valeur et mes cotations
     edge     : avantage minimal pour prendre une cotation (None = ne prend jamais)
     quotes   : False = ne cote jamais, se contente de prendre
+    spread_late, edge_late : phase 5b, si définis, valeurs en fin de manche ; on passe en ligne droite
+               de `spread` (et `edge`) au début à ces valeurs à la fin (patient au début, pressé à la fin)
     """
     reaction, idle, pace, spread, edge, quotes = 0.4, 1.0, None, 2, 0, True
+    spread_late = edge_late = None
 
     def __init__(self):
         self._values = None
@@ -82,20 +86,27 @@ class ValueBot:
                 return action
         return None
 
+    def _over_time(self, view, start, late):
+        if late is None:
+            return start
+        return start + (late - start) * min(1.0, view.time / view.duration)
+
     def _decide(self, view, s):
         bid, ask = view.best(s, "bid"), view.best(s, "ask")  # meilleures cotations des autres : (prix, joueur)
-        if self.edge is not None:
-            if ask and ask[0] <= self.buy_value(s, ask[1]) - self.edge and ask[0] <= view.cash:
+        edge = None if self.edge is None else self._over_time(view, self.edge, self.edge_late)
+        if edge is not None:
+            if ask and ask[0] <= self.buy_value(s, ask[1]) - edge and ask[0] <= view.cash:
                 return ("buy", s, ask[0])  # le prix vu : refusé s'il a empiré entre-temps
-            if bid and bid[0] >= self.sell_value(s, bid[1]) + self.edge and view.hand[s] > 0:
+            if bid and bid[0] >= self.sell_value(s, bid[1]) + edge and view.hand[s] > 0:
                 return ("sell", s, bid[0])
         if not self.quotes:
             return None
         # Mes cotations restent du bon côté des autres : prendre, c'est la règle ci-dessus qui en décide.
-        my_bid = floor(self.buy_value(s, None) - self.spread)
+        spread = self._over_time(view, self.spread, self.spread_late)
+        my_bid = floor(self.buy_value(s, None) - spread)
         if ask:
             my_bid = min(my_bid, ask[0] - 1)
-        my_ask = max(1, ceil(self.sell_value(s, None) + self.spread))
+        my_ask = max(1, ceil(self.sell_value(s, None) + spread))
         if bid:
             my_ask = max(my_ask, bid[0] + 1)
         if 1 <= my_bid <= view.cash and view.mine(s, "bid") != my_bid and my_bid < (view.mine(s, "ask") or 10**9):
@@ -158,14 +169,24 @@ class MarginalBot(ValueBot):
     constraint_counting = False  # phase 3 : True = les cartes connues des autres ne sont qu'une contrainte
     spread, edge = 8, 1  # réglés sur les donnes d'entraînement (graine 2), voir figgie/tune.py et resultats/phase2/
 
+    ask_counting = False  # phase 5b : True = une vente proposée prouve aussi qu'on a la carte
+
     def __init__(self):
         super().__init__()
         self._key = None
+        self._mins, self._seen = None, 0
+
+    def minimums(self, view):
+        if not self.ask_counting:
+            return known_minimums(view.trades, view.n_players)
+        self._mins = known_minimums_from_events(view.events[self._seen:], view.n_players, self._mins)
+        self._seen = len(view.events)
+        return self._mins
 
     def refresh(self, view, rng):
-        key = (tuple(view.hand.values()), len(view.trades))
+        mins = self.minimums(view)
+        key = (tuple(view.hand.values()), len(view.trades), str(mins) if self.ask_counting else None)
         if key != self._key:
-            mins = known_minimums(view.trades, view.n_players)
             drawn = initial_hand(view.hand, view.trades, view.seat) if self.constraint_counting else None
             self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
                                            drawn=drawn)
@@ -233,7 +254,7 @@ class ReaderBot(MarginalBot):
         key = (tuple(view.hand.values()), len(view.trades))
         moved = self._market is None or max(abs(market[s] - self._market[s]) for s in SUITS) > self.resample
         if key != self._key or moved:
-            mins = known_minimums(view.trades, view.n_players)
+            mins = self.minimums(view)
             self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
                                            goal_weights=market, drawn=initial_hand(view.hand, view.trades, view.seat))
             self._key, self._market = key, market
@@ -261,6 +282,12 @@ class CorrectedMarginalBot(MarginalBot):
     Hors du zoo : il sert à mesurer ce que rapporte chaque amélioration du lecteur séparément."""
     name = "marginal_corrige"
     constraint_counting = True
+
+
+class CountingBot(CorrectedMarginalBot):
+    """Phase 5b, étape 1 : le marginal corrigé, qui compte aussi les ventes proposées par les autres."""
+    name = "compteur"
+    ask_counting = True
 
 
 class IdleBot:
