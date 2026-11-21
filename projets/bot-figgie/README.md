@@ -24,6 +24,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 5. Adaptation en cours de partie | Reconnaître la table par plus proches voisins et choisir son spread et sa marge manche après manche, tournoi en parties de 10 manches | [FR](docs/phase5.fr.md) · [EN](docs/phase5.en.md) | Terminée (aucun bot promu) |
 | 5b. Jouer contre ses copies | Comptage avec les ventes proposées, spread qui se resserre avec le temps, entraînement contre ses propres copies, force de la main | [FR](docs/phase5b.fr.md) · [EN](docs/phase5b.en.md) | Terminée (aucun bot promu) |
 | 5c. Un marché plus proche du site | Règle du site pour les cotations, bot Hard simulé réglé sur 60 vraies manches, rejeu des vraies manches sur le papier, tournoi sur ce marché | [FR](docs/phase5c.fr.md) · [EN](docs/phase5c.en.md) | Terminée (aucun bot promu) |
+| 5d. Lire le marché du site | Lecture du marché par fenêtres d'une minute, avec le consensus et la confiance par joueur, puis une v4 entraînée sur le marché du site | [FR](docs/phase5d.fr.md) · [EN](docs/phase5d.en.md) | Terminée (aucun bot promu) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -40,7 +41,9 @@ En phase 5, le bot « adaptatif » choisit son spread et sa marge selon la table
 
 En phase 5b, la v3 du bot adaptatif s'entraîne contre ses propres copies. Elle bat le marginal de +8,48 $ par manche à 4 joueurs, et le sniper comme le preneur de la phase 5 perdent de nouveau face à ses copies. Mais un « coteur serré » trouvé par la recherche automatique lui prend +6,25 $ par manche, et l'exploiteur de la phase 4 +7,79 $ à 5 joueurs. Chaque candidat a son exploiteur, comme à pierre-feuille-ciseaux. Aucun bot n'est promu.
 
-En phase 5c, le simulateur se rapproche du site grâce aux journaux de vraies parties de Rasmus Suonio : la règle du site pour les cotations, et un bot Hard simulé dont le marché ressemble à celui de figgie.com. À une table de Hard simulés, la v3 gagne +22,37 $ par manche à 4 joueurs, contre +20,03 $ pour la v2 et +16,58 $ pour le marginal. Mais elle reste exploitée par l'exploiteur de la phase 4 et par le bayésien, et aucun bot n'est promu. Rejoués sur le papier à la place du bot de Rasmus, face aux vrais bots du site, seul le bayésien gagne (+8,97 $ par manche), et la v3 perd 18,83 $. Les tableaux complets sont dans les docs de chaque phase.
+En phase 5c, le simulateur se rapproche du site grâce aux journaux de vraies parties de Rasmus Suonio : la règle du site pour les cotations, et un bot Hard simulé dont le marché ressemble à celui de figgie.com. À une table de Hard simulés, la v3 gagne +22,37 $ par manche à 4 joueurs, contre +20,03 $ pour la v2 et +16,58 $ pour le marginal. Mais elle reste exploitée par l'exploiteur de la phase 4 et par le bayésien, et aucun bot n'est promu. Rejoués sur le papier à la place du bot de Rasmus, face aux vrais bots du site, seul le bayésien gagne (+8,97 $ par manche), et la v3 perd 18,83 $.
+
+En phase 5d, la lecture du marché apprend que, sur le site, une offre d'achat ne veut pas dire la même chose à la première minute et à la dernière. Elle ne fait plus pire que la donne seule en début de manche. La v4, entraînée sur le marché du site avec cette lecture, gagne +35,81 $ par manche à une table de Hard simulés, contre +22,37 $ pour la v3, et fait 14 $ de mieux que la v3 par manche sur les vraies manches rejouées sur le papier. Le bayésien ne l'exploite plus, mais l'exploiteur de la phase 4 gagne toujours face à ses copies, et la v3 aussi. Aucun bot n'est promu. Les tableaux complets sont dans les docs de chaque phase.
 
 ## Ce que j'en retiens
 
@@ -60,6 +63,8 @@ S'entraîner contre ses propres copies corrige cette guerre des prix, mais chaqu
 
 Rapprocher le simulateur du site ne change presque pas le classement de mes bots en simulation, mais le rejeu des vraies manches en donne un autre. Et la lecture du marché, apprise sur mes seuls bots, trouve la bonne couleur objectif dans 88 % des vraies manches à la cloche, mais se trompe en début de manche.
 
+Sur le site, le moment d'une offre compte autant que son prix : en séparant les minutes, la lecture du marché a appris à ne pas croire les offres de la première. Face aux Hard simulés, cela rapporte 9 $ par manche au lecteur, mais ne règle pas le test de minorité.
+
 ## Limites
 
 Tous les adversaires sont des bots que j'ai écrits. Aucun chiffre de ce projet ne mesure le niveau face à des humains tant que la phase 6 (site réel) n'a pas eu lieu. Le simulateur repose sur des hypothèses : quatre règles que le site ne précise pas, et des temps de réaction inventés. Les tables ne mélangent pas encore les styles.
@@ -70,11 +75,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 113 tests, environ 15 secondes
+python3 -m unittest                      # 115 tests, environ 5 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5c-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5d-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -83,4 +88,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 
 
 ## Statut
 
-En cours : phases 0 à 5c terminées. Prochaine étape : réentraîner le bot adaptatif sur le marché de la phase 5c et corriger sa lecture du marché en début de manche. La phase 6 (site réel) attend un accord écrit de Jane Street.
+En cours : phases 0 à 5d terminées. Prochaine étape : comprendre pourquoi le bayésien gagne sur les vraies manches, et pourquoi la v4 laisse autant au sniper. La phase 6 (site réel) attend un accord écrit de Jane Street.

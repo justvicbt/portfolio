@@ -173,3 +173,124 @@ class OpponentModel:
 
     def weights(self):
         return {p: self.weight(p) for p in self.count}
+
+
+# --- Phase 5d : lire le marché du site ------------------------------------------------------------
+
+def window(t, duration, windows):
+    """Le moment de la manche où tombe l'instant t : 0 pour la première fenêtre, windows - 1 pour la dernière."""
+    return min(windows - 1, int(t / duration * windows))
+
+
+def top_bids(events, players):
+    """Le plus haut prix d'achat proposé par chaque joueur de `players` dans chaque couleur : {(joueur, couleur): prix}."""
+    top = {}
+    for _t, player, kind, suit, price in events:
+        if kind == "bid" and player in players and price > top.get((player, suit), 0):
+            top[player, suit] = price
+    return top
+
+
+def consensus_events(top, players, now, duration, windows):
+    """Le consensus de la table à l'instant `now` : pour chaque couleur, le plus bas des plus hauts prix
+    d'achat proposés par les joueurs. Un seul joueur qui propose cher ne suffit pas à le monter.
+    Rendu comme un événement par couleur, pour que le modèle l'apprenne comme les autres."""
+    w = window(now, duration, windows)
+    return [(now, ("consensus", w), f"cons@{w}", suit, max(1, min(top.get((p, suit), 0) for p in players)))
+            for suit in "SCHD"]
+
+
+class TimedSignalModel(SignalModel):
+    """Phase 5d. Le modèle de signaux, avec deux différences, pour le marché du site.
+
+    Un même événement ne dit pas la même chose au début et à la fin de la manche : sur les vraies
+    manches, les cotations de la première minute ne disent presque rien de l'objectif. On apprend donc
+    les rapports séparément pour chaque fenêtre de temps (nature « bid@0 » pour une offre d'achat de la
+    première fenêtre). Et on ajoute le consensus de la table (consensus_events).
+
+    Chaque événement est attribué à (joueur, fenêtre) : la confiance apprise d'une manche à l'autre
+    (OpponentModel) se règle ainsi séparément pour chaque joueur et chaque moment de la manche."""
+
+    def __init__(self, counts, n_rounds, reference=None, kinds=("bid", "ask"), windows=4, consensus=True):
+        self.base_kinds, self.windows, self.consensus = tuple(kinds), windows, consensus
+        timed = tuple(f"{k}@{w}" for k in kinds for w in range(windows))
+        super().__init__(counts, n_rounds, reference, timed + (tuple(f"cons@{w}" for w in range(windows)) if consensus else ()))
+
+    def features(self, events, duration, me=None):
+        """Les événements des autres, marqués de leur fenêtre de temps (sans le consensus)."""
+        return [(t, (p, window(t, duration, self.windows)), f"{kind}@{window(t, duration, self.windows)}", s, price)
+                for t, p, kind, s, price in events if kind in self.base_kinds and p != me]
+
+    def round_features(self, events, duration, players, me=None):
+        """Toute une manche : les événements des autres, plus le consensus de `players` à la fin de chaque fenêtre."""
+        out = self.features(events, duration, me)
+        if self.consensus:
+            for w in range(self.windows):
+                end = (w + 1) * duration / self.windows - 1e-6
+                out += consensus_events(top_bids([e for e in events if e[0] <= end], players), players, end,
+                                        duration, self.windows)
+        return out
+
+    @classmethod
+    def fit_rounds(cls, rounds, kinds=("bid", "ask"), windows=4, consensus=True):
+        """`rounds` : suite de (événements, objectif, durée, nombre de joueurs) de manches simulées.
+        Les événements de tous les joueurs servent à apprendre. Le consensus, lui, est pris sur tous les
+        joueurs sauf le siège 0, comme en partie, où le lecteur le calcule sur les autres joueurs."""
+        shape = cls({}, 0, kinds=kinds, windows=windows, consensus=consensus)
+        fitted = SignalModel.fit([(shape.round_features(ev, d, range(1, n)), goal) for ev, goal, d, n in rounds],
+                                 kinds=shape.kinds)
+        return cls(fitted.counts, fitted.n_rounds, fitted.reference, kinds, windows, consensus)
+
+    def to_dict(self):
+        return {**super().to_dict(), "kinds": list(self.base_kinds), "windows": self.windows, "consensus": self.consensus}
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls({(rel, kind, b): c for rel, kind, b, c in data["counts"]}, data["n_rounds"], data["reference"],
+                   data["kinds"], data["windows"], data["consensus"])
+
+
+class MarketReading:
+    """La lecture du marché d'une manche, tenue à jour événement par événement (le fil du site en compte
+    des centaines : tout relire à chaque nouvel événement coûterait trop cher). Les poids des joueurs
+    sont fixés pour la manche : ils ne changent qu'entre deux manches."""
+
+    def __init__(self, model, temper, duration, me, players, weights=None):
+        self.model, self.temper, self.duration, self.me = model, temper, duration, me
+        self.players, self.weights = [p for p in players if p != me], weights or {}
+        self.scores = dict.fromkeys("SCHD", 0.0)
+        self._seen, self._n, self._top = set(), 0, {}
+
+    def _add(self, event):
+        player = event[1]
+        key = (player, event[2], event[3], price_bucket(event[4]))
+        w = self.temper * self.weights.get(player, 1.0)
+        if key in self._seen or w == 0:
+            return
+        self._seen.add(key)
+        for g in self.scores:
+            self.scores[g] += w * self.model.evidence(event, g)
+
+    def update(self, events):
+        """Lit les nouveaux événements du fil (celui-ci ne fait que s'allonger pendant la manche)."""
+        new = events[self._n:]
+        self._n = len(events)
+        for e in new:
+            if e[2] == "bid" and e[1] in self.players and e[4] > self._top.get((e[1], e[3]), 0):
+                self._top[e[1], e[3]] = e[4]
+        for e in self.model.features(new, self.duration, self.me):
+            if e[2] in self.model.kinds:
+                self._add(e)
+
+    def posterior(self, prior, now):
+        scores = dict(self.scores)
+        if self.model.consensus and self.players:
+            for e in consensus_events(self._top, self.players, now, self.duration, self.model.windows):
+                w = self.temper * self.weights.get(e[1], 1.0)
+                for g in scores:
+                    scores[g] += w * self.model.evidence(e, g)
+        logs = {g: (math.log(p) if p > 0 else -math.inf) + scores[g] for g, p in prior.items()}
+        top = max(logs.values())
+        exp = {g: math.exp(s - top) for g, s in logs.items()}
+        total = sum(exp.values())
+        return {g: v / total for g, v in exp.items()}

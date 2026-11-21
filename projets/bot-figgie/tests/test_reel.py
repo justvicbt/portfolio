@@ -121,5 +121,25 @@ class TestPaperReplay(unittest.TestCase):
         self.assertEqual(score, 9 - 6 - 10)
 
 
+class TestSiteReading(unittest.TestCase):
+    """Phase 5d, seam « lecture du marché sur les vraies manches » : le modèle de signaux appris sur des
+    tables simulées du site (figgie.learn --site), avec la confiance apprise d'une manche à l'autre.
+    À une minute, il ne doit pas faire nettement pire que la donne seule (écarts par manche, IC à 95 %) ;
+    à la cloche, il doit trouver la bonne couleur dans au moins 85 % des manches."""
+
+    def test_no_worse_than_the_hand_after_one_minute_and_finds_the_goal_at_the_bell(self):
+        from figgie.evaluate import mean_ci
+        from figgie.reel import goal_calibration, load_rasmus
+        cal = goal_calibration(load_rasmus(), times=(60, 239), per_round=True)
+
+        def not_worse_than_the_hand(method):
+            return all(mean_ci([a[i] - b[i] for a, b in zip(cal[method][60], cal["donne"][60])])[2] >= 0
+                       for i in (0, 1))  # P de la vraie couleur, et bonne couleur ou non
+        self.assertTrue(not_worse_than_the_hand("lecture site"))
+        at_bell = cal["lecture site"][239]
+        self.assertGreaterEqual(sum(x[1] for x in at_bell) / len(at_bell), 0.85)
+        self.assertFalse(not_worse_than_the_hand("lecture"))  # le test sait dire non : la lecture de la phase 3
+
+
 if __name__ == "__main__":
     unittest.main()

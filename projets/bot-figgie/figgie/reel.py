@@ -221,19 +221,27 @@ def paper_replay(rnd, bot, seed=0, memory=None):
 CHECK_TIMES = (0, 60, 120, 180, 239)
 
 
-def goal_calibration(rounds, times=CHECK_TIMES):
+def goal_calibration(rounds, times=CHECK_TIMES, per_round=False):
     """Probabilité de la vraie couleur objectif, vue du siège de Rasmus (sa main et les vrais échanges),
     à chaque instant de `times`, selon trois méthodes : la donne seule, le comptage des cartes du
     marginal, et le comptage avec la lecture du marché du lecteur (modèle de signaux de la phase 3).
+    Phase 5d, « lecture site » : le lecteur du site (figgie.learn --site), avec la confiance par joueur
+    et par fenêtre de temps apprise sur les manches précédentes de la même session.
     Renvoie {méthode: {instant: (P moyenne de la vraie couleur, part des manches où elle est la plus
-    probable, perte logarithmique moyenne)}}."""
-    from figgie.bots import UNIFORM, ReaderBot
+    probable, perte logarithmique moyenne)}}. Avec `per_round`, les mêmes trois nombres pour chaque manche."""
+    from figgie.bots import UNIFORM, ReaderBot, SiteReaderBot
+    from figgie.signals import MarketReading, OpponentModel
     from figgie.valuation import goal_probabilities, known_minimums
     model, temper = ReaderBot.model()
+    site_model, site_temper = SiteReaderBot.model()
     empty = [dict.fromkeys(SUITS, 0) for _ in range(4)]
-    out = {m: {t: [] for t in times} for m in ("donne", "comptage", "lecture")}
+    out = {m: {t: [] for t in times} for m in ("donne", "comptage", "lecture", "lecture site")}
+    trust, session = None, None
     for r in rounds:
         me, goal = r["me"], r["goal"]
+        if r.get("session") != session:  # nouvelle table : la confiance repart de zéro
+            trust, session = OpponentModel(site_model), r.get("session")
+        others = [p for p in range(4) if p != me]
         for t in times:
             seen = [e for e in r["events"] if e[0] <= t]
             bought = [e for e in seen if e[2] == "bought"]
@@ -244,10 +252,17 @@ def goal_calibration(rounds, times=CHECK_TIMES):
                 hand[suit] += (buyer == me) - (seller == me)
             mins = known_minimums(trades, 4)
             market = model.posterior(UNIFORM, seen, temper=temper, me=me)
+            reading = MarketReading(site_model, site_temper, r["duration"], me, range(4), trust.weights())
+            reading.update(seen)
+            site = reading.posterior(UNIFORM, t)
             for method, probs in (("donne", goal_probabilities(r["dealt"], empty, me)),
                                   ("comptage", goal_probabilities(hand, mins, me, drawn=r["dealt"])),
-                                  ("lecture", goal_probabilities(hand, mins, me, goal_weights=market, drawn=r["dealt"]))):
+                                  ("lecture", goal_probabilities(hand, mins, me, goal_weights=market, drawn=r["dealt"])),
+                                  ("lecture site", goal_probabilities(hand, mins, me, goal_weights=site, drawn=r["dealt"]))):
                 out[method][t].append((probs[goal], max(probs, key=probs.get) == goal, -math.log(max(probs[goal], 1e-9))))
+        trust.observe_round(site_model.round_features(r["events"], r["duration"], others, me=me), goal, me=None)
+    if per_round:
+        return out
     return {m: {t: tuple(statistics.fmean(x[i] for x in v) for i in range(3)) for t, v in by_t.items()}
             for m, by_t in out.items()}
 

@@ -12,6 +12,12 @@ Aucune de ces graines ne sert aux tournois (graine 1) ni au réglage de la phase
 
 Usage : python3 -m figgie.learn --train 4000 --valid 1000            (phase 3)
         python3 -m figgie.learn --train 4000 --valid 1000 --league   (phase 4, la ligue)
+        python3 -m figgie.learn --site --train 2400 --valid 600       (phase 5d, le marché du site)
+
+Phase 5d (--site) : des manches jouées avec la règle du site, à des tables de Hard simulés plus un
+autre joueur, comme les vraies manches de Rasmus Suonio (trois bots Hard et son bot). Le modèle lit
+les cotations par fenêtre de temps, avec le consensus de la table (signals.TimedSignalModel).
+Les vraies manches ne servent jamais à apprendre : elles servent de test (figgie.reel --calibration).
 """
 import argparse
 import json
@@ -23,7 +29,7 @@ from pathlib import Path
 from figgie.bots import ABNORMAL, MODEL_PATH, MODELS_DIR, ZOO
 from figgie.engine import play_round
 from figgie.bots import UNIFORM
-from figgie.signals import ALL_KINDS, SignalModel, events_from_log
+from figgie.signals import ALL_KINDS, MarketReading, SignalModel, TimedSignalModel, events_from_log
 from figgie.valuation import goal_probabilities, known_minimums
 
 TRAIN_SEED, VALID_SEED = 3, 4
@@ -101,6 +107,68 @@ def calibration(model, rounds, temper, t=60):
 
 VARIANTS = {"cotations et échanges": ALL_KINDS, "cotations seules": ("bid", "ask")}
 
+# --- Phase 5d : le marché du site ---------------------------------------------------------------
+
+SITE_TRAIN_SEED, SITE_VALID_SEED = 51, 52
+SITE_SEATMATES = ("marginal", "adaptatif_v3", "lecteur", "bayesien", "hard_simule", "heuristique")
+SITE_TEMPERS = (0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0)
+
+
+def _play_site(job):
+    """Une manche avec la règle du site : des Hard simulés et un autre joueur, à une place tirée au hasard.
+    Renvoie (main initiale du siège 0, événements, objectif, durée, nombre de joueurs)."""
+    from figgie.evaluate import CANDIDATES
+    i, base = job
+    seed = base * 1_000_000 + i
+    rng = random.Random(seed)
+    n = rng.choice((4, 5))
+    names = ["hard_simule"] * (n - 1) + [rng.choice(SITE_SEATMATES)]
+    rng.shuffle(names)
+    result = play_round([CANDIDATES[x] for x in names], seed=seed, single_quote=True)
+    return result.log["hands"][0], result.events, result.log["goal"], result.log["duration"], n
+
+
+def site_rounds(n, base):
+    with Pool() as pool:
+        return pool.map(_play_site, [(i, base) for i in range(n)], chunksize=10)
+
+
+def site_posterior(model, temper, hand0, events, t, duration, n, weights=None):
+    """La probabilité qu'utilise le lecteur du site, vue du siège 0 à l'instant t."""
+    hand, trades, seen = state_at(hand0, events, t)
+    reading = MarketReading(model, temper, duration, 0, range(n), weights)
+    reading.update(seen)
+    return goal_probabilities(hand, known_minimums(trades, n), 0, goal_weights=reading.posterior(UNIFORM, t),
+                              drawn=hand0)
+
+
+def score_site(model, rounds, temper):
+    """Comme score_posteriors, pour le lecteur du site : {instant: (taux de bonne réponse, log-score moyen)}."""
+    out = {}
+    for t in CHECKPOINTS:
+        posts = [(site_posterior(model, temper, hand, events, t, d, n), goal) for hand, events, goal, d, n in rounds]
+        out[t] = (sum(max(p, key=p.get) == g for p, g in posts) / len(posts),
+                  sum(math.log(max(p[g], 1e-12)) for p, g in posts) / len(posts))
+    return out
+
+
+def learn_site(args):
+    train, valid = site_rounds(args.train, SITE_TRAIN_SEED), site_rounds(args.valid, SITE_VALID_SEED)
+    model = TimedSignalModel.fit_rounds([(ev, goal, d, n) for _h, ev, goal, d, n in train])
+    results = {temper: score_site(model, valid, temper) for temper in SITE_TEMPERS}
+    print("| atténuation | " + " | ".join(f"{t} s" for t in CHECKPOINTS) + " |")
+    print("|---" * (len(CHECKPOINTS) + 1) + "|")
+    for temper, by_t in results.items():
+        print(f"| {temper} | " + " | ".join(f"{acc:.1%} ({ls:+.3f})" for acc, ls in by_t.values()) + " |")
+    temper = max(results, key=lambda tp: sum(ls for _acc, ls in results[tp].values()))
+    print(f"\nRetenu : atténuation {temper} (meilleur log-score moyen sur {args.valid} manches de validation simulées)")
+    out = Path(args.out or MODELS_DIR / "signaux_site.json")
+    out.write_text(json.dumps({**model.to_dict(), "temper": temper}, indent=1))
+    print(f"Modèle écrit dans {out}")
+    if args.report:
+        Path(args.report).write_text(json.dumps({"args": vars(args), "temper": temper, "results": {
+            str(tp): {str(t): x for t, x in by_t.items()} for tp, by_t in results.items()}}, indent=2))
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -109,7 +177,10 @@ def main():
     parser.add_argument("--league", action="store_true", help="apprendre sur les tables de la ligue (phase 4)")
     parser.add_argument("--out")
     parser.add_argument("--report", help="fichier JSON où écrire les mesures de validation")
+    parser.add_argument("--site", action="store_true", help="phase 5d : apprendre sur le marché du site")
     args = parser.parse_args()
+    if args.site:
+        return learn_site(args)
 
     if args.league:
         train = play_rounds(args.train, LEAGUE_TRAIN_SEED, LEAGUE)

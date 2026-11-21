@@ -18,7 +18,7 @@ import statistics
 from multiprocessing import Pool
 from pathlib import Path
 
-from figgie.bots import ABNORMAL, MODELS_DIR, ZOO, MarginalBot, load_model
+from figgie.bots import ABNORMAL, MODELS_DIR, ZOO, HardBot, MarginalBot, SiteReaderBot, load_model
 from figgie.engine import SUITS, play_round
 from figgie.valuation import goal_probabilities
 
@@ -197,6 +197,18 @@ class AdaptiveV3Bot(AdaptiveV2Bot):
         return parse_arm(self.neighbors().best_many([{**p, "main": self._strong} for p in profiles]))
 
 
+class AdaptiveV4Bot(AdaptiveV3Bot, SiteReaderBot):
+    """Phase 5d. La v3, qui lit en plus le marché comme le lecteur du site (cotations par fenêtre de temps,
+    consensus de la table, confiance apprise par joueur). Ses réglages sont appris sur des tables jouées
+    avec la règle du site, où jouent des Hard simulés et des copies de ses versions précédentes."""
+    name = "adaptatif_v4"
+    model_file = "adaptation_v4.json"
+
+    def end_round(self, reveal):
+        AdaptiveV3Bot.end_round(self, reveal)  # le profil de la table
+        SiteReaderBot.end_round(self, reveal)  # la confiance accordée à chaque joueur
+
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10
@@ -206,12 +218,12 @@ POOL = {**ZOO, "menteur": ABNORMAL["menteur"]}
 CHOICES = list(POOL) + ["marginal"] * 4
 
 
-def arm_bot(arm):
+def arm_bot(arm, base=MarginalBot):
     spread, edge, *late = arm
     settings = {"spread": spread, "edge": edge}
     if late:
         settings["spread_late"], settings["edge_late"] = late
-    return type("Arm", (MarginalBot,), settings)
+    return type("Arm", (base,), settings)
 
 
 # --- Phase 5b : entraînement contre ses propres copies -------------------------------------------
@@ -228,8 +240,13 @@ def version_bot(name):
         return POOL[name]
     if name == AdaptiveV2Bot.name:
         return AdaptiveV2Bot
-    k = int(name.rsplit("_", 1)[1])
-    return type(f"AdaptiveV3_{k}", (AdaptiveV3Bot,), {"name": name, "model_file": f"adaptation_v3_{k}.json"})
+    if name == AdaptiveV3Bot.name:
+        return AdaptiveV3Bot
+    if name == HardBot.name:
+        return HardBot
+    version, k = re.fullmatch(r"adaptatif_(v[34])_(\d+)", name).groups()
+    cls = {"v3": AdaptiveV3Bot, "v4": AdaptiveV4Bot}[version]
+    return type(f"Adaptive{version.upper()}_{k}", (cls,), {"name": name, "model_file": f"adaptation_{version}_{k}.json"})
 
 
 def table_opponents_v3(i, base, previous):
@@ -249,8 +266,9 @@ def _table_v3(job):
     quelques profils d'une manche vus avec chaque réglage. Parties de `rounds` manches, rejouées à
     chaque siège sur les mêmes donnes pour tous les réglages ; la première manche, où les versions
     adaptatives ne se sont pas encore adaptées, ne compte pas dans les gains."""
-    i, base, deals, rounds, previous, arms = job
-    seed, names = table_opponents_v3(i, base, previous)
+    i, base, deals, rounds, previous, arms, site = job  # site (phase 5d) : règle du site, tables de la v4,
+    # réglages joués par le lecteur du site
+    seed, names = (table_opponents_v4 if site else table_opponents_v3)(i, base, previous)
     opponents = [version_bot(n) for n in names]
     n = len(opponents) + 1
     gains, samples = {}, []
@@ -259,10 +277,11 @@ def _table_v3(job):
         for d in range(deals):
             deal_seed = seed * 1_000_000 + d
             for seat in range(n):
-                bots = opponents[:seat] + [arm_bot(arm)] + opponents[seat:]
+                bots = opponents[:seat] + [arm_bot(arm, SiteReaderBot if site else MarginalBot)] + opponents[seat:]
                 memories = [{} for _ in bots]
                 for r in range(rounds):
-                    result = play_round(bots, seed=deal_seed if r == 0 else f"{deal_seed}:{r}", memories=memories)
+                    result = play_round(bots, seed=deal_seed if r == 0 else f"{deal_seed}:{r}", memories=memories,
+                                        single_quote=site)
                     strong = float(hand_strength(result.log["hands"][seat], n) >= STRONG_HAND)
                     if r > 0 or rounds == 1:
                         profits[strong].append(result.profits[seat])
@@ -306,11 +325,43 @@ def build_v3(iteration, previous, tables, deals, rounds, arms=ARMS_V3):
     if tables >= 1000:
         raise ValueError("au plus 999 tables : au-delà, les graines se chevauchent")
     with Pool() as pool:
-        measured = pool.map(_table_v3, [(i, V3_SEED + iteration, deals, rounds, previous, arms)
+        measured = pool.map(_table_v3, [(i, V3_SEED + iteration, deals, rounds, previous, arms, False)
                                         for i in range(tables)], chunksize=1)
     model = Neighbors(v3_rows(measured))
     path = MODELS_DIR / f"adaptation_v3_{iteration}.json"
     path.write_text(json.dumps(model.to_dict(), indent=1))
+    return measured, path
+
+
+# --- Phase 5d : le marché du site ---------------------------------------------------------------
+
+V4_SEED = 21
+
+
+def table_opponents_v4(i, base, previous):
+    """La table d'entraînement numéro i de la phase 5d. Quatre sur dix ressemblent au test de minorité
+    (copies d'une version précédente, plus un seul autre joueur), trois sur dix sont des tables de Hard
+    simulés comme sur le site, les autres sont tirées dans la ligue, Hard simulés et versions comprises."""
+    seed = base * 1000 + i
+    rng = random.Random(seed)
+    n = rng.choice((4, 5))
+    draw = rng.random()
+    if previous and draw < 0.4:
+        return seed, [rng.choice(previous)] * (n - 2) + [rng.choice(list(POOL) + [HardBot.name])]
+    if draw < 0.7:
+        return seed, [HardBot.name] * (n - 1)
+    return seed, [rng.choice(CHOICES + [HardBot.name] * 4 + previous * 2) for _ in range(n - 1)]
+
+
+def build_v4(iteration, previous, tables, deals, rounds, arms=ARMS_V3):
+    """Un tour d'entraînement de la v4 : écrit modeles/adaptation_v4_<tour>.json."""
+    if tables >= 1000:
+        raise ValueError("au plus 999 tables : au-delà, les graines se chevauchent")
+    with Pool() as pool:
+        measured = pool.map(_table_v3, [(i, V4_SEED + iteration, deals, rounds, previous, arms, True)
+                                        for i in range(tables)], chunksize=1)
+    path = MODELS_DIR / f"adaptation_v4_{iteration}.json"
+    path.write_text(json.dumps(Neighbors(v3_rows(measured)).to_dict(), indent=1))
     return measured, path
 
 
@@ -394,21 +445,28 @@ def main():
                         help="où écrire le modèle (par défaut, celui que charge le bot adaptatif)")
     parser.add_argument("--v2-from", help="construire la version 2 à partir du rapport (--report) de la version 1")
     parser.add_argument("--v3", type=int, metavar="TOUR", help="phase 5b : un tour d'entraînement contre ses copies")
+    parser.add_argument("--v4", type=int, metavar="TOUR", help="phase 5d : un tour d'entraînement sur le marché du site")
     parser.add_argument("--previous", nargs="*", default=[], help="versions précédentes, placées aux tables (avec --v3)")
     parser.add_argument("--rounds", type=int, default=3, help="manches par partie (avec --v3)")
     parser.add_argument("--arms", nargs="+", help="réglages possibles, « spread,marge,spread fin,marge fin » (avec --v3)")
     args = parser.parse_args()
-    if args.v3 is not None:
+    if args.v3 is not None and args.v4 is not None:
+        parser.error("--v3 ou --v4, pas les deux")
+    if args.v3 is not None or args.v4 is not None:
         from figgie.evaluate import mean_ci
         arms = [parse_arm(a) for a in args.arms] if args.arms else ARMS_V3
         if DEFAULT_ARM_V3 not in arms:
             parser.error(f"--arms doit contenir le réglage de départ {arm_key(DEFAULT_ARM_V3)}")
         for name in args.previous:
-            if name not in POOL and name != AdaptiveV2Bot.name and not re.fullmatch(r"adaptatif_v3_\d+", name):
-                parser.error(f"--previous : version inconnue {name} (bot de la ligue, adaptatif_v2 ou adaptatif_v3_<tour>)")
-        measured, path = build_v3(args.v3, args.previous, args.tables, args.deals, args.rounds, arms)
+            if (name not in POOL and name not in (AdaptiveV2Bot.name, AdaptiveV3Bot.name)
+                    and not re.fullmatch(r"adaptatif_v[34]_\d+", name)):
+                parser.error(f"--previous : version inconnue {name} (bot de la ligue, adaptatif_v2, adaptatif_v3 "
+                             "ou adaptatif_v3_<tour>, adaptatif_v4_<tour>)")
+        build = build_v4 if args.v4 is not None else build_v3
+        iteration = args.v4 if args.v4 is not None else args.v3
+        measured, path = build(iteration, args.previous, args.tables, args.deals, args.rounds, arms)
         scores = v3_cross_validation(measured)
-        print(f"Tour {args.v3}, versions aux tables : {', '.join(args.previous) or 'aucune'}, {args.tables} tables, "
+        print(f"{'v4, règle du site, ' if args.v4 is not None else ''}Tour {iteration}, versions aux tables : {', '.join(args.previous) or 'aucune'}, {args.tables} tables, "
               f"{args.deals} donnes, parties de {args.rounds} manches")
         print("Validation croisée (gain moyen $/manche, écart au réglage fixe) :")
         for name, values in scores.items():

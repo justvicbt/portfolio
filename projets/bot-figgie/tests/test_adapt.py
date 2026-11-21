@@ -139,5 +139,18 @@ class TestHandAwareChoice(unittest.TestCase):
             self.assertEqual(arms[r], (12, 3, 12, 3) if strong[r] else (8, 1, 8, 1), r)
 
 
+class TestAdaptiveV4(unittest.TestCase):
+    """Phase 5d, seam « la v4 reconnaît le marché du site » : elle lit le marché (lecteur du site) et
+    choisit son réglage d'après des tables d'entraînement jouées avec la règle du site."""
+
+    def test_a_table_of_simulated_hard_bots_gets_another_setting_than_a_table_of_marginal_bots(self):
+        from figgie.adapt import AdaptiveV4Bot
+        from figgie.bots import HardBot
+        def settings(opponent):
+            match = play_match([AdaptiveV4Bot] + [opponent] * 3, seed=34_000_000, rounds=4, single_quote=True)
+            return match.memories[0]["arms"][1:]  # la première manche se joue au réglage de départ
+        self.assertNotEqual(settings(HardBot), settings(ZOO["marginal"]))
+
+
 if __name__ == "__main__":
     unittest.main()

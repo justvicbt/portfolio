@@ -10,7 +10,7 @@ from math import ceil, floor
 from pathlib import Path
 
 from figgie.engine import GOAL_CARD_VALUE, SUITS, TWIN
-from figgie.signals import OpponentModel, SignalModel
+from figgie.signals import MarketReading, OpponentModel, SignalModel, TimedSignalModel, window
 from figgie.valuation import (goal_probabilities, initial_hand, known_minimums, known_minimums_from_events,
                               marginal_values)
 
@@ -253,11 +253,9 @@ class ReaderBot(MarginalBot):
 
     def refresh(self, view, rng):
         self._feed = view.events
-        if len(view.events) != self._n_seen:  # nouvel événement : on relit le marché
-            model, temper = self.model()
-            self._n_seen = len(view.events)
-            self._new_market = model.posterior(UNIFORM, view.events, temper=temper,
-                                               player_weights=self.opponents().weights(), me=view.seat)
+        if self.market_key(view) != self._n_seen:  # nouvel événement : on relit le marché
+            self._n_seen = self.market_key(view)
+            self._new_market = self.market(view)
         market = self._new_market
         key = (tuple(view.hand.values()), len(view.trades))
         moved = self._market is None or max(abs(market[s] - self._market[s]) for s in SUITS) > self.resample
@@ -267,8 +265,54 @@ class ReaderBot(MarginalBot):
                                            goal_weights=market, drawn=initial_hand(view.hand, view.trades, view.seat))
             self._key, self._market = key, market
 
+    def market_key(self, view):
+        """Ce qui doit changer pour que la lecture du marché change : ici, le nombre d'événements du fil."""
+        return len(view.events)
+
+    def market(self, view):
+        """P(couleur objectif) d'après le marché seul."""
+        model, temper = self.model()
+        return model.posterior(UNIFORM, view.events, temper=temper, player_weights=self.opponents().weights(),
+                               me=view.seat)
+
     def end_round(self, reveal):
         self.opponents().observe_round(self._feed, reveal["goal"], me=reveal["seat"])
+
+
+class SiteReaderBot(ReaderBot):
+    """Phase 5d. Le lecteur, avec le modèle de signaux appris sur le marché du site (figgie.learn --site) :
+    les cotations lues par fenêtre de temps, plus le consensus de la table. La confiance apprise d'une
+    manche à l'autre se règle par joueur et par fenêtre de temps."""
+    name = "lecteur_site"
+    signals_file = "signaux_site.json"  # pas model_file : la v4 hérite aussi du bot adaptatif, qui a le sien
+
+    @classmethod
+    def model(cls):
+        return load_model(cls.signals_file, lambda data: (TimedSignalModel.from_dict(data), data["temper"]),
+                          "figgie.learn --site")
+
+    def __init__(self):
+        super().__init__()
+        self._reading = None
+
+    def market_key(self, view):
+        # le consensus dépend aussi de la fenêtre de temps, qui peut changer sans nouvel événement
+        return len(view.events), window(view.time, view.duration, self.model()[0].windows)
+
+    def market(self, view):
+        if self._reading is None:  # premier regard de la manche
+            model, temper = self.model()
+            self._reading = MarketReading(model, temper, view.duration, view.seat, range(view.n_players),
+                                          self.opponents().weights())
+        self._reading.update(view.events)
+        return self._reading.posterior(UNIFORM, view.time)
+
+    def end_round(self, reveal):
+        if self._reading is None:
+            return  # aucun regard sur le marché pendant la manche
+        features = self.model()[0].round_features(self._feed, self._reading.duration, self._reading.players,
+                                                  me=reveal["seat"])
+        self.opponents().observe_round(features, reveal["goal"], me=None)
 
 
 class ExploiterBot(BayesBot):
