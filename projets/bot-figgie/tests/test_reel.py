@@ -121,6 +121,24 @@ class TestPaperReplay(unittest.TestCase):
         self.assertEqual(score, 9 - 6 - 10)
 
 
+class TestPaperMajority(unittest.TestCase):
+    """Phase 5e, seam « majorité estimée » : les mains des bots du site sont tirées parmi celles qui
+    expliquent le journal et le vrai gain de Rasmus, puis la majorité est rejouée avec nos prises."""
+
+    def test_buying_the_majority_on_paper_counts_the_pot(self):
+        from figgie.reel import paper_replay
+        # Rasmus garde ses 5 cœurs et partage la majorité : 10 $ x 5 + 50 $ de part, moins 50 $ de mise.
+        rnd = {"goal": "hearts", "me": 0, "dealt": [0, 0, 5, 5], "final": [0, 0, 5, 5], "pnl": 50,
+               "log": ";".join(f"o,{230 - 10 * i},2,2,1,," for i in range(4))}  # le siège 1 vend 4 cœurs à 2 $
+        r = parse_rasmus_round(rnd)
+        self.assertEqual(r["majority"], 50)
+        score, takes = paper_replay(r, CheapHeartBuyer, majority=True)
+        self.assertEqual(len(takes), 4)
+        # 9 cœurs : le paquet en a 10 et le siège 1 n'en a plus qu'un. La majorité seule vaut 100 $.
+        self.assertAlmostEqual(score, -8 + 4 * 10 + (100 - 50))
+        self.assertEqual(paper_replay(r, CheapHeartBuyer)[0], -8 + 4 * 10)  # sans la majorité, comme avant
+
+
 class TestSiteReading(unittest.TestCase):
     """Phase 5d, seam « lecture du marché sur les vraies manches » : le modèle de signaux appris sur des
     tables simulées du site (figgie.learn --site), avec la confiance apprise d'une manche à l'autre.

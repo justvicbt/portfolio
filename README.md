@@ -15,7 +15,7 @@ Je l'enrichis au fur et à mesure, donc repassez de temps en temps.
 | [Centre de commande F1](./projets/centre-commande-f1) | Tableau de bord qui rejoue 4 Grands Prix 2025 (pipeline ETL météo et tours, écarts au tour, pneus, stratégie), chaque enseignement avec son incertitude | Data | Python, Streamlit, Plotly, pandas, SQLite | Terminé (v1) |
 | [Carte de vitesse F1](./projets/carte-vitesse-f1) | Le tracé d'un circuit coloré selon la vitesse sur un tour de qualification, avec ses sections rapides et ses zones de freinage | Data | Python, numpy, matplotlib | Terminé (v1) |
 | [Usure des pneus F1](./projets/usure-pneus-f1) | Hongrie 2025, Norris contre Piastri : la dégradation des pneus une fois retirés carburant, trafic et neutralisations, et pourquoi les données ne permettent pas de dire si les deux arrêts ont coûté du temps | Data | Python, pandas, statsmodels, matplotlib | Terminé (v1) |
-| [Bot Figgie](./projets/bot-figgie) | Un bot pour Figgie, le jeu de marché de Jane Street : simulateur testé, adversaires variés et mesure par donnes dupliquées, avant un bot qui apprend de chaque partie | IA | Python | En cours (phase 5d) |
+| [Bot Figgie](./projets/bot-figgie) | Un bot pour Figgie, le jeu de marché de Jane Street : simulateur testé, adversaires variés et mesure par donnes dupliquées, avant un bot qui apprend de chaque partie | IA | Python | En cours (phase 5e) |
 
 ## Comment c'est rangé
 

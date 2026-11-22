@@ -152,5 +152,17 @@ class TestAdaptiveV4(unittest.TestCase):
         self.assertNotEqual(settings(HardBot), settings(ZOO["marginal"]))
 
 
+class TestAdaptiveV4b(unittest.TestCase):
+    """Phase 5e, seam « la v4b reconnaît une table de snipers » : ils ne cotent jamais, une table que la v4
+    n'avait pas vue à l'entraînement. Face à eux, seuls les réglages qui se resserrent en fin de manche
+    rapportent beaucoup (+26 et +28 $ par manche, contre +18 $ au mieux pour les autres)."""
+
+    def test_a_table_of_snipers_gets_a_setting_that_tightens_late(self):
+        from figgie.adapt import AdaptiveV4bBot
+        match = play_match([AdaptiveV4bBot] + [ZOO["sniper"]] * 3, seed=34_000_000, rounds=4, single_quote=True)
+        for arm in match.memories[0]["arms"][1:]:
+            self.assertIn(tuple(arm), [(8, 1, 3, 1), (12, 3, 4, 1)])
+
+
 if __name__ == "__main__":
     unittest.main()

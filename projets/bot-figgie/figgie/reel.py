@@ -15,7 +15,7 @@ import statistics
 from math import comb
 from pathlib import Path
 
-from figgie.engine import POT, START_CASH, SUITS, View
+from figgie.engine import GOAL_CARD_VALUE, POT, START_CASH, SUITS, TWIN, View, payout
 from figgie.valuation import CONFIGS
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "donnees" / "rasmus"
@@ -40,6 +40,9 @@ def parse_rasmus_round(round_, duration=240):
            "hard": [p for p in range(4) if p != me]}
     if "dealt" in round_:
         out["dealt"] = dict(zip(SUITS, round_["dealt"]))  # la donne du bot de Rasmus
+    if "pnl" in round_:  # sa vraie part de majorité : son gain, moins la mise, ses échanges et ses cartes
+        cash = sum(price * ((who == "sold") - (who == "bought")) for _t, p, who, _s, price in events if p == me)
+        out["majority"] = round_["pnl"] + POT / 4 - cash - GOAL_CARD_VALUE * round_["final"][SUITS.index(out["goal"])]
     return out
 
 
@@ -99,10 +102,42 @@ def market_stats(rounds):
     }
 
 
+def hidden_goal_counts(rnd, samples=200, seed=0, max_tries=500_000):
+    """Phase 5e : des mains possibles pour les bots du site. Tire le paquet (selon la donne de Rasmus)
+    et les mains des autres, et ne garde que les tirages où chaque vente du journal porte sur une carte
+    que le vendeur a, et où Rasmus touche sa vraie part de majorité. Renvoie, pour chaque tirage gardé,
+    {siège: cartes objectif à la cloche}."""
+    me, goal, dealt = rnd["me"], rnd["goal"], rnd["dealt"]
+    others = [p for p in range(4) if p != me]
+    events = rnd["events"]
+    trades = [(b[1], s[1], b[3]) for b, s in zip(*([e for e in events if e[2] == k] for k in ("bought", "sold")))]
+    configs = [sizes for twelve, _e, sizes in CONFIGS if twelve == TWIN[goal]]
+    weights = [math.prod(comb(sizes[s], dealt[s]) for s in SUITS) for sizes in configs]
+    rng, kept = random.Random(f"{seed}:mains"), []
+    for _ in range(max_tries):
+        sizes = rng.choices(configs, weights)[0]
+        deck = [s for s in SUITS for _ in range(sizes[s] - dealt[s])]
+        rng.shuffle(deck)
+        hands = {p: {s: deck[10 * i:10 * i + 10].count(s) for s in SUITS} for i, p in enumerate(others)}
+        hands[me] = dict(dealt)
+        for buyer, seller, s in trades:
+            if hands[seller][s] < 1:
+                break
+            hands[seller][s] -= 1
+            hands[buyer][s] += 1
+        else:
+            mine = hands[me][goal]
+            if abs(payout(mine, [hands[p][goal] for p in others]) - GOAL_CARD_VALUE * mine - rnd["majority"]) < 0.5:
+                kept.append({p: hands[p][goal] for p in others})
+                if len(kept) == samples:
+                    break
+    return kept
+
+
 ACTIONS_PER_LOOK = 8  # un bot qui cote dans plusieurs couleurs doit pouvoir aussi prendre dans une autre
 
 
-def paper_replay(rnd, bot, seed=0, memory=None):
+def paper_replay(rnd, bot, seed=0, memory=None, majority=False):
     """Rejoue une vraie manche avec notre bot à la place de celui de Rasmus (sa donne, son siège).
 
     Comme le paper_bot de Rasmus Suonio : le carnet est celui du journal, et notre bot peut prendre
@@ -115,6 +150,8 @@ def paper_replay(rnd, bot, seed=0, memory=None):
     objectif de plus (ou de moins) à la cloche ; la majorité n'est pas comptée, faute de connaître les
     mains des autres. Chaque prise est servie, ce qui est optimiste : comparer des bots entre eux.
     `memory` : la mémoire du bot, à garder d'une manche à l'autre d'une même session (bots adaptatifs).
+    `majority` (phase 5e) : ajoute la part de majorité attendue sur le papier, moins la vraie part de
+    Rasmus, sur des mains possibles des autres (`rnd["hidden"]`, sinon hidden_goal_counts).
     shortcut: une prise retire seulement la cotation prise, alors que le site vide tout le carnet ;
     un retrait (xb ou xo) retire les deux côtés du joueur dans la couleur, comme dans notre moteur."""
     me, n, duration, goal = rnd["me"], 4, rnd["duration"], rnd["goal"]
@@ -128,6 +165,7 @@ def paper_replay(rnd, bot, seed=0, memory=None):
     player.memory = {} if memory is None else memory
     rng = random.Random(f"{seed}:papier")
     delta = 0
+    moved = dict.fromkeys(range(n), 0)  # cartes objectif des autres, déplacées par le papier
 
     def possible(s):
         """Une carte de plus en `s` laisse-t-elle ma main possible avec au moins un paquet ?"""
@@ -174,6 +212,8 @@ def paper_replay(rnd, bot, seed=0, memory=None):
             buyer, seller = (me, q[1]) if kind == "buy" else (q[1], me)
             trade(t, buyer, seller, s, q[0])
             takes.append((t, buyer, seller, s, q[0]))
+            if s == goal:
+                moved[q[1]] -= sign
             book[s]["ask" if kind == "buy" else "bid"] = None
             for side in ("bid", "ask"):
                 mine[s][side] = None
@@ -188,9 +228,11 @@ def paper_replay(rnd, bot, seed=0, memory=None):
             if seller == me and hand[s] < 1:
                 delta -= price  # vente réelle impossible : la carte est déjà partie sur le papier
                 live[s] -= 1
+                moved[who] -= s == goal
             elif who == me and not possible(s):
                 delta += price  # achat réel impossible : j'ai déjà cette carte, achetée sur le papier
                 live[s] += 1
+                moved[seller] += s == goal
             else:
                 if me in (who, seller):
                     sign = 1 if who == me else -1
@@ -215,7 +257,20 @@ def paper_replay(rnd, bot, seed=0, memory=None):
         look(t)
     if hasattr(player, "end_round"):  # comme sur le site : l'objectif est révélé à la fin
         player.end_round({"seat": me, "goal": goal, "hands": None})
-    return delta + 10 * (hand[goal] - live[goal]), takes
+    score = delta + 10 * (hand[goal] - live[goal])
+    if majority:
+        held = hand[goal]
+        hidden = rnd["hidden"] if "hidden" in rnd else hidden_goal_counts(rnd, seed=seed)
+        if not hidden:
+            raise ValueError("aucune main possible des autres n'explique cette manche")
+        # un bot du site ne vend sur le papier que des cartes qu'il a : on écarte les autres mains.
+        # shortcut: vérifié à la cloche seulement, pas au fil de la manche ; si aucune main ne convient,
+        # on ramène à 0 (le total de cartes objectif est alors faussé).
+        after = [[c + moved[p] for p, c in h.items()] for h in hidden]
+        fine = [a for a in after if min(a) >= 0]
+        shares = [payout(held, [max(0, c) for c in a]) - GOAL_CARD_VALUE * held for a in fine or after]
+        score += statistics.fmean(shares) - rnd["majority"]
+    return score, takes
 
 
 CHECK_TIMES = (0, 60, 120, 180, 239)
@@ -267,17 +322,20 @@ def goal_calibration(rounds, times=CHECK_TIMES, per_round=False):
             for m, by_t in out.items()}
 
 
-def paper_report(names, rounds, seed=0):
+def paper_report(names, rounds, seed=0, majority=False):
     """Rejeu de toutes les manches pour chaque bot, avec sa mémoire gardée d'une manche à l'autre
-    d'une même session. {nom: (scores par manche, prises par manche)}."""
+    d'une même session. {nom: (scores par manche, prises par manche)}. `majority` : voir paper_replay ;
+    les mains possibles des autres sont tirées une fois par manche, les mêmes pour tous les bots."""
     from figgie.evaluate import CANDIDATES
+    if majority:
+        rounds = [{**r, "hidden": hidden_goal_counts(r, seed=seed * 1000 + i)} for i, r in enumerate(rounds)]
     out = {}
     for name in names:
         scores, takes, memory, session = [], [], None, None
         for i, r in enumerate(rounds):
             if r.get("session") != session:
                 memory, session = {}, r.get("session")
-            score, t = paper_replay(r, CANDIDATES[name], seed=seed * 1000 + i, memory=memory)
+            score, t = paper_replay(r, CANDIDATES[name], seed=seed * 1000 + i, memory=memory, majority=majority)
             scores.append(score)
             takes.append(len(t))
         out[name] = (scores, takes)
@@ -289,6 +347,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--paper", nargs="*", default=[], choices=sorted(CANDIDATES), help="bots à rejouer sur les vraies manches")
     parser.add_argument("--calibration", action="store_true", help="probabilité de la vraie couleur objectif")
+    parser.add_argument("--majority", action="store_true", help="phase 5e : compter la majorité estimée au rejeu")
     parser.add_argument("--stats", action="store_true", help="mesures du marché des vraies manches")
     args = parser.parse_args()
     rounds = load_rasmus()
@@ -299,8 +358,9 @@ def main():
             print(f"  {k:22s} {v}")
     if args.paper:
         print("\nRejeu sur le papier, notre bot à la place de celui de Rasmus : score moyen par manche [IC 95 %]")
-        print("(argent des prises + 10 $ par carte objectif de plus ; la majorité n'est pas comptée, toutes les prises sont servies)")
-        for name, (scores, takes) in paper_report(args.paper, rounds).items():
+        print("(argent des prises + 10 $ par carte objectif de plus ; " + ("majorité estimée sur des mains possibles des autres"
+              if args.majority else "la majorité n'est pas comptée") + ", toutes les prises sont servies)")
+        for name, (scores, takes) in paper_report(args.paper, rounds, majority=args.majority).items():
             m, lo, hi = mean_ci(scores)
             print(f"  {name:16s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]   prises par manche {statistics.fmean(takes):.1f}")
     if args.calibration:

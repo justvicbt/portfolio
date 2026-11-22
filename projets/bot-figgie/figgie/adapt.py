@@ -209,6 +209,13 @@ class AdaptiveV4Bot(AdaptiveV3Bot, SiteReaderBot):
         SiteReaderBot.end_round(self, reveal)  # la confiance accordée à chaque joueur
 
 
+class AdaptiveV4bBot(AdaptiveV4Bot):
+    """Phase 5e. La v4, avec en plus des tables d'entraînement « pleines » : des copies d'un seul bot de la
+    ligue. La v4 n'avait jamais vu de table où personne ne cote (des snipers), et y choisissait mal."""
+    name = "adaptatif_v4b"
+    model_file = "adaptation_v4b.json"
+
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10
@@ -267,8 +274,9 @@ def _table_v3(job):
     chaque siège sur les mêmes donnes pour tous les réglages ; la première manche, où les versions
     adaptatives ne se sont pas encore adaptées, ne compte pas dans les gains."""
     i, base, deals, rounds, previous, arms, site = job  # site (phase 5d) : règle du site, tables de la v4,
-    # réglages joués par le lecteur du site
-    seed, names = (table_opponents_v4 if site else table_opponents_v3)(i, base, previous)
+    # réglages joués par le lecteur du site ; site == "full" (phase 5e) : les tables pleines de la v4b
+    tables = table_opponents_full if site == "full" else table_opponents_v4 if site else table_opponents_v3
+    seed, names = tables(i, base, previous)
     opponents = [version_bot(n) for n in names]
     n = len(opponents) + 1
     gains, samples = {}, []
@@ -281,7 +289,7 @@ def _table_v3(job):
                 memories = [{} for _ in bots]
                 for r in range(rounds):
                     result = play_round(bots, seed=deal_seed if r == 0 else f"{deal_seed}:{r}", memories=memories,
-                                        single_quote=site)
+                                        single_quote=bool(site))
                     strong = float(hand_strength(result.log["hands"][seat], n) >= STRONG_HAND)
                     if r > 0 or rounds == 1:
                         profits[strong].append(result.profits[seat])
@@ -351,6 +359,33 @@ def table_opponents_v4(i, base, previous):
     if draw < 0.7:
         return seed, [HardBot.name] * (n - 1)
     return seed, [rng.choice(CHOICES + [HardBot.name] * 4 + previous * 2) for _ in range(n - 1)]
+
+
+V4B_SEED = 61  # loin des graines des tours de la v4 (V4_SEED + tour), pour ne pas rejouer leurs donnes
+FULL_TABLE_BOTS = sorted(POOL) + [HardBot.name]
+
+
+def table_opponents_full(i, base, previous=None):
+    """Phase 5e, table pleine numéro i : des copies d'un seul bot de la ligue (Hard simulé compris),
+    chacun à 4 puis à 5 joueurs."""
+    names = FULL_TABLE_BOTS
+    return base * 1000 + i, [names[i % len(names)]] * (3 + (i // len(names)) % 2)
+
+
+def build_v4b(report, tables, deals, rounds, arms=ARMS_V3):
+    """La v4b : les tables du rapport d'entraînement de la v4 (`report`, son dernier tour), plus `tables`
+    tables pleines. Écrit modeles/adaptation_v4b.json. Renvoie (toutes les tables mesurées, chemin)."""
+    if tables >= 1000:
+        raise ValueError("au plus 999 tables : au-delà, les graines se chevauchent")
+    base = json.loads(Path(report).read_text())["tables"]
+    if set(base[0]["gains"]) != {arm_key(a) for a in arms}:
+        raise ValueError(f"--arms doit être celui du rapport : {', '.join(base[0]['gains'])}")
+    with Pool() as pool:
+        full = pool.map(_table_v3, [(i, V4B_SEED, deals, rounds, [], arms, "full") for i in range(tables)], chunksize=1)
+    measured = base + full
+    path = MODELS_DIR / AdaptiveV4bBot.model_file
+    path.write_text(json.dumps(Neighbors(v3_rows(measured)).to_dict(), indent=1))
+    return measured, path
 
 
 def build_v4(iteration, previous, tables, deals, rounds, arms=ARMS_V3):
@@ -446,13 +481,14 @@ def main():
     parser.add_argument("--v2-from", help="construire la version 2 à partir du rapport (--report) de la version 1")
     parser.add_argument("--v3", type=int, metavar="TOUR", help="phase 5b : un tour d'entraînement contre ses copies")
     parser.add_argument("--v4", type=int, metavar="TOUR", help="phase 5d : un tour d'entraînement sur le marché du site")
+    parser.add_argument("--v4b", metavar="RAPPORT", help="phase 5e : la v4 du rapport, plus --tables tables pleines")
     parser.add_argument("--previous", nargs="*", default=[], help="versions précédentes, placées aux tables (avec --v3)")
     parser.add_argument("--rounds", type=int, default=3, help="manches par partie (avec --v3)")
     parser.add_argument("--arms", nargs="+", help="réglages possibles, « spread,marge,spread fin,marge fin » (avec --v3)")
     args = parser.parse_args()
-    if args.v3 is not None and args.v4 is not None:
-        parser.error("--v3 ou --v4, pas les deux")
-    if args.v3 is not None or args.v4 is not None:
+    if sum(x is not None for x in (args.v3, args.v4, args.v4b)) > 1:
+        parser.error("--v3, --v4 ou --v4b, un seul à la fois")
+    if args.v3 is not None or args.v4 is not None or args.v4b:
         from figgie.evaluate import mean_ci
         arms = [parse_arm(a) for a in args.arms] if args.arms else ARMS_V3
         if DEFAULT_ARM_V3 not in arms:
@@ -462,12 +498,16 @@ def main():
                     and not re.fullmatch(r"adaptatif_v[34]_\d+", name)):
                 parser.error(f"--previous : version inconnue {name} (bot de la ligue, adaptatif_v2, adaptatif_v3 "
                              "ou adaptatif_v3_<tour>, adaptatif_v4_<tour>)")
-        build = build_v4 if args.v4 is not None else build_v3
-        iteration = args.v4 if args.v4 is not None else args.v3
-        measured, path = build(iteration, args.previous, args.tables, args.deals, args.rounds, arms)
+        if args.v4b:  # --previous : seulement pour retrouver les tables façon minorité du rapport
+            measured, path = build_v4b(args.v4b, args.tables, args.deals, args.rounds, arms)
+            print(f"v4b : {args.v4b}, plus {args.tables} tables pleines, {args.deals} donnes, parties de {args.rounds} manches")
+        else:
+            build = build_v4 if args.v4 is not None else build_v3
+            iteration = args.v4 if args.v4 is not None else args.v3
+            measured, path = build(iteration, args.previous, args.tables, args.deals, args.rounds, arms)
+            print(f"{'v4, règle du site, ' if args.v4 is not None else ''}Tour {iteration}, versions aux tables : {', '.join(args.previous) or 'aucune'}, {args.tables} tables, "
+                  f"{args.deals} donnes, parties de {args.rounds} manches")
         scores = v3_cross_validation(measured)
-        print(f"{'v4, règle du site, ' if args.v4 is not None else ''}Tour {iteration}, versions aux tables : {', '.join(args.previous) or 'aucune'}, {args.tables} tables, "
-              f"{args.deals} donnes, parties de {args.rounds} manches")
         print("Validation croisée (gain moyen $/manche, écart au réglage fixe) :")
         for name, values in scores.items():
             diff = mean_ci([v - f for v, f in zip(values, scores["fixe"])])
