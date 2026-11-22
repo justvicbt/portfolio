@@ -26,6 +26,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5c. A market closer to the site | The site's quote rule, a simulated Hard bot tuned on 60 real rounds, paper replay of the real rounds, tournament on this market | [FR](docs/phase5c.fr.md) · [EN](docs/phase5c.en.md) | Done (no bot promoted) |
 | 5d. Reading the site's market | Market reading by one-minute windows, with the consensus and trust per player, then a v4 trained on the site's market | [FR](docs/phase5d.fr.md) · [EN](docs/phase5d.en.md) | Done (no bot promoted) |
 | 5e. Two questions from 5d | Estimated majority in the replay of the real rounds, then a v4b also trained on tables where nobody quotes | [FR](docs/phase5e.fr.md) · [EN](docs/phase5e.en.md) | Done (no bot promoted) |
+| 5f. The minority test | Why the exploiter wins against the copies, then a v4c trained on tables where each setting is judged by the mean gain of the copies | [FR](docs/phase5f.fr.md) · [EN](docs/phase5f.en.md) | Done (no bot promoted) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -46,7 +47,9 @@ In phase 5c, the simulator moves closer to the site thanks to Rasmus Suonio's lo
 
 In phase 5d, the market reading learns that, on the site, a bid does not mean the same thing in the first minute and in the last. It no longer does worse than the hand alone early in the round. v4, trained on the site's market with this reading, wins +$35.81 per round at a table of simulated Hard bots, against +$22.37 for v3, and does $14 better than v3 per round on the real rounds replayed on paper. The Bayesian bot no longer exploits it, but the phase 4 exploiter still wins against its copies, and so does v3. No bot is promoted.
 
-In phase 5e, the replay of the real rounds finally counts the majority, estimated from hands of the site's bots that fit the log. The ranking flips: the Bayesian bot, which sells its goal cards at $10, goes from second place to last, and v4 moves to the top. v4b, also trained on tables where nobody quotes, wins +$27.32 per round against the sniper, against +$13.11 for v4, and is level with it elsewhere. It still fails the minority test, against the same three players. No bot is promoted. Full tables are in each phase's doc.
+In phase 5e, the replay of the real rounds finally counts the majority, estimated from hands of the site's bots that fit the log. The ranking flips: the Bayesian bot, which sells its goal cards at $10, goes from second place to last, and v4 moves to the top. v4b, also trained on tables where nobody quotes, wins +$27.32 per round against the sniper, against +$13.11 for v4, and is level with it elsewhere. It still fails the minority test, against the same three players. No bot is promoted.
+
+In phase 5f, I find why the exploiter wins against copies of my bots: a copy that buys its cards profits from it, but the copies as a whole lose, and my training judged only by the gain of a single copy. v4c, trained by judging each setting by the mean gain of the copies, leaves the exploiter $3.15 per round with 4 players and $4.65 with 5, against 4.05 and $5.85 for v4b. But it still fails the minority test, against the same three players, and no bot is promoted. Full tables are in each phase's doc.
 
 ## What I took away
 
@@ -70,6 +73,8 @@ On the site, when a bid arrives matters as much as its price: by separating the 
 
 A score that leaves out part of the game favours the bots that leave it out too: without the majority, the replay put the Bayesian bot ahead for two phases. And nearest neighbours answer even at a table that looks like nothing they know: a table of snipers, never seen in training, cost v4 $14 per round.
 
+What the training measures must be what the test measures: buying from the exploiter brings $3.75 per card to the copy that buys, and costs the copies as a whole. Changing the criterion reduces what it takes, but the copies of an adaptive bot do not all play the same setting, and their tables do not look like the training's.
+
 ## Limits
 
 All opponents are bots I wrote. No number in this project measures the level against humans until phase 6 (real site) has happened. The simulator rests on assumptions: four rules the site does not specify, and made-up reaction times. Tables do not mix styles yet.
@@ -80,11 +85,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 117 tests, about 5 seconds
+python3 -m unittest                      # 118 tests, about 5 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5e-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5f-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -93,4 +98,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5e done. Next step: the minority test, which the phase 4 exploiter makes all my bots fail. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5f done. Next step: the minority test, which the exploiter, v3 and the marginal bot still make my bots fail. Phase 6 (real site) waits for written consent from Jane Street.

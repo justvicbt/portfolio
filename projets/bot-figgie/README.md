@@ -26,6 +26,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 5c. Un marché plus proche du site | Règle du site pour les cotations, bot Hard simulé réglé sur 60 vraies manches, rejeu des vraies manches sur le papier, tournoi sur ce marché | [FR](docs/phase5c.fr.md) · [EN](docs/phase5c.en.md) | Terminée (aucun bot promu) |
 | 5d. Lire le marché du site | Lecture du marché par fenêtres d'une minute, avec le consensus et la confiance par joueur, puis une v4 entraînée sur le marché du site | [FR](docs/phase5d.fr.md) · [EN](docs/phase5d.en.md) | Terminée (aucun bot promu) |
 | 5e. Deux questions de la 5d | Majorité estimée dans le rejeu des vraies manches, puis une v4b entraînée aussi sur des tables où personne ne cote | [FR](docs/phase5e.fr.md) · [EN](docs/phase5e.en.md) | Terminée (aucun bot promu) |
+| 5f. Le test de minorité | Pourquoi l'exploiteur gagne face aux copies, puis une v4c entraînée sur des tables où chaque réglage est jugé au gain moyen des copies | [FR](docs/phase5f.fr.md) · [EN](docs/phase5f.en.md) | Terminée (aucun bot promu) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -46,7 +47,9 @@ En phase 5c, le simulateur se rapproche du site grâce aux journaux de vraies pa
 
 En phase 5d, la lecture du marché apprend que, sur le site, une offre d'achat ne veut pas dire la même chose à la première minute et à la dernière. Elle ne fait plus pire que la donne seule en début de manche. La v4, entraînée sur le marché du site avec cette lecture, gagne +35,81 $ par manche à une table de Hard simulés, contre +22,37 $ pour la v3, et fait 14 $ de mieux que la v3 par manche sur les vraies manches rejouées sur le papier. Le bayésien ne l'exploite plus, mais l'exploiteur de la phase 4 gagne toujours face à ses copies, et la v3 aussi. Aucun bot n'est promu.
 
-En phase 5e, le rejeu des vraies manches compte enfin la majorité, estimée à partir de mains des bots du site compatibles avec le journal. Le classement s'inverse : le bayésien, qui vend ses cartes objectif à 10 $, passe de la deuxième place à la dernière, et la v4 passe en tête. La v4b, entraînée aussi sur des tables où personne ne cote, gagne +27,32 $ par manche face au sniper, contre +13,11 $ pour la v4, et fait jeu égal avec elle ailleurs. Elle échoue toujours au test de minorité, face aux mêmes trois joueurs. Aucun bot n'est promu. Les tableaux complets sont dans les docs de chaque phase.
+En phase 5e, le rejeu des vraies manches compte enfin la majorité, estimée à partir de mains des bots du site compatibles avec le journal. Le classement s'inverse : le bayésien, qui vend ses cartes objectif à 10 $, passe de la deuxième place à la dernière, et la v4 passe en tête. La v4b, entraînée aussi sur des tables où personne ne cote, gagne +27,32 $ par manche face au sniper, contre +13,11 $ pour la v4, et fait jeu égal avec elle ailleurs. Elle échoue toujours au test de minorité, face aux mêmes trois joueurs. Aucun bot n'est promu.
+
+En phase 5f, je trouve pourquoi l'exploiteur gagne face aux copies de mes bots : une copie qui lui achète ses cartes y gagne, mais l'ensemble des copies y perd, et mon entraînement ne jugeait qu'au gain d'une seule copie. La v4c, entraînée en jugeant chaque réglage au gain moyen des copies, laisse à l'exploiteur 3,15 $ par manche à 4 joueurs et 4,65 $ à 5, contre 4,05 et 5,85 $ pour la v4b. Mais elle échoue toujours au test de minorité, face aux mêmes trois joueurs, et aucun bot n'est promu. Les tableaux complets sont dans les docs de chaque phase.
 
 ## Ce que j'en retiens
 
@@ -70,6 +73,8 @@ Sur le site, le moment d'une offre compte autant que son prix : en séparant les
 
 Un score qui oublie une partie du jeu favorise les bots qui l'oublient aussi : sans la majorité, le rejeu plaçait le bayésien devant pendant deux phases. Et les plus proches voisins répondent même face à une table qui ne ressemble à rien de connu : une table de snipers, jamais vue à l'entraînement, coûtait 14 $ par manche à la v4.
 
+Ce que mesure l'entraînement doit être ce que mesure le test : acheter à l'exploiteur rapporte 3,75 $ par carte à la copie qui achète, et coûte à l'ensemble des copies. Changer de critère réduit ce qu'il prend, mais les copies d'un bot adaptatif ne jouent pas toutes le même réglage, et leurs tables ne ressemblent pas à celles de l'entraînement.
+
 ## Limites
 
 Tous les adversaires sont des bots que j'ai écrits. Aucun chiffre de ce projet ne mesure le niveau face à des humains tant que la phase 6 (site réel) n'a pas eu lieu. Le simulateur repose sur des hypothèses : quatre règles que le site ne précise pas, et des temps de réaction inventés. Les tables ne mélangent pas encore les styles.
@@ -80,11 +85,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 117 tests, environ 5 secondes
+python3 -m unittest                      # 118 tests, environ 5 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5e-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5f-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -93,4 +98,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 
 
 ## Statut
 
-En cours : phases 0 à 5e terminées. Prochaine étape : le test de minorité, que l'exploiteur de la phase 4 fait échouer à tous mes bots. La phase 6 (site réel) attend un accord écrit de Jane Street.
+En cours : phases 0 à 5f terminées. Prochaine étape : le test de minorité, que l'exploiteur, la v3 et le marginal font toujours échouer à mes bots. La phase 6 (site réel) attend un accord écrit de Jane Street.

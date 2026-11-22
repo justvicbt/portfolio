@@ -216,6 +216,14 @@ class AdaptiveV4bBot(AdaptiveV4Bot):
     model_file = "adaptation_v4b.json"
 
 
+class AdaptiveV4cBot(AdaptiveV4Bot):
+    """Phase 5f. La v4b, avec en plus des tables « symétriques » : un seul autre joueur face à des copies qui
+    jouent toutes le même réglage, jugé au gain moyen des copies. Les autres tables jugent un réglage au
+    gain d'une seule copie, qui peut gagner en achetant à un joueur qui fait perdre l'ensemble des copies."""
+    name = "adaptatif_v4c"
+    model_file = "adaptation_v4c.json"
+
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10
@@ -251,6 +259,8 @@ def version_bot(name):
         return AdaptiveV3Bot
     if name == HardBot.name:
         return HardBot
+    if name == AdaptiveV4bBot.name:
+        return AdaptiveV4bBot
     version, k = re.fullmatch(r"adaptatif_(v[34])_(\d+)", name).groups()
     cls = {"v3": AdaptiveV3Bot, "v4": AdaptiveV4Bot}[version]
     return type(f"Adaptive{version.upper()}_{k}", (cls,), {"name": name, "model_file": f"adaptation_{version}_{k}.json"})
@@ -274,27 +284,37 @@ def _table_v3(job):
     chaque siège sur les mêmes donnes pour tous les réglages ; la première manche, où les versions
     adaptatives ne se sont pas encore adaptées, ne compte pas dans les gains."""
     i, base, deals, rounds, previous, arms, site = job  # site (phase 5d) : règle du site, tables de la v4,
-    # réglages joués par le lecteur du site ; site == "full" (phase 5e) : les tables pleines de la v4b
-    tables = table_opponents_full if site == "full" else table_opponents_v4 if site else table_opponents_v3
+    # réglages joués par le lecteur du site ; "full" (phase 5e) : les tables pleines de la v4b ;
+    # "symmetric" (phase 5f) : un seul autre joueur, toutes les autres places au réglage mesuré
+    tables = {"full": table_opponents_full, "symmetric": table_opponents_symmetric}.get(
+        site, table_opponents_v4 if site else table_opponents_v3)
     seed, names = tables(i, base, previous)
-    opponents = [version_bot(n) for n in names]
-    n = len(opponents) + 1
+    opponents = [version_bot(n) for n in names if n != SELF]
+    n = len(names) + 1
     gains, samples = {}, []
     for arm in map(tuple, arms):
         profits = {0.0: [], 1.0: []}
         for d in range(deals):
             deal_seed = seed * 1_000_000 + d
             for seat in range(n):
-                bots = opponents[:seat] + [arm_bot(arm, SiteReaderBot if site else MarginalBot)] + opponents[seat:]
+                me = arm_bot(arm, SiteReaderBot if site else MarginalBot)
+                if site == "symmetric":  # seat : la place de l'autre joueur ; on compte toutes les copies
+                    bots, mine = [me] * n, [s for s in range(n) if s != seat]
+                    bots[seat] = opponents[0]
+                else:
+                    bots, mine = opponents[:seat] + [me] + opponents[seat:], [seat]
                 memories = [{} for _ in bots]
                 for r in range(rounds):
                     result = play_round(bots, seed=deal_seed if r == 0 else f"{deal_seed}:{r}", memories=memories,
                                         single_quote=bool(site))
-                    strong = float(hand_strength(result.log["hands"][seat], n) >= STRONG_HAND)
-                    if r > 0 or rounds == 1:
-                        profits[strong].append(result.profits[seat])
+                    for s in mine:
+                        strong = float(hand_strength(result.log["hands"][s], n) >= STRONG_HAND)
+                        if r > 0 or rounds == 1:
+                            profits[strong].append(result.profits[s])
+                    s = mine[0]
+                    strong = float(hand_strength(result.log["hands"][s], n) >= STRONG_HAND)
                     if seat == 0 and len([x for x in samples if x[0] == arm]) < V3_PROFILES:  # donnes variées
-                        samples.append((arm, table_profile(result.events, seat, result.log["duration"], n), strong))
+                        samples.append((arm, table_profile(result.events, s, result.log["duration"], n), strong))
         overall = statistics.fmean(profits[0.0] + profits[1.0])
         gains[arm_key(arm)] = {str(c): statistics.fmean(v) if v else overall for c, v in profits.items()}
         gains[arm_key(arm)]["share_strong"] = len(profits[1.0]) / len(profits[0.0] + profits[1.0])
@@ -372,18 +392,32 @@ def table_opponents_full(i, base, previous=None):
     return base * 1000 + i, [names[i % len(names)]] * (3 + (i // len(names)) % 2)
 
 
-def build_v4b(report, tables, deals, rounds, arms=ARMS_V3):
+SELF = "copie"  # aux tables symétriques : une place jouée par le réglage mesuré
+V4C_SEED = 67
+SYMMETRIC_BOTS = FULL_TABLE_BOTS + [AdaptiveV3Bot.name, AdaptiveV4bBot.name]
+
+
+def table_opponents_symmetric(i, base, previous=None):
+    """Phase 5f, table symétrique numéro i : un seul bot de la ligue (Hard simulé, v3 et v4b compris), et
+    des copies du réglage mesuré à toutes les autres places, à 4 puis à 5 joueurs."""
+    names = SYMMETRIC_BOTS
+    return base * 1000 + i, [names[i % len(names)]] + [SELF] * (2 + (i // len(names)) % 2)
+
+
+def build_v4b(report, tables, deals, rounds, arms=ARMS_V3, kind="full"):
     """La v4b : les tables du rapport d'entraînement de la v4 (`report`, son dernier tour), plus `tables`
-    tables pleines. Écrit modeles/adaptation_v4b.json. Renvoie (toutes les tables mesurées, chemin)."""
+    tables pleines. Écrit modeles/adaptation_v4b.json. Renvoie (toutes les tables mesurées, chemin).
+    kind="symmetric" (phase 5f) : la v4c, le rapport de la v4b plus des tables symétriques."""
     if tables >= 1000:
         raise ValueError("au plus 999 tables : au-delà, les graines se chevauchent")
     base = json.loads(Path(report).read_text())["tables"]
     if set(base[0]["gains"]) != {arm_key(a) for a in arms}:
         raise ValueError(f"--arms doit être celui du rapport : {', '.join(base[0]['gains'])}")
+    seed, bot = {"full": (V4B_SEED, AdaptiveV4bBot), "symmetric": (V4C_SEED, AdaptiveV4cBot)}[kind]
     with Pool() as pool:
-        full = pool.map(_table_v3, [(i, V4B_SEED, deals, rounds, [], arms, "full") for i in range(tables)], chunksize=1)
+        full = pool.map(_table_v3, [(i, seed, deals, rounds, [], arms, kind) for i in range(tables)], chunksize=1)
     measured = base + full
-    path = MODELS_DIR / AdaptiveV4bBot.model_file
+    path = MODELS_DIR / bot.model_file
     path.write_text(json.dumps(Neighbors(v3_rows(measured)).to_dict(), indent=1))
     return measured, path
 
@@ -482,13 +516,14 @@ def main():
     parser.add_argument("--v3", type=int, metavar="TOUR", help="phase 5b : un tour d'entraînement contre ses copies")
     parser.add_argument("--v4", type=int, metavar="TOUR", help="phase 5d : un tour d'entraînement sur le marché du site")
     parser.add_argument("--v4b", metavar="RAPPORT", help="phase 5e : la v4 du rapport, plus --tables tables pleines")
+    parser.add_argument("--v4c", metavar="RAPPORT", help="phase 5f : la v4b du rapport, plus --tables tables symétriques")
     parser.add_argument("--previous", nargs="*", default=[], help="versions précédentes, placées aux tables (avec --v3)")
     parser.add_argument("--rounds", type=int, default=3, help="manches par partie (avec --v3)")
     parser.add_argument("--arms", nargs="+", help="réglages possibles, « spread,marge,spread fin,marge fin » (avec --v3)")
     args = parser.parse_args()
-    if sum(x is not None for x in (args.v3, args.v4, args.v4b)) > 1:
-        parser.error("--v3, --v4 ou --v4b, un seul à la fois")
-    if args.v3 is not None or args.v4 is not None or args.v4b:
+    if sum(x is not None for x in (args.v3, args.v4, args.v4b, args.v4c)) > 1:
+        parser.error("--v3, --v4, --v4b ou --v4c, un seul à la fois")
+    if args.v3 is not None or args.v4 is not None or args.v4b or args.v4c:
         from figgie.evaluate import mean_ci
         arms = [parse_arm(a) for a in args.arms] if args.arms else ARMS_V3
         if DEFAULT_ARM_V3 not in arms:
@@ -501,6 +536,9 @@ def main():
         if args.v4b:  # --previous : seulement pour retrouver les tables façon minorité du rapport
             measured, path = build_v4b(args.v4b, args.tables, args.deals, args.rounds, arms)
             print(f"v4b : {args.v4b}, plus {args.tables} tables pleines, {args.deals} donnes, parties de {args.rounds} manches")
+        elif args.v4c:
+            measured, path = build_v4b(args.v4c, args.tables, args.deals, args.rounds, arms, kind="symmetric")
+            print(f"v4c : {args.v4c}, plus {args.tables} tables symétriques, {args.deals} donnes, parties de {args.rounds} manches")
         else:
             build = build_v4 if args.v4 is not None else build_v3
             iteration = args.v4 if args.v4 is not None else args.v3

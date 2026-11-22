@@ -164,5 +164,23 @@ class TestAdaptiveV4b(unittest.TestCase):
             self.assertIn(tuple(arm), [(8, 1, 3, 1), (12, 3, 4, 1)])
 
 
+class TestAdaptiveV4c(unittest.TestCase):
+    """Phase 5f, seam « la v4c joue pour ses copies » : seul face à ses copies, l'exploiteur leur vend des
+    cartes. Pour la copie qui achète, c'est rentable ; pour l'ensemble des copies, non. Toutes au réglage
+    serré 6,3, elles lui prennent 1,22 $ par manche ; à 8,1 → 3,1, le choix de la v4b, il leur prend 4,47 $.
+
+    Ce seam échoue encore : une copie sur trois repasse à 8,1 → 3,1. Ses plus proches voisins viennent des
+    anciennes tables façon minorité, jugées au gain d'une seule copie (docs/phase5f.fr.md, étape 1). Le test
+    vérifie donc l'échec, et seulement lui : une erreur (modèle absent, par exemple) le fait échouer, et il
+    échouera aussi le jour où toutes les copies joueront 6,3, pour qu'on le remette à l'endroit."""
+
+    def test_copies_facing_the_exploiter_play_tight(self):
+        from figgie.adapt import AdaptiveV4cBot
+        match = play_match([ZOO["exploiteur"]] + [AdaptiveV4cBot] * 3, seed=34_000_000, rounds=4, single_quote=True)
+        arms = [tuple(arm) for memory in match.memories[1:] for arm in memory["arms"][1:]]
+        with self.assertRaises(AssertionError):  # échec connu, voir plus haut
+            self.assertEqual(arms, [(6, 3, 6, 3)] * 9)
+
+
 if __name__ == "__main__":
     unittest.main()
