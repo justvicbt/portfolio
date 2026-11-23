@@ -27,6 +27,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5d. Reading the site's market | Market reading by one-minute windows, with the consensus and trust per player, then a v4 trained on the site's market | [FR](docs/phase5d.fr.md) · [EN](docs/phase5d.en.md) | Done (no bot promoted) |
 | 5e. Two questions from 5d | Estimated majority in the replay of the real rounds, then a v4b also trained on tables where nobody quotes | [FR](docs/phase5e.fr.md) · [EN](docs/phase5e.en.md) | Done (no bot promoted) |
 | 5f. The minority test | Why the exploiter wins against the copies, then a v4c trained on tables where each setting is judged by the mean gain of the copies | [FR](docs/phase5f.fr.md) · [EN](docs/phase5f.en.md) | Done (no bot promoted) |
+| 5g. Copies that play together | Making every copy play the same setting, six new references from a paper and four repositories, staying quiet in the first minute, and a bootstrap check of the intervals | [FR](docs/phase5g.fr.md) · [EN](docs/phase5g.en.md) | Done (no bot promoted) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -49,7 +50,9 @@ In phase 5d, the market reading learns that, on the site, a bid does not mean th
 
 In phase 5e, the replay of the real rounds finally counts the majority, estimated from hands of the site's bots that fit the log. The ranking flips: the Bayesian bot, which sells its goal cards at $10, goes from second place to last, and v4 moves to the top. v4b, also trained on tables where nobody quotes, wins +$27.32 per round against the sniper, against +$13.11 for v4, and is level with it elsewhere. It still fails the minority test, against the same three players. No bot is promoted.
 
-In phase 5f, I find why the exploiter wins against copies of my bots: a copy that buys its cards profits from it, but the copies as a whole lose, and my training judged only by the gain of a single copy. v4c, trained by judging each setting by the mean gain of the copies, leaves the exploiter $3.15 per round with 4 players and $4.65 with 5, against 4.05 and $5.85 for v4b. But it still fails the minority test, against the same three players, and no bot is promoted. Full tables are in each phase's doc.
+In phase 5f, I find why the exploiter wins against copies of my bots: a copy that buys its cards profits from it, but the copies as a whole lose, and my training judged only by the gain of a single copy. v4c, trained by judging each setting by the mean gain of the copies, leaves the exploiter $3.15 per round with 4 players and $4.65 with 5, against 4.05 and $5.85 for v4b. But it still fails the minority test, against the same three players, and no bot is promoted.
+
+In phase 5g, I make every copy play the same setting. It does not reduce what the exploiter takes from them: when they agree, it is on the wrong setting. So I do not write a v4d. I also add six references taken from a paper and four repositories on Figgie: none of them makes money against copies of v4c. Staying quiet in the first minute, an idea from the paper, costs about $8 per round against the marginal bot and takes nothing away from the exploiter. A bootstrap confirms my confidence intervals to within 1.8 %. Describing the table by the average of several rounds takes $0.6 to $0.8 per round away from the exploiter: that is the lead for what comes next. Full tables are in each phase's doc.
 
 ## What I took away
 
@@ -75,6 +78,8 @@ A score that leaves out part of the game favours the bots that leave it out too:
 
 What the training measures must be what the test measures: buying from the exploiter brings $3.75 per card to the copy that buys, and costs the copies as a whole. Changing the criterion reduces what it takes, but the copies of an adaptive bot do not all play the same setting, and their tables do not look like the training's.
 
+Copies that agree do not win for all that: if they recognise the table badly, they all make the same mistake together. The profile of a single round does not tell the exploiter's table apart from about twenty training tables.
+
 ## Limits
 
 All opponents are bots I wrote. No number in this project measures the level against humans until phase 6 (real site) has happened. The simulator rests on assumptions: four rules the site does not specify, and made-up reaction times. Tables do not mix styles yet.
@@ -85,11 +90,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 118 tests, about 5 seconds
+python3 -m unittest                      # 124 tests, about 15 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5f-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5g-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -98,4 +103,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5f done. Next step: the minority test, which the exploiter, v3 and the marginal bot still make my bots fail. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5g done. Next step: the minority test, which the exploiter, v3 and the marginal bot still make my bots fail, by describing the table with the average of several rounds, the lead opened by phase 5g, or with another lever than the choice of setting. Phase 6 (real site) waits for written consent from Jane Street.

@@ -10,15 +10,20 @@ import argparse
 import json
 import statistics
 
-from figgie.adapt import AdaptiveBot, AdaptiveV2Bot, AdaptiveV3Bot, AdaptiveV4Bot, AdaptiveV4bBot, AdaptiveV4cBot
-from figgie.bots import ABNORMAL, ZOO, CorrectedMarginalBot, CountingBot, HardBot, LeagueReaderBot, SiteReaderBot
+from figgie.adapt import AdaptiveBot, AdaptiveV2Bot, AdaptiveV3Bot, AdaptiveV4Bot, AdaptiveV4bBot, AdaptiveV4cBot, \
+    QuietV4cBot, QuietV4cBot30
+from figgie.bots import ABNORMAL, ZOO, CorrectedMarginalBot, CountingBot, HardBot, LeagueReaderBot, SiteReaderBot, ImitatorBot, \
+    FundamentalistBot, FundamentalistBot35, MantisBot, SellerBot, TiltBot
 
 # Le zoo, plus les variantes de mesure, les comportements anormaux, le candidat de la ligue (phase 4)
 # et le bot adaptatif (phase 5).
 CANDIDATES = {**ZOO, CorrectedMarginalBot.name: CorrectedMarginalBot, CountingBot.name: CountingBot, **ABNORMAL,
               LeagueReaderBot.name: LeagueReaderBot, SiteReaderBot.name: SiteReaderBot, AdaptiveBot.name: AdaptiveBot, AdaptiveV2Bot.name: AdaptiveV2Bot, AdaptiveV3Bot.name: AdaptiveV3Bot,
               AdaptiveV4Bot.name: AdaptiveV4Bot, AdaptiveV4bBot.name: AdaptiveV4bBot, AdaptiveV4cBot.name: AdaptiveV4cBot,
-              HardBot.name: HardBot}
+              HardBot.name: HardBot, ImitatorBot.name: ImitatorBot,
+              FundamentalistBot.name: FundamentalistBot, FundamentalistBot35.name: FundamentalistBot35,
+              SellerBot.name: SellerBot, MantisBot.name: MantisBot, TiltBot.name: TiltBot,
+              QuietV4cBot.name: QuietV4cBot, QuietV4cBot30.name: QuietV4cBot30}
 from figgie.engine import play_match, play_round
 
 

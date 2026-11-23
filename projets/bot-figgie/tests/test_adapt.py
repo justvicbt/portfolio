@@ -182,5 +182,25 @@ class TestAdaptiveV4c(unittest.TestCase):
             self.assertEqual(arms, [(6, 3, 6, 3)] * 9)
 
 
+class TestQuietStart(unittest.TestCase):
+    """Phase 5g, seam « la v4c calme se tait la première minute » : d'après DiSilvio, Luo et Ozerov (arXiv
+    2110.00879, tableau 3), un fondamentaliste rapide perd de l'argent en échangeant trop tôt, quand ses valeurs
+    bougent encore. La v4c calme n'envoie aucun ordre pendant les 60 premières secondes, puis joue comme la v4c."""
+
+    def test_no_action_before_60_s_then_the_v4c_choice(self):
+        from figgie.adapt import STRONG_HAND, AdaptiveV4cBot, QuietV4cBot, hand_strength
+        match = play_match([QuietV4cBot, ZOO["marginal"], ZOO["heuristique"], ZOO["sniper"]], seed=5, rounds=3,
+                           single_quote=True)
+        for log in match.logs:
+            seen = [seen_at for _t, seat, _action, _ok, seen_at in log["actions"] if seat == 0]  # quand elle a regardé
+            self.assertTrue(seen)
+            self.assertGreaterEqual(min(seen), 60.0)
+        memory = match.memories[0]
+        for r in range(1, 3):  # mêmes profils et même main : le choix de la v4c
+            v4c = AdaptiveV4cBot()
+            v4c._strong = float(hand_strength(match.logs[r]["hands"][0], 4) >= STRONG_HAND)
+            self.assertEqual(tuple(memory["arms"][r]), tuple(v4c.choose(memory["profiles"][:r])))
+
+
 if __name__ == "__main__":
     unittest.main()

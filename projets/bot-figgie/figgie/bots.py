@@ -9,10 +9,10 @@ import math
 from math import ceil, floor
 from pathlib import Path
 
-from figgie.engine import GOAL_CARD_VALUE, SUITS, TWIN
+from figgie.engine import GOAL_CARD_VALUE, POT, SUITS, TWIN
 from figgie.signals import MarketReading, OpponentModel, SignalModel, TimedSignalModel, window
-from figgie.valuation import (goal_probabilities, initial_hand, known_minimums, known_minimums_from_events,
-                              marginal_values)
+from figgie.valuation import (CONFIGS, _consistent, goal_probabilities, initial_hand, known_minimums,
+                              known_minimums_from_events, marginal_values)
 
 
 class RandomBot:
@@ -327,6 +327,177 @@ class ReaderExploiterBot(MarginalBot):
     """Phase 4, trouvé par figgie.exploit : le meilleur adversaire du lecteur à 5 joueurs."""
     name = "exploiteur_lecteur"
     reaction, idle, pace, spread, edge = 0.2, 0.8, 2.0, 4, 3
+
+
+class ImitatorBot:
+    """Phase 5g : le « bottom feeder » de DiSilvio, Luo et Ozerov (arXiv 2110.00879), réécrit d'après l'article.
+    Il ne calcule aucune valeur : pour une couleur, il prend la moyenne des derniers prix d'achat et des derniers
+    prix de vente de ses proies (tous les autres joueurs), puis achète à un prix tiré entre 1 $ et cette valeur,
+    ou vend entre cette valeur et le double. Un prix qui atteint la meilleure cotation d'en face la prend.
+    L'article exige 4 prix de chaque côté ; je prends les 4 derniers dès qu'il y en a un de chaque côté,
+    sinon il n'agit presque jamais sur nos tables. Il regarde toutes les 2 s en moyenne, au hasard une couleur et un côté."""
+    name = "imitateur"
+    pace, depth = 2.0, 4
+
+    def __init__(self):
+        self.next_time = 0.0
+
+    def value(self, view, suit, side):
+        prey = {}
+        for _t, player, kind, s, price in view.events:
+            if s == suit and player != view.seat and kind != "cancel":
+                buys, sells = prey.setdefault(player, ([], []))
+                (buys if kind in ("bid", "bought") else sells).append(price)
+        means = [(sum(b[-self.depth:]) / len(b[-self.depth:]) + sum(a[-self.depth:]) / len(a[-self.depth:])) / 2
+                 for b, a in prey.values() if b and a]
+        return max(1, round(sum(means) / len(means))) if means else None
+
+    def act(self, view, rng):
+        if view.time < self.next_time:
+            return None
+        self.next_time = view.time + rng.expovariate(1 / self.pace)
+        side, suit = rng.choice(("bid", "ask")), rng.choice(SUITS)
+        if side == "ask" and not view.hand[suit]:
+            return None
+        value = self.value(view, suit, side)
+        if value is None:
+            return None
+        price = rng.randint(1, value) if side == "bid" else rng.randint(value, 2 * value)
+        other, mine = view.best(suit, "ask" if side == "bid" else "bid"), view.mine(suit, "ask" if side == "bid" else "bid")
+        if other and (price >= other[0] if side == "bid" else price <= other[0]):
+            return ("buy" if side == "bid" else "sell", suit, other[0])
+        if mine is not None and (price >= mine if side == "bid" else price <= mine):
+            return None  # croiserait ma propre cotation : le moteur refuse
+        return (side, suit, price)
+
+
+class FundamentalistBot(ImitatorBot):
+    """Phase 5g : le « fundamentalist » de DiSilvio, Luo et Ozerov (arXiv 2110.00879, section 2.3), réécrit
+    d'après l'article. Même façon de coter que l'imitateur, mais sa valeur vient des cartes : chacun des 12 paquets
+    pèse le nombre de façons d'y trouver ma main et les cartes vues dans les échanges, et un paquet dont la couleur
+    est l'objectif donne 10 $ plus une part géométrique de la majorité, p (1 - r) r^h / (1 - r^x), où h est mon
+    nombre de cartes, x la majorité sûre (5 ou 6) et p le reste du pot. Vendre vaut la même chose avec h - 1.
+    L'article ne fixe pas r (r > 1) : 1,7 comme FiggieServer, et la variante 3,5 comme le dépôt de Cornell.
+    shortcut: pas de retrait des cotations dépassées (la « lazy deletion » de l'article) ; avec la règle du site,
+    sa valeur ne bouge qu'après un échange, qui vide déjà le carnet."""
+    name = "fondamentaliste"
+    r = 1.7
+
+    def value(self, view, suit, side):
+        _mins, _known, weights = _consistent(view.hand, view.seat, known_minimums(view.trades, view.n_players), None, None)
+        h = view.hand[suit] - (side == "ask")
+        total, value = 0.0, 0.0
+        for (twelve, _eight, sizes), w in zip(CONFIGS, weights):
+            total += w
+            if TWIN[twelve] == suit:
+                x, p = (5 if sizes[suit] == 8 else 6), POT - GOAL_CARD_VALUE * sizes[suit]
+                value += w * (GOAL_CARD_VALUE + (p * (1 - self.r) * self.r ** h / (1 - self.r ** x) if h < x else 0))
+        return max(1, round(value / total))
+
+
+class FundamentalistBot35(FundamentalistBot):
+    name, r = "fondamentaliste_35", 3.5
+
+
+class FiggieAutoBot:
+    """Phase 5g : base de trois stratégies décrites dans 0xDub/figgie-auto (pas de licence : réécrites d'après leur
+    description, sans reprendre le code). Il regarde le marché toutes les 2 à 4 s et fait une des actions qu'il
+    voudrait faire, tirée au hasard (figgie-auto les envoie toutes d'un coup). Comme là-bas, un carnet vide se lit
+    comme une offre d'achat à 0 $ et une offre de vente à 99 $, et il ne cote que pour battre l'offre affichée."""
+
+    def __init__(self):
+        self.next_time = 0.0
+
+    def act(self, view, rng):
+        if view.time < self.next_time:
+            return None
+        self.next_time = view.time + rng.uniform(2.0, 4.0)
+        wishes = [a for a in self.wishes(view, view.duration - view.time) if a]
+        return rng.choice(wishes) if wishes else None
+
+    @staticmethod
+    def shown(view, suit, side):
+        """(prix affiché, est-ce le mien ?)"""
+        other, mine = view.best(suit, side), view.mine(suit, side)
+        prices = [(q, False) for q in [other and other[0]] if q] + ([(mine, True)] if mine is not None else [])
+        if not prices:
+            return (0 if side == "bid" else 99), False
+        return (max if side == "bid" else min)(prices, key=lambda q: q[0])
+
+    def quote(self, view, suit, side, price):
+        """Ma cotation si elle bat l'offre affichée ; prend l'offre d'en face si elle la croise."""
+        shown, mine = self.shown(view, suit, side)
+        if mine or price < 1 or (price <= shown if side == "bid" else price >= shown):
+            return None
+        if side == "ask" and not view.hand[suit]:
+            return None
+        other = view.best(suit, "ask" if side == "bid" else "bid")
+        if other and (price >= other[0] if side == "bid" else price <= other[0]):
+            return ("buy" if side == "bid" else "sell", suit, other[0])
+        return (side, suit, price)
+
+
+class SellerBot(FiggieAutoBot):
+    """« Seller » : il ne fait que vendre, à un prix plancher qui baisse avec le temps, et prend les offres d'achat
+    assez hautes. (prix pris, prix proposé) : (6, 8) la première minute, (5, 6), (4, 6), puis (3, 4) la dernière."""
+    name = "vendeur"
+
+    def wishes(self, view, left):
+        take, limit = (6, 8) if left >= 180 else (5, 6) if left > 120 else (4, 6) if left > 60 else (3, 4)
+        for suit in SUITS:
+            if view.hand[suit]:
+                bid = view.best(suit, "bid")
+                if bid and bid[0] >= take:
+                    yield ("sell", suit, bid[0])
+                yield self.quote(view, suit, "ask", limit)
+
+
+class MantisBot(FiggieAutoBot):
+    """« PrayingMantis » : pendant 3 minutes, il vend chaque couleur 1 $ sous l'offre de vente affichée si elle vaut
+    7 $ ou plus ; la dernière minute, il achète à 9 $ au plus la couleur dont le dernier échange a été le plus cher.
+    Comme dans figgie-auto : sans aucun échange, toutes les couleurs valent 0 et c'est le pique qui est choisi, et à
+    60 s exactement de la fin, les deux fenêtres se touchent."""
+    name = "mante"
+
+    def wishes(self, view, left):
+        if left >= 60:
+            for suit in SUITS:
+                ask, _mine = self.shown(view, suit, "ask")
+                if view.hand[suit] and ask >= 7:
+                    yield self.quote(view, suit, "ask", ask - 1)
+        if left <= 60:
+            last = {}
+            for _buyer, _seller, suit, price in view.trades:
+                last[suit] = price
+            dearest = max(SUITS, key=lambda s: last.get(s, 0))  # à égalité, la première couleur
+            ask = view.best(dearest, "ask")
+            if ask and ask[0] <= 9:
+                yield ("buy", dearest, ask[0])
+
+
+class TiltBot(FiggieAutoBot):
+    """« TiltInventory » : il parie sur la couleur dont il avait le plus de cartes au départ. Il l'achète (il prend une
+    offre de vente à 5 $ au plus, sinon il propose 1 $ de plus que l'offre d'achat affichée, jusqu'à 8 $), et vend
+    les autres 1 $ sous l'offre de vente affichée tant qu'elle dépasse 4 $, puis à 3 $ les 30 dernières secondes."""
+    name = "parieur"
+
+    def wishes(self, view, left):
+        start = initial_hand(view.hand, view.trades, view.seat)
+        bet = max(SUITS, key=lambda s: start[s])  # à égalité, la première couleur
+        for suit in SUITS:
+            if suit != bet and view.hand[suit]:
+                ask, _mine = self.shown(view, suit, "ask")
+                if left > 30:
+                    if ask > 4:
+                        yield self.quote(view, suit, "ask", ask - 1)
+                else:
+                    yield self.quote(view, suit, "ask", 3)
+        ask = view.best(bet, "ask")
+        if ask and ask[0] <= 5:
+            yield ("buy", bet, ask[0])
+        bid, _mine = self.shown(view, bet, "bid")
+        if bid < 8:
+            yield self.quote(view, bet, "bid", bid + 1)
 
 
 class CorrectedMarginalBot(MarginalBot):

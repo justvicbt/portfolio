@@ -1,0 +1,61 @@
+{
+  "args": {
+    "candidates": [
+      "adaptatif_v4b"
+    ],
+    "deals": 300,
+    "table_deals": 300,
+    "seed": 1,
+    "rounds": 10,
+    "references": [
+      "imitateur"
+    ],
+    "no_tables": true,
+    "opponents": [
+      "marginal"
+    ],
+    "site": true,
+    "out": "resultats/phase5g/tournoi_v4b.json"
+  },
+  "results": {
+    "adaptatif_v4b": {
+      "4": {
+        "zoo": {
+          "marginal": [
+            8.46425,
+            7.915054014412324,
+            9.013445985587676
+          ]
+        },
+        "minority": {
+          "imitateur": [
+            -27.06738888888889,
+            -27.986299050438465,
+            -26.148478727339313
+          ]
+        },
+        "gate": true,
+        "gate_without_minority": true
+      },
+      "5": {
+        "zoo": {
+          "marginal": [
+            4.940688888888889,
+            4.479113647214758,
+            5.402264130563021
+          ]
+        },
+        "minority": {
+          "imitateur": [
+            -24.03317777777778,
+            -25.065233213917704,
+            -23.001122341637856
+          ]
+        },
+        "gate": true,
+        "gate_without_minority": true
+      },
+      "tables": {}
+    }
+  }
+}

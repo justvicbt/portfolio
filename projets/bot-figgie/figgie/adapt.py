@@ -224,6 +224,22 @@ class AdaptiveV4cBot(AdaptiveV4Bot):
     model_file = "adaptation_v4c.json"
 
 
+
+class QuietV4cBot(AdaptiveV4cBot):
+    """Phase 5g. La v4c, qui n'envoie aucun ordre pendant les `quiet` premières secondes de chaque manche : d'après
+    DiSilvio, Luo et Ozerov (arXiv 2110.00879, tableau 3), échanger tôt coûte, quand les valeurs bougent encore.
+    Elle lit quand même le marché : son choix de réglage et sa lecture du site ne changent pas."""
+    name = "v4c_calme_60"
+    quiet = 60.0
+
+    def act(self, view, rng):
+        action = super().act(view, rng)
+        return None if view.time < self.quiet else action
+
+
+class QuietV4cBot30(QuietV4cBot):
+    name, quiet = "v4c_calme_30", 30.0
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10

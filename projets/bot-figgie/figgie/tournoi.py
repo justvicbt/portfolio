@@ -12,6 +12,8 @@ Phase 5c : --site joue avec la règle du site (une offre doit battre celle qui e
 """
 import argparse
 import json
+import sys
+import time
 from multiprocessing import Pool
 
 from figgie.bots import ZOO
@@ -76,8 +78,13 @@ def main():
             scheduled.add((names, max(args.rounds, table_rounds)))
             add((cand, 4, "table", table), "table", cand, table, 4, args.table_deals)
 
+    parts, start = [], time.time()
     with Pool() as pool:
-        parts = pool.map(_run, jobs, chunksize=1)
+        for done, part in enumerate(pool.imap(_run, jobs), 1):  # dans l'ordre des tâches, avancement au fil de l'eau
+            parts.append(part)
+            elapsed = time.time() - start
+            print(f"{done}/{len(jobs)} morceaux, {elapsed / 60:.0f} min écoulées, "
+                  f"fin dans ~{elapsed / done * (len(jobs) - done) / 60:.0f} min", file=sys.stderr, flush=True)
     values = {}
     for key, part in zip(keys, parts):
         values.setdefault(key, []).extend(part)  # morceaux dans l'ordre des donnes : même résultat qu'en un bloc
