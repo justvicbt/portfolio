@@ -335,7 +335,8 @@ class ImitatorBot:
     prix de vente de ses proies (tous les autres joueurs), puis achète à un prix tiré entre 1 $ et cette valeur,
     ou vend entre cette valeur et le double. Un prix qui atteint la meilleure cotation d'en face la prend.
     L'article exige 4 prix de chaque côté ; je prends les 4 derniers dès qu'il y en a un de chaque côté,
-    sinon il n'agit presque jamais sur nos tables. Il regarde toutes les 2 s en moyenne, au hasard une couleur et un côté."""
+    sinon il n'agit presque jamais sur nos tables. Il regarde toutes les 2 s en moyenne, au hasard une couleur et un côté.
+    Phase 5h, règle du site : si son prix ne bat pas l'offre affichée, il la bat d'1 $ tant qu'il reste dans sa valeur."""
     name = "imitateur"
     pace, depth = 2.0, 4
 
@@ -363,6 +364,14 @@ class ImitatorBot:
         if value is None:
             return None
         price = rng.randint(1, value) if side == "bid" else rng.randint(value, 2 * value)
+        if view.single_quote:  # règle du site : l'offre doit battre celle qui est affichée, la mienne comprise
+            best, mine = view.best(suit, side), view.mine(suit, side)
+            shown = [p for p in (best and best[0], mine) if p is not None]
+            if shown:
+                top = max(shown) if side == "bid" else min(shown)
+                price = max(price, top + 1) if side == "bid" else min(price, top - 1)
+                if (price > value) if side == "bid" else (price < value):
+                    return None  # la battre sortirait de ma valeur
         other, mine = view.best(suit, "ask" if side == "bid" else "bid"), view.mine(suit, "ask" if side == "bid" else "bid")
         if other and (price >= other[0] if side == "bid" else price <= other[0]):
             return ("buy" if side == "bid" else "sell", suit, other[0])

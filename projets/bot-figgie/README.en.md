@@ -28,6 +28,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5e. Two questions from 5d | Estimated majority in the replay of the real rounds, then a v4b also trained on tables where nobody quotes | [FR](docs/phase5e.fr.md) · [EN](docs/phase5e.en.md) | Done (no bot promoted) |
 | 5f. The minority test | Why the exploiter wins against the copies, then a v4c trained on tables where each setting is judged by the mean gain of the copies | [FR](docs/phase5f.fr.md) · [EN](docs/phase5f.en.md) | Done (no bot promoted) |
 | 5g. Copies that play together | Making every copy play the same setting, six new references from a paper and four repositories, staying quiet in the first minute, and a bootstrap check of the intervals | [FR](docs/phase5g.fr.md) · [EN](docs/phase5g.en.md) | Done (no bot promoted) |
+| 5h. Describing the table over several rounds | A v4d that averages the profiles of past rounds before asking its neighbours, and references that beat the displayed offer | [FR](docs/phase5h.fr.md) · [EN](docs/phase5h.en.md) | Done (no bot promoted) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -52,7 +53,7 @@ In phase 5e, the replay of the real rounds finally counts the majority, estimate
 
 In phase 5f, I find why the exploiter wins against copies of my bots: a copy that buys its cards profits from it, but the copies as a whole lose, and my training judged only by the gain of a single copy. v4c, trained by judging each setting by the mean gain of the copies, leaves the exploiter $3.15 per round with 4 players and $4.65 with 5, against 4.05 and $5.85 for v4b. But it still fails the minority test, against the same three players, and no bot is promoted.
 
-In phase 5g, I make every copy play the same setting. It does not reduce what the exploiter takes from them: when they agree, it is on the wrong setting. So I do not write a v4d. I also add six references taken from a paper and four repositories on Figgie: none of them makes money against copies of v4c. Staying quiet in the first minute, an idea from the paper, costs about $8 per round against the marginal bot and takes nothing away from the exploiter. A bootstrap confirms my confidence intervals to within 1.8 %. Describing the table by the average of several rounds takes $0.6 to $0.8 per round away from the exploiter: that is the lead for what comes next. Full tables are in each phase's doc.
+In phase 5g, I make every copy play the same setting. It does not reduce what the exploiter takes from them: when they agree, it is on the wrong setting. So I do not write a v4d. I also add six references taken from a paper and four repositories on Figgie: none of them makes money against copies of v4c. Staying quiet in the first minute, an idea from the paper, costs about $8 per round against the marginal bot and takes nothing away from the exploiter. A bootstrap confirms my confidence intervals to within 1.8 %. Describing the table by the average of several rounds takes $0.6 to $0.8 per round away from the exploiter: that is the lead for what comes next. In phase 5h, I turn it into a v4d. In the tournament, the exploiter takes a little less from it than from the v4c (+$2.77 per round with 4 players against +$3.15), but it still fails the minority test and wins a little less against the marginal bot: it is not promoted. Full tables are in each phase's doc.
 
 ## What I took away
 
@@ -90,11 +91,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 124 tests, about 15 seconds
+python3 -m unittest                      # 128 tests, about 15 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5g-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5h-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -103,4 +104,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5g done. Next step: the minority test, which the exploiter, v3 and the marginal bot still make my bots fail, by describing the table with the average of several rounds, the lead opened by phase 5g, or with another lever than the choice of setting. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5h done. Next step: the minority test, which the exploiter and v3 still make my bots fail, with another lever than the choice of setting, for example how the bot sells its goal-suit cards. Phase 6 (real site) waits for written consent from Jane Street.

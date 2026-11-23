@@ -28,6 +28,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 5e. Deux questions de la 5d | Majorité estimée dans le rejeu des vraies manches, puis une v4b entraînée aussi sur des tables où personne ne cote | [FR](docs/phase5e.fr.md) · [EN](docs/phase5e.en.md) | Terminée (aucun bot promu) |
 | 5f. Le test de minorité | Pourquoi l'exploiteur gagne face aux copies, puis une v4c entraînée sur des tables où chaque réglage est jugé au gain moyen des copies | [FR](docs/phase5f.fr.md) · [EN](docs/phase5f.en.md) | Terminée (aucun bot promu) |
 | 5g. Des copies qui jouent ensemble | Faire jouer toutes les copies au même réglage, six nouvelles références tirées d'un article et de quatre dépôts, se taire la première minute, et un contrôle des intervalles par bootstrap | [FR](docs/phase5g.fr.md) · [EN](docs/phase5g.en.md) | Terminée (aucun bot promu) |
+| 5h. Décrire la table sur plusieurs manches | Une v4d qui fait la moyenne des profils des manches passées avant de consulter ses voisins, et des références qui battent l'offre affichée | [FR](docs/phase5h.fr.md) · [EN](docs/phase5h.en.md) | Terminée (aucun bot promu) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -52,7 +53,7 @@ En phase 5e, le rejeu des vraies manches compte enfin la majorité, estimée à 
 
 En phase 5f, je trouve pourquoi l'exploiteur gagne face aux copies de mes bots : une copie qui lui achète ses cartes y gagne, mais l'ensemble des copies y perd, et mon entraînement ne jugeait qu'au gain d'une seule copie. La v4c, entraînée en jugeant chaque réglage au gain moyen des copies, laisse à l'exploiteur 3,15 $ par manche à 4 joueurs et 4,65 $ à 5, contre 4,05 et 5,85 $ pour la v4b. Mais elle échoue toujours au test de minorité, face aux mêmes trois joueurs, et aucun bot n'est promu.
 
-En phase 5g, je fais jouer toutes les copies au même réglage. Ça ne réduit pas ce que l'exploiteur leur prend : quand elles s'accordent, c'est sur le mauvais réglage. Je n'écris donc pas de v4d. J'ajoute aussi six références tirées d'un article et de quatre dépôts sur Figgie : aucune ne gagne d'argent face aux copies de la v4c. Me taire la première minute, une idée de l'article, coûte environ 8 $ par manche contre le marginal sans rien retirer à l'exploiteur. Un bootstrap confirme mes intervalles de confiance à 1,8 % près. Décrire la table par la moyenne de plusieurs manches retire 0,6 à 0,8 $ par manche à l'exploiteur : c'est la piste pour la suite. Les tableaux complets sont dans les docs de chaque phase.
+En phase 5g, je fais jouer toutes les copies au même réglage. Ça ne réduit pas ce que l'exploiteur leur prend : quand elles s'accordent, c'est sur le mauvais réglage. Je n'écris donc pas de v4d. J'ajoute aussi six références tirées d'un article et de quatre dépôts sur Figgie : aucune ne gagne d'argent face aux copies de la v4c. Me taire la première minute, une idée de l'article, coûte environ 8 $ par manche contre le marginal sans rien retirer à l'exploiteur. Un bootstrap confirme mes intervalles de confiance à 1,8 % près. Décrire la table par la moyenne de plusieurs manches retire 0,6 à 0,8 $ par manche à l'exploiteur : c'est la piste pour la suite. En phase 5h, j'en fais une v4d. Au tournoi, l'exploiteur lui prend un peu moins qu'à la v4c (+2,77 $ par manche à 4 joueurs contre +3,15 $), mais elle échoue toujours au test de minorité et gagne un peu moins contre le marginal : elle n'est pas promue. Les tableaux complets sont dans les docs de chaque phase.
 
 ## Ce que j'en retiens
 
@@ -90,11 +91,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 124 tests, environ 15 secondes
+python3 -m unittest                      # 128 tests, environ 15 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5g-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5h-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -103,4 +104,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 
 
 ## Statut
 
-En cours : phases 0 à 5g terminées. Prochaine étape : le test de minorité, que l'exploiteur, la v3 et le marginal font toujours échouer à mes bots, en décrivant la table par la moyenne de plusieurs manches, la piste ouverte par la phase 5g, ou avec un autre levier que le choix du réglage. La phase 6 (site réel) attend un accord écrit de Jane Street.
+En cours : phases 0 à 5h terminées. Prochaine étape : le test de minorité, que l'exploiteur et la v3 font toujours échouer à mes bots, avec un autre levier que le choix du réglage, par exemple la façon de vendre les cartes objectif. La phase 6 (site réel) attend un accord écrit de Jane Street.

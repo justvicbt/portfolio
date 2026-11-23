@@ -1,0 +1,83 @@
+{
+  "args": {
+    "candidates": [
+      "adaptatif_v4c"
+    ],
+    "deals": 300,
+    "table_deals": 300,
+    "seed": 1,
+    "rounds": 10,
+    "references": [
+      "imitateur",
+      "fondamentaliste",
+      "fondamentaliste_35"
+    ],
+    "no_tables": true,
+    "opponents": [
+      "inactif"
+    ],
+    "site": true,
+    "out": "resultats/phase5h/tournoi_v4c_references.json"
+  },
+  "results": {
+    "adaptatif_v4c": {
+      "4": {
+        "zoo": {
+          "inactif": [
+            -6.498042844545655e-16,
+            -7.56635966049986e-16,
+            -5.4297260285914505e-16
+          ]
+        },
+        "minority": {
+          "imitateur": [
+            -25.56038888888889,
+            -26.591485105912184,
+            -24.529292671865598
+          ],
+          "fondamentaliste": [
+            -9.586666666666666,
+            -10.295831576774834,
+            -8.877501756558498
+          ],
+          "fondamentaliste_35": [
+            -13.732972222222221,
+            -14.436758850605525,
+            -13.029185593838918
+          ]
+        },
+        "gate": null,
+        "gate_without_minority": null
+      },
+      "5": {
+        "zoo": {
+          "inactif": [
+            -2.3632947450854166e-16,
+            -2.9329536344162747e-16,
+            -1.7936358557545588e-16
+          ]
+        },
+        "minority": {
+          "imitateur": [
+            -20.373755555555558,
+            -21.45597930663255,
+            -19.291531804478566
+          ],
+          "fondamentaliste": [
+            -5.4679111111111105,
+            -6.123789090633622,
+            -4.812033131588599
+          ],
+          "fondamentaliste_35": [
+            -10.894066666666665,
+            -11.422691714448993,
+            -10.365441618884338
+          ]
+        },
+        "gate": null,
+        "gate_without_minority": null
+      },
+      "tables": {}
+    }
+  }
+}

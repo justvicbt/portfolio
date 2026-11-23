@@ -225,6 +225,16 @@ class AdaptiveV4cBot(AdaptiveV4Bot):
 
 
 
+class AdaptiveV4dBot(AdaptiveV4cBot):
+    """Phase 5h. La v4c, qui fait d'abord la moyenne des profils des manches passées, puis interroge ses voisins une
+    seule fois. La v4c les interroge manche par manche : le profil d'une seule manche ne reconnaît pas la table de
+    l'exploiteur (phase 5g). Même modèle que la v4c, sans réentraînement."""
+    name = "adaptatif_v4d"
+
+    def choose(self, profiles):
+        return parse_arm(self.neighbors().best_many([{**mean_profile(profiles), "main": self._strong}]))
+
+
 class QuietV4cBot(AdaptiveV4cBot):
     """Phase 5g. La v4c, qui n'envoie aucun ordre pendant les `quiet` premières secondes de chaque manche : d'après
     DiSilvio, Luo et Ozerov (arXiv 2110.00879, tableau 3), échanger tôt coûte, quand les valeurs bougent encore.

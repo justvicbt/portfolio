@@ -202,5 +202,19 @@ class TestQuietStart(unittest.TestCase):
             self.assertEqual(tuple(memory["arms"][r]), tuple(v4c.choose(memory["profiles"][:r])))
 
 
+class TestMeanProfile(unittest.TestCase):
+    """Phase 5h, seam « après une seule manche, la v4d choisit comme la v4c » : la moyenne d'un seul profil est ce
+    profil, donc interroger les voisins une fois avec la moyenne revient à les interroger avec la seule manche vue."""
+
+    def test_after_one_round_the_v4c_choice(self):
+        from figgie.adapt import STRONG_HAND, AdaptiveV4cBot, AdaptiveV4dBot, hand_strength
+        for seed in (5, 6, 7):
+            match = play_match([AdaptiveV4dBot, ZOO["exploiteur"], ZOO["marginal"], ZOO["sniper"]], seed=seed, rounds=2,
+                               single_quote=True)
+            memory, v4c = match.memories[0], AdaptiveV4cBot()
+            v4c._strong = float(hand_strength(match.logs[1]["hands"][0], 4) >= STRONG_HAND)
+            self.assertEqual(tuple(memory["arms"][1]), tuple(v4c.choose(memory["profiles"][:1])))
+
+
 if __name__ == "__main__":
     unittest.main()
