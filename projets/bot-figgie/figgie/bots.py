@@ -663,6 +663,21 @@ class HardBot:
                 options.append(("ask", s, target))
         return rng.choice(options) if options else None
 
+class HardBotV2(HardBot):
+    """Phase 5j : le Hard simulé, réglé aussi sur la part des offres de vente que les bots du site prennent
+    (figgie.calibrate --lift, resultats/phase5j/calibration_hard_v2.md). Sur les vraies manches, un bot Hard ne prend
+    presque jamais l'offre de vente d'un autre Hard à 7 ou 8 $ dans une couleur hors objectif (1,5 %), quand celui de
+    la phase 5c en prenait 10 %. En échange, il échange un peu moins avec les autres Hard que les vrais (5,3 échanges
+    par paire et par manche, contre 9,4)."""
+    name = "hard_simule_v2"
+    base, goal_worth = 1, 16
+    margin, margin_power = 3, 2
+    pace = 0.6
+    noise = 1
+    open_ask = 25
+    read = 0.2
+
+
 class LeagueReaderBot(ReaderBot):
     """Phase 4. Le lecteur, avec un modèle de signaux réappris sur des parties de la ligue, où jouent
     aussi des lecteurs, des exploiteurs et des menteurs (figgie.learn --league), et un réglage choisi

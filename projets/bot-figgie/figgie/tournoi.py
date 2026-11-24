@@ -4,7 +4,8 @@ Trois sortes de tâches, toutes en donnes dupliquées sur les donnes des tournoi
 - un candidat face à des copies d'un adversaire du zoo ;
 - le test de minorité : une référence seule face à des copies du candidat ;
 - un candidat face à une table mixte précise (comportements anormaux), sur une ou plusieurs manches ;
-- phase 5i, --mixed : une référence et le candidat à la même table, avec des Hard simulés ; on garde l'écart
+- phase 5i, --mixed : une référence et le candidat à la même table, avec des Hard simulés (--filler, le Hard recalé de
+  la phase 5j par défaut ; hard_simule pour refaire la phase 5i) ; on garde l'écart
   référence - candidat, lu dans les mêmes parties (evaluate.mixed_gap). Il remplace le test de minorité dans la
   règle d'entrée ; ajouter --references sans nom pour ne pas calculer aussi le test de minorité.
 
@@ -29,11 +30,10 @@ TABLES = {  # comportements anormaux, à 4 joueurs : (adversaires, manches par p
     "menteurs, 10 manches": (("menteur", "menteur", "heuristique"), 10),
 }
 CHUNK = 25  # donnes par tâche
-MIXED_FILLER = "hard_simule"  # les bots du site, simulés
 
 
 def _run(job):
-    kind, cand, other, players, first, deals, seed, rounds, site = job
+    kind, cand, other, players, first, deals, seed, rounds, site, filler = job
     if kind == "zoo":
         return duplicate_match(CANDIDATES[cand], CANDIDATES[other], deals, players, seed=seed, first_deal=first,
                                rounds=rounds, single_quote=site)
@@ -41,7 +41,7 @@ def _run(job):
         return duplicate_match(CANDIDATES[other], CANDIDATES[cand], deals, players, seed=seed, first_deal=first,
                                rounds=rounds, single_quote=site)
     if kind == "mixed":  # écart référence - candidat à la même table, avec des Hard simulés
-        return mixed_gap(CANDIDATES[other], CANDIDATES[cand], CANDIDATES[MIXED_FILLER], deals, players, seed=seed,
+        return mixed_gap(CANDIDATES[other], CANDIDATES[cand], CANDIDATES[filler], deals, players, seed=seed,
                          first_deal=first, rounds=rounds, single_quote=site)
     names, table_rounds = TABLES[other]
     return duplicate_match(CANDIDATES[cand], [CANDIDATES[n] for n in names], deals, seed=seed,
@@ -61,13 +61,15 @@ def main():
                         help="références de la table mixte (avec des Hard simulés) : remplace le test de minorité dans la règle "
                              "d'entrée, qui reste calculé à part sauf avec --references sans nom")
     parser.add_argument("--no-tables", action="store_true", help="sauter les tables anormales")
+    parser.add_argument("--filler", default="hard_simule_v2", choices=sorted(CANDIDATES),
+                        help="remplissant de la table mixte (phase 5i : hard_simule ; phase 5j : hard_simule_v2)")
     parser.add_argument("--opponents", nargs="*", default=list(ZOO), choices=sorted(CANDIDATES),
                         help="adversaires du tournoi (le zoo par défaut)")
     parser.add_argument("--site", action="store_true", help="règle du site : une offre doit battre celle qui est affichée")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     for cand in args.candidates if args.mixed else []:
-        if CANDIDATES[cand] is CANDIDATES[MIXED_FILLER]:
+        if CANDIDATES[cand] is CANDIDATES[args.filler]:
             parser.error(f"{cand} est le remplissant de la table mixte : la table ne serait plus mixte")
         if all(CANDIDATES[ref] is CANDIDATES[cand] for ref in args.mixed):
             parser.error(f"aucune référence de --mixed autre que {cand} : il serait admis sans test d'exploitation")
@@ -77,7 +79,7 @@ def main():
         for first in range(0, deals, CHUNK):
             keys.append(key)
             jobs.append((kind, cand, other, players, first, min(CHUNK, deals - first), args.seed, args.rounds,
-                         args.site))
+                         args.site, args.filler))
     for cand in args.candidates:
         for p in (4, 5):
             for opp in args.opponents:

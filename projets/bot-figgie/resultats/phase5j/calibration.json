@@ -1,0 +1,154 @@
+{
+  "args": {
+    "candidates": [
+      "marginal",
+      "adaptatif_v4c",
+      "v4c_calme_60"
+    ],
+    "deals": 50,
+    "table_deals": 300,
+    "seed": 7,
+    "rounds": 10,
+    "references": [],
+    "mixed": [
+      "exploiteur",
+      "bayesien"
+    ],
+    "no_tables": true,
+    "filler": "hard_simule_v2",
+    "opponents": [],
+    "site": true,
+    "out": "resultats/phase5j/calibration.json"
+  },
+  "results": {
+    "marginal": {
+      "4": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            1.3365,
+            -1.3466432467744078,
+            4.019643246774407
+          ],
+          "bayesien": [
+            1.46175,
+            -1.5043299434438715,
+            4.4278299434438715
+          ]
+        },
+        "rule": "table mixte",
+        "gate": null,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "5": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            1.2732,
+            -0.36749964459122664,
+            2.913899644591227
+          ],
+          "bayesien": [
+            -4.973733333333334,
+            -7.6599947530082275,
+            -2.2874719136584396
+          ]
+        },
+        "rule": "table mixte",
+        "gate": null,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "tables": {}
+    },
+    "adaptatif_v4c": {
+      "4": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            -6.650499999999999,
+            -9.603851439440358,
+            -3.69714856055964
+          ],
+          "bayesien": [
+            -1.9208333333333334,
+            -5.259901628698241,
+            1.4182349620315744
+          ]
+        },
+        "rule": "table mixte",
+        "gate": null,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "5": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            -5.023066666666667,
+            -7.756954381783975,
+            -2.289178951549359
+          ],
+          "bayesien": [
+            -4.1786666666666665,
+            -7.4342665072149146,
+            -0.9230668261184185
+          ]
+        },
+        "rule": "table mixte",
+        "gate": null,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "tables": {}
+    },
+    "v4c_calme_60": {
+      "4": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            -13.968083333333334,
+            -16.35978136446101,
+            -11.576385302205658
+          ],
+          "bayesien": [
+            -16.5725,
+            -19.60953065180449,
+            -13.535469348195512
+          ]
+        },
+        "rule": "table mixte",
+        "gate": null,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "5": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            -13.952733333333333,
+            -16.157693601143265,
+            -11.7477730655234
+          ],
+          "bayesien": [
+            -19.5872,
+            -22.450350869609213,
+            -16.724049130390785
+          ]
+        },
+        "rule": "table mixte",
+        "gate": null,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "tables": {}
+    }
+  }
+}

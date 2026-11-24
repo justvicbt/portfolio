@@ -2,7 +2,7 @@
 (journaux de Rasmus Suonio) et sur nos manches simulées."""
 import unittest
 
-from figgie.reel import market_stats, parse_rasmus_round
+from figgie.reel import ask_outcomes, lift_rates, market_stats, parse_rasmus_round
 
 # Une manche écrite à la main, au format des journaux de Rasmus : genre, secondes restantes, couleur
 # (0 = pique, 1 = trèfle, 2 = cœur, 3 = carreau), prix, joueur (acheteur>vendeur pour un échange).
@@ -41,6 +41,53 @@ class TestRealLogs(unittest.TestCase):
         self.assertEqual(stats["goal_top_bid"], 3)  # plus haut prix proposé pour un cœur : 3, 0 et 4
         self.assertEqual(stats["other_top_bid"], 0)
 
+
+# Phase 5j : ce que deviennent les offres de vente. Cœur = objectif ; le bot de Rasmus au siège 0.
+ASKS = {"goal": "hearts", "me": 0, "log": ";".join([
+    "o,236,2,9,1,,",       # t = 4 s : le siège 1 vend un cœur à 9 $
+    "o,235,2,8,2,,",       # t = 5 s : le siège 2 le bat à 8 $ : l'offre à 9 $ est remplacée
+    "t,230,2,8,3>2,,",     # t = 10 s : le siège 3 prend l'offre à 8 $
+    "o,220,0,5,1,,",       # t = 20 s : le siège 1 vend un pique à 5 $
+    "xo,215,0,5,1,,",      # t = 25 s : et la retire
+    "o,210,1,6,3,,",       # t = 30 s : le siège 3 vend un trèfle à 6 $
+    "b,205,1,4,2,,",       # t = 35 s : le siège 2 propose 4 $ pour un trèfle
+    "t,200,1,4,2>1,,",     # t = 40 s : le siège 1 lui vend un trèfle : l'échange efface l'offre à 6 $
+    "o,100,3,12,0,,",      # t = 140 s : le bot de Rasmus vend un carreau à 12 $, jamais pris
+])}
+
+
+class TestAskOutcomes(unittest.TestCase):
+    def test_each_ask_ends_taken_replaced_cancelled_cleared_or_still_there(self):
+        self.assertEqual(ask_outcomes(parse_rasmus_round(ASKS)), [
+            ("hard", True, 9, "remplacée", None),
+            ("hard", True, 8, "prise", "hard"),
+            ("hard", False, 5, "retirée", None),
+            ("hard", False, 6, "effacée", None),
+            ("autre", False, 12, "fin", None),
+        ])
+
+    def test_a_trade_clears_the_asks_of_every_suit_and_a_bid_cancel_keeps_the_ask(self):
+        cross = {"goal": "hearts", "me": 0, "log": ";".join([
+            "o,236,0,7,1,,",       # t = 4 s : le siège 1 vend un pique à 7 $
+            "b,235,1,4,2,,",       # t = 5 s : le siège 2 propose 4 $ pour un trèfle
+            "t,230,1,4,2>3,,",     # t = 10 s : le siège 3 lui vend un trèfle : tout le carnet est vidé
+            "b,225,0,7,2,,",       # t = 15 s : le siège 2 propose 7 $ pour un pique
+            "t,220,0,7,2>1,,",     # t = 20 s : le siège 1 lui vend : c'est une offre d'achat prise, pas la sienne
+            "o,210,2,8,3,,",       # t = 30 s : le siège 3 vend un cœur à 8 $
+            "b,205,2,3,3,,",       # t = 35 s : et propose 3 $ pour un cœur
+            "xb,200,2,0,3,,",      # t = 40 s : il retire son offre d'achat ; son offre de vente reste
+            "t,190,2,8,1>3,,",     # t = 50 s : le siège 1 prend l'offre à 8 $
+        ])}
+        self.assertEqual(ask_outcomes(parse_rasmus_round(cross)), [
+            ("hard", False, 7, "effacée", None),
+            ("hard", True, 8, "prise", "hard"),
+        ])
+
+    def test_share_of_the_hard_asks_that_a_hard_bot_takes(self):
+        rates = lift_rates([parse_rasmus_round(ASKS)])
+        self.assertEqual(rates["objectif 7-10"], 0.5)  # une offre à 8 $ prise, une à 9 $ remplacée
+        self.assertEqual(rates["autre 4-6"], 0.0)      # retirée et effacée ; l'offre du bot de Rasmus ne compte pas
+        self.assertIsNone(rates["autre 1-3"])          # aucune offre dans cette tranche
 
 
 def close_to_the_site(stats, real):

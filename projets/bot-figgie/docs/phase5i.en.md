@@ -127,4 +127,4 @@ python3 -m figgie.tournoi --site --seed 7 --candidates marginal adaptatif_v4c --
     --opponents --references --mixed exploiteur adaptatif_v3 --out calibration.json
 ```
 
-The tournament takes about 6 h 20 on 10 cores, the calibration 20 min. `--references` with no name skips recomputing the minority test. To get back to the exact code of this phase: `git checkout phase5i-figgie`.
+The tournament takes about 6 h 20 on 10 cores, the calibration 20 min. `--references` with no name skips recomputing the minority test. Since phase 5j, the mixed table uses the recalibrated Hard bot by default: on later code, add `--filler hard_simule` to get these numbers back. To get back to the exact code of this phase: `git checkout phase5i-figgie`.

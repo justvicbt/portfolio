@@ -25,8 +25,10 @@ KINDS = {"b": "bid", "o": "ask", "xb": "cancel", "xo": "cancel"}
 
 def parse_rasmus_round(round_, duration=240):
     """Une manche du journal de Rasmus -> {events, goal, duration, hard}, avec `events` au format de
-    notre fil public : (instant, joueur, genre, couleur, prix). `hard` : les sièges des bots du site."""
-    events = []
+    notre fil public : (instant, joueur, genre, couleur, prix). `hard` : les sièges des bots du site.
+    `bid_cancels` : les numéros, dans `events`, des retraits d'offre d'achat (xb), que le journal distingue des
+    retraits d'offre de vente (xo)."""
+    events, bid_cancels = [], set()
     for entry in round_["log"].split(";"):
         kind, left, suit, price, who = entry.split(",")[:5]
         t, suit, price = duration - int(left), SUITS[int(suit)], int(price)
@@ -34,9 +36,11 @@ def parse_rasmus_round(round_, duration=240):
             buyer, seller = map(int, who.split(">"))
             events += [(t, buyer, "bought", suit, price), (t, seller, "sold", suit, price)]
         else:
+            if kind == "xb":
+                bid_cancels.add(len(events))
             events.append((t, int(who), KINDS[kind], suit, 0 if kind in ("xb", "xo") else price))
     me = round_["me"]
-    out = {"events": events, "goal": NAMES[round_["goal"]], "duration": duration, "me": me,
+    out = {"events": events, "bid_cancels": bid_cancels, "goal": NAMES[round_["goal"]], "duration": duration, "me": me,
            "hard": [p for p in range(4) if p != me]}
     if "dealt" in round_:
         out["dealt"] = dict(zip(SUITS, round_["dealt"]))  # la donne du bot de Rasmus
@@ -100,6 +104,56 @@ def market_stats(rounds):
         "goal_price": median(prices[True]), "other_price": median(prices[False]),
         "goal_top_bid": median(tops[True]), "other_top_bid": median(tops[False]),
     }
+
+
+LIFT_BUCKETS = (("autre", 1, 3), ("autre", 4, 6), ("autre", 7, 8), ("autre", 9, 13), ("objectif", 7, 10),
+                ("objectif", 11, 13))
+
+
+def ask_outcomes(rnd):
+    """Phase 5j : ce que devient chaque offre de vente affichée (règle du site : une par couleur, la dernière posée).
+    [(« hard » ou « autre » selon qui l'a posée, couleur objectif ?, prix, fin, preneur)] ; fin : « prise » (échange
+    au prix de l'offre avec celui qui l'a posée, preneur « hard » ou « autre »), « remplacée » par une meilleure,
+    « retirée », « effacée » par un autre échange (le site vide tout le carnet après chaque échange), ou « fin » de
+    manche. Un retrait d'offre d'achat (`rnd["bid_cancels"]`, vraies manches) laisse l'offre de vente ; dans notre
+    moteur, un retrait enlève les deux côtés."""
+    hard, goal, shown, out = set(rnd["hard"]), rnd["goal"], {}, []
+    bid_cancels = rnd.get("bid_cancels", ())
+    who = lambda p: "hard" if p in hard else "autre"
+
+    def close(suit, end, taker=None):
+        if suit in shown:
+            p, price = shown.pop(suit)
+            out.append((who(p), suit == goal, price, end, taker))
+    events = rnd["events"]
+    for i, (_t, p, kind, suit, price) in enumerate(events):
+        if kind == "bought":  # l'événement « sold » du même échange suit
+            seller = events[i + 1][1]
+            if shown.get(suit) == (seller, price):
+                close(suit, "prise", who(p))
+            else:
+                close(suit, "effacée")
+            for other in list(shown):
+                close(other, "effacée")
+        elif kind == "ask":
+            close(suit, "remplacée")
+            shown[suit] = (p, price)
+        elif kind == "cancel" and i not in bid_cancels and suit in shown and shown[suit][0] == p:
+            close(suit, "retirée")
+    for suit in list(shown):
+        close(suit, "fin")
+    return out
+
+
+def lift_rates(rounds, buckets=LIFT_BUCKETS):
+    """Part des offres de vente posées par un bot Hard qu'un autre bot Hard prend, par tranche de prix et selon que la
+    couleur est l'objectif (« objectif 7-10 », ...). None si la tranche est vide."""
+    asks = [o for r in rounds for o in ask_outcomes(r) if o[0] == "hard"]
+    rates = {}
+    for kind, low, high in buckets:
+        xs = [o for o in asks if o[1] == (kind == "objectif") and low <= o[2] <= high]
+        rates[f"{kind} {low}-{high}"] = sum(o[3] == "prise" and o[4] == "hard" for o in xs) / len(xs) if xs else None
+    return rates
 
 
 def hidden_goal_counts(rnd, samples=200, seed=0, max_tries=500_000):

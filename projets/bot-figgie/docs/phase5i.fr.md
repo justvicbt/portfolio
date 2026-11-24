@@ -127,4 +127,4 @@ python3 -m figgie.tournoi --site --seed 7 --candidates marginal adaptatif_v4c --
     --opponents --references --mixed exploiteur adaptatif_v3 --out calibration.json
 ```
 
-Le tournoi prend environ 6 h 20 sur 10 cœurs, la calibration 20 min. `--references` sans nom évite de recalculer le test de minorité. Pour revenir exactement au code de cette phase : `git checkout phase5i-figgie`.
+Le tournoi prend environ 6 h 20 sur 10 cœurs, la calibration 20 min. `--references` sans nom évite de recalculer le test de minorité. Depuis la phase 5j, la table mixte prend par défaut le Hard recalé : sur le code d'après, ajoutez `--filler hard_simule` pour retrouver ces chiffres. Pour revenir exactement au code de cette phase : `git checkout phase5i-figgie`.
