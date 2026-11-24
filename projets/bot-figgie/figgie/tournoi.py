@@ -3,7 +3,10 @@
 Trois sortes de tâches, toutes en donnes dupliquées sur les donnes des tournois (graine 1) :
 - un candidat face à des copies d'un adversaire du zoo ;
 - le test de minorité : une référence seule face à des copies du candidat ;
-- un candidat face à une table mixte précise (comportements anormaux), sur une ou plusieurs manches.
+- un candidat face à une table mixte précise (comportements anormaux), sur une ou plusieurs manches ;
+- phase 5i, --mixed : une référence et le candidat à la même table, avec des Hard simulés ; on garde l'écart
+  référence - candidat, lu dans les mêmes parties (evaluate.mixed_gap). Il remplace le test de minorité dans la
+  règle d'entrée ; ajouter --references sans nom pour ne pas calculer aussi le test de minorité.
 
 Usage : python3 -m figgie.tournoi --candidates marginal lecteur lecteur_ligue --out resultats/phase4/tournoi.json
         python3 -m figgie.tournoi --candidates marginal adaptatif --rounds 10 --deals 300 --out resultats/phase5/tournoi.json
@@ -17,7 +20,7 @@ import time
 from multiprocessing import Pool
 
 from figgie.bots import ZOO
-from figgie.evaluate import CANDIDATES, GATE_REFERENCES, duplicate_match, gate, mean_ci
+from figgie.evaluate import CANDIDATES, GATE_REFERENCES, duplicate_match, gate, mean_ci, mixed_gap
 
 TABLES = {  # comportements anormaux, à 4 joueurs : (adversaires, manches par partie)
     "inactif": (("inactif", "heuristique", "marginal"), 1),
@@ -26,6 +29,7 @@ TABLES = {  # comportements anormaux, à 4 joueurs : (adversaires, manches par p
     "menteurs, 10 manches": (("menteur", "menteur", "heuristique"), 10),
 }
 CHUNK = 25  # donnes par tâche
+MIXED_FILLER = "hard_simule"  # les bots du site, simulés
 
 
 def _run(job):
@@ -36,6 +40,9 @@ def _run(job):
     if kind == "minority":  # gain de la référence seule face aux copies du candidat
         return duplicate_match(CANDIDATES[other], CANDIDATES[cand], deals, players, seed=seed, first_deal=first,
                                rounds=rounds, single_quote=site)
+    if kind == "mixed":  # écart référence - candidat à la même table, avec des Hard simulés
+        return mixed_gap(CANDIDATES[other], CANDIDATES[cand], CANDIDATES[MIXED_FILLER], deals, players, seed=seed,
+                         first_deal=first, rounds=rounds, single_quote=site)
     names, table_rounds = TABLES[other]
     return duplicate_match(CANDIDATES[cand], [CANDIDATES[n] for n in names], deals, seed=seed,
                            first_deal=first, rounds=max(rounds, table_rounds), single_quote=site)
@@ -48,14 +55,22 @@ def main():
     parser.add_argument("--table-deals", type=int, default=300, help="donnes par table anormale")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--rounds", type=int, default=1, help="manches par partie (phase 5 : le bot adaptatif en a besoin)")
-    parser.add_argument("--references", nargs="+", default=list(GATE_REFERENCES), choices=sorted(CANDIDATES),
+    parser.add_argument("--references", nargs="*", default=list(GATE_REFERENCES), choices=sorted(CANDIDATES),
                         help="références du test de minorité")
+    parser.add_argument("--mixed", nargs="+", default=[], choices=sorted(CANDIDATES),
+                        help="références de la table mixte (avec des Hard simulés) : remplace le test de minorité dans la règle "
+                             "d'entrée, qui reste calculé à part sauf avec --references sans nom")
     parser.add_argument("--no-tables", action="store_true", help="sauter les tables anormales")
-    parser.add_argument("--opponents", nargs="+", default=list(ZOO), choices=sorted(CANDIDATES),
+    parser.add_argument("--opponents", nargs="*", default=list(ZOO), choices=sorted(CANDIDATES),
                         help="adversaires du tournoi (le zoo par défaut)")
     parser.add_argument("--site", action="store_true", help="règle du site : une offre doit battre celle qui est affichée")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
+    for cand in args.candidates if args.mixed else []:
+        if CANDIDATES[cand] is CANDIDATES[MIXED_FILLER]:
+            parser.error(f"{cand} est le remplissant de la table mixte : la table ne serait plus mixte")
+        if all(CANDIDATES[ref] is CANDIDATES[cand] for ref in args.mixed):
+            parser.error(f"aucune référence de --mixed autre que {cand} : il serait admis sans test d'exploitation")
 
     keys, jobs = [], []
     def add(key, kind, cand, other, players, deals):
@@ -71,6 +86,9 @@ def main():
             for ref in args.references:
                 if CANDIDATES[ref] is not CANDIDATES[cand]:
                     add((cand, p, "minority", ref), "minority", cand, ref, p, args.deals)
+            for ref in args.mixed:
+                if CANDIDATES[ref] is not CANDIDATES[cand]:
+                    add((cand, p, "mixed", ref), "mixed", cand, ref, p, args.deals)
         scheduled = set()
         for table, (names, table_rounds) in ([] if args.no_tables else TABLES.items()):
             if (names, max(args.rounds, table_rounds)) in scheduled:
@@ -95,19 +113,26 @@ def main():
         for p in (4, 5):
             zoo = {k[3]: mean_ci(v) for k, v in values.items() if k[:3] == (cand, p, "zoo")}
             minority = {k[3]: mean_ci(v) for k, v in values.items() if k[:3] == (cand, p, "minority")}
-            results[cand][p] = {"zoo": zoo, "minority": minority, "gate": gate(zoo, minority),
-                                "gate_without_minority": gate(zoo)}
+            mixed = {k[3]: mean_ci(v) for k, v in values.items() if k[:3] == (cand, p, "mixed")}
+            rule = "table mixte" if args.mixed else "test de minorité"
+            results[cand][p] = {"zoo": zoo, "minority": minority, "mixed": mixed, "rule": rule,
+                                "gate": gate(zoo, mixed=mixed) if args.mixed else gate(zoo, minority),
+                                "gate_minority": gate(zoo, minority) if minority else None,
+                                "gate_without_exploitation_test": gate(zoo)}
         results[cand]["tables"] = {k[3]: mean_ci(v) for k, v in values.items() if k[:3] == (cand, 4, "table")}
 
     for cand, res in results.items():
         print(f"\n## {cand}")
         for p in (4, 5):
             r = res[p]
-            print(f"\n{p} joueurs | règle d'entrée : {r['gate']} (sans le test de minorité : {r['gate_without_minority']})")
+            print(f"\n{p} joueurs | règle d'entrée ({r['rule']}) : {r['gate']} (avec le test de minorité : "
+                  f"{r['gate_minority']}, sans aucun test d'exploitation : {r['gate_without_exploitation_test']})")
             for opp, (m, lo, hi) in r["zoo"].items():
                 print(f"  contre {opp:20s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]")
             for ref, (m, lo, hi) in r["minority"].items():
                 print(f"  {ref + ' seul':27s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]  (gain de la référence)")
+            for ref, (m, lo, hi) in r["mixed"].items():
+                print(f"  {ref + ', table mixte':27s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]  (référence - candidat)")
         for table, (m, lo, hi) in res["tables"].items():
             rounds = max(args.rounds, TABLES[table][1])
             print(f"  table {', '.join(TABLES[table][0]):35s} ({rounds} manche(s)) {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]")

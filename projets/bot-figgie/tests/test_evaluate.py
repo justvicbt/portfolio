@@ -1,8 +1,8 @@
 """Seam « évaluation dupliquée » : rotation des sièges, intervalle de confiance et porte d'entrée."""
 import unittest
 
-from figgie.bots import ZOO, RandomBot
-from figgie.evaluate import duplicate_match, gate, mean_ci, zoo_report
+from figgie.bots import ZOO, BayesBot, HeuristicBot, RandomBot
+from figgie.evaluate import duplicate_match, gate, mean_ci, mixed_gap, zoo_report
 
 
 class TestMeanCI(unittest.TestCase):
@@ -23,6 +23,22 @@ class TestDuplicateMatch(unittest.TestCase):
             self.assertEqual(len(values), 10)
             for v in values:
                 self.assertAlmostEqual(v, 0, places=9)
+
+
+class TestMixedGap(unittest.TestCase):
+    # Phase 5i : la référence et le candidat à la même table, avec des remplissants ; écart référence - candidat.
+    def test_identical_reference_and_candidate_give_exactly_zero_on_every_deal(self):
+        # Chaque partie a sa jumelle, les deux bots échangés de siège : si l'échange est bien suivi et les deux gains
+        # lus dans la même partie, l'écart s'annule exactement. Ne vérifie pas quels sièges sont lus (le test de signe, si).
+        for n in (4, 5):
+            values = mixed_gap(RandomBot, RandomBot, HeuristicBot, n_deals=3, n_players=n, duration=30)
+            self.assertEqual(len(values), 3)
+            for v in values:
+                self.assertAlmostEqual(v, 0, places=9)
+
+    def test_gap_is_positive_when_the_reference_is_much_stronger(self):
+        values = mixed_gap(BayesBot, RandomBot, HeuristicBot, n_deals=5, duration=30)
+        self.assertGreater(mean_ci(values)[0], 0)  # le bayésien gagne bien plus que le bot aléatoire
 
 
 class TestZooReport(unittest.TestCase):
@@ -60,6 +76,15 @@ class TestGate(unittest.TestCase):
 
     def test_exploitation_counts_even_without_references(self):
         self.assertIs(gate({}, minority={"marginal": (7.3, 6.0, 8.7)}), False)
+
+    def test_gate_refuses_a_bot_that_a_reference_beats_at_a_mixed_table(self):
+        # Phase 5i : la référence, le candidat et des Hard simulés à la même table ; écart référence - candidat.
+        win = (5.0, 1.0, 9.0)
+        report = {"heuristique": win, "sniper": win, "bayesien": win, "marginal": win}
+        self.assertFalse(gate(report, mixed={"exploiteur": (2.0, 0.4, 3.6), "v3": (-1.0, -2.0, 0.0)}))
+        self.assertTrue(gate(report, mixed={"exploiteur": (0.8, -0.1, 1.7), "v3": (-1.0, -2.0, 0.0)}))
+        self.assertFalse(gate({"heuristique": win, "sniper": (5.0, -1.0, 11.0)}, mixed={"exploiteur": (0.8, -0.1, 1.7)}))
+        self.assertIs(gate({}, mixed={"exploiteur": (2.0, 0.4, 3.6)}), False)
 
     def test_minority_report_puts_the_reference_alone(self):
         from figgie.bots import PassiveBot, SniperBot

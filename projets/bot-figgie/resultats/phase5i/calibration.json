@@ -1,0 +1,109 @@
+{
+  "args": {
+    "candidates": [
+      "marginal",
+      "adaptatif_v4c"
+    ],
+    "deals": 100,
+    "table_deals": 300,
+    "seed": 7,
+    "rounds": 10,
+    "references": [],
+    "mixed": [
+      "exploiteur",
+      "adaptatif_v3"
+    ],
+    "no_tables": true,
+    "opponents": [],
+    "site": true,
+    "out": "/private/tmp/claude-501/-Users-vic/bc6b6c0f-ffa6-4c74-8eac-4802c8345095/scratchpad/p5i/calibration2.json"
+  },
+  "results": {
+    "marginal": {
+      "4": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            22.36483333333333,
+            20.99989929851239,
+            23.72976736815427
+          ],
+          "adaptatif_v3": [
+            4.154708333333334,
+            3.071144618501485,
+            5.238272048165182
+          ]
+        },
+        "rule": "table mixte",
+        "gate": false,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "5": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            23.784866666666666,
+            22.701964838983212,
+            24.86776849435012
+          ],
+          "adaptatif_v3": [
+            4.9992,
+            4.16656436966211,
+            5.83183563033789
+          ]
+        },
+        "rule": "table mixte",
+        "gate": false,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "tables": {}
+    },
+    "adaptatif_v4c": {
+      "4": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            10.059125,
+            8.616313810273004,
+            11.501936189726996
+          ],
+          "adaptatif_v3": [
+            -7.55925,
+            -8.954149554629673,
+            -6.164350445370326
+          ]
+        },
+        "rule": "table mixte",
+        "gate": false,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "5": {
+        "zoo": {},
+        "minority": {},
+        "mixed": {
+          "exploiteur": [
+            9.776366666666666,
+            8.415651189060997,
+            11.137082144272336
+          ],
+          "adaptatif_v3": [
+            -11.7063,
+            -13.121524600929696,
+            -10.291075399070305
+          ]
+        },
+        "rule": "table mixte",
+        "gate": false,
+        "gate_minority": null,
+        "gate_without_exploitation_test": null
+      },
+      "tables": {}
+    }
+  }
+}

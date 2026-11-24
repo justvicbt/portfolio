@@ -75,6 +75,34 @@ def duplicate_match(candidate, opponent, n_deals, n_players=None, seed=0, durati
     return per_deal
 
 
+def mixed_gap(reference, candidate, filler, n_deals, n_players=4, seed=0, duration=240.0, rounds=1, first_deal=0,
+              single_quote=False):
+    """Phase 5i, table mixte : la référence, le candidat et des copies de `filler` à la même table. Pour chaque donne,
+    gain de la référence moins gain du candidat, lus dans la même partie, en moyenne sur les rotations de
+    [référence, candidat, remplissants...] puis de [candidat, référence, remplissants...] : chacun passe par chaque
+    siège, devant et derrière l'autre."""
+    per_deal = []
+    for d in range(first_deal, first_deal + n_deals):
+        deal_seed = seed * 1_000_000 + d  # mêmes donnes que duplicate_match
+        gaps = []
+        for swapped in (False, True):
+            base = [candidate, reference] if swapped else [reference, candidate]
+            base += [filler] * (n_players - 2)
+            for shift in range(n_players):
+                bots = base[shift:] + base[:shift]
+                first, second = (-shift) % n_players, (1 - shift) % n_players  # sièges de base[0] et base[1]
+                ref_seat, cand_seat = (second, first) if swapped else (first, second)
+                if rounds == 1:
+                    profits = play_round(bots, seed=deal_seed, duration=duration, single_quote=single_quote).profits
+                else:
+                    profits = [p / rounds for p in
+                               play_match(bots, seed=deal_seed, rounds=rounds, duration=duration,
+                                          single_quote=single_quote).profits]
+                gaps.append(profits[ref_seat] - profits[cand_seat])
+        per_deal.append(sum(gaps) / len(gaps))
+    return per_deal
+
+
 def zoo_report(candidate, n_deals, n_players=4, seed=0, duration=240.0, log_file=None):
     """Pour chaque adversaire du zoo, sauf le candidat lui-même : (moyenne, borne basse, borne haute) du gain par manche."""
     return {
@@ -94,15 +122,18 @@ def minority_report(candidate, n_deals, n_players=4, seed=0, duration=240.0, ref
     }
 
 
-def gate(report, minority=None):
+def gate(report, minority=None, mixed=None):
     """Règle d'entrée : un bot est refusé s'il ne bat pas nettement chaque référence (IC entièrement au-dessus de 0).
     Une référence absente du rapport (parce que c'est elle le candidat) est ignorée ; None s'il n'en reste aucune.
 
     `minority` (phase 4) : le gain de chaque référence seule face à des copies du candidat. Si l'une
     d'elles gagne nettement (IC entièrement au-dessus de 0), le candidat est refusé : il se fait
-    exploiter quand il est nombreux à la table."""
-    if any(low > 0 for _mean, low, _high in (minority or {}).values()):
-        return False  # exploité quand il est nombreux à la table
+    exploiter quand il est nombreux à la table.
+    `mixed` (phase 5i) : à une table référence + candidat + Hard simulés, l'écart de gain référence - candidat.
+    Si l'un est nettement au-dessus de 0, le candidat est refusé. Contrairement au test de minorité, les copies
+    du candidat ne s'y disputent pas la majorité entre elles."""
+    if any(low > 0 for _mean, low, _high in [*(minority or {}).values(), *(mixed or {}).values()]):
+        return False  # exploité
     refs = [name for name in GATE_REFERENCES if name in report]
     if not refs:
         return None
