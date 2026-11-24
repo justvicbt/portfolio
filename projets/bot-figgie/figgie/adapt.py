@@ -258,6 +258,27 @@ class QuietV4cBot(AdaptiveV4cBot):
 class QuietV4cBot30(QuietV4cBot):
     name, quiet = "v4c_calme_30", 30.0
 
+
+class SellOnlyV4cBot(AdaptiveV4cBot):
+    """Phase 5k. La v4c, qui n'achète rien pendant les `quiet` premières secondes (ni prise d'offre de vente, ni offre
+    d'achat), mais vend comme la v4c. En minute 1, la v4c ne sait pas encore quelle couleur est l'objectif et achète
+    surtout des cartes hors objectif, qu'elle surpaie : sa valeur compte la majorité comme si plus rien ne s'échangeait
+    après (phase 5j). La v4c calme, qui se tait tout à fait, perdait en plus ses ventes de la première minute.
+    Une carte ne vaut rien à l'achat pendant ce temps : la v4c ne choisit alors ni achat ni offre d'achat, et garde
+    chaque tour pour vendre (filtrer son action après coup lui ferait perdre les tours où elle voulait acheter)."""
+    name = "v4c_vente_60"
+    quiet = 60.0
+    _buying = False  # avant le premier tour, on est au début de la manche
+
+    def act(self, view, rng):
+        self._buying = view.time >= self.quiet
+        return super().act(view, rng)
+
+    def buy_value(self, s, player):
+        # 0 $ suffit : les prix vont de 1 $ en montant, donc aucune offre de vente n'est à 0 $ moins la marge, et
+        # mon offre d'achat (0 $ moins le spread) tombe sous 1 $, tant que marge et spread restent >= 0
+        return super().buy_value(s, player) if self._buying else 0.0
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10

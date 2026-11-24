@@ -202,6 +202,33 @@ class TestQuietStart(unittest.TestCase):
             self.assertEqual(tuple(memory["arms"][r]), tuple(v4c.choose(memory["profiles"][:r])))
 
 
+class TestSellOnlyStart(unittest.TestCase):
+    """Phase 5k, seam « la v4c vendeuse n'achète rien la première minute » : en minute 1, la v4c achète surtout des
+    cartes hors objectif, qu'elle surpaie (phase 5j). La v4c vendeuse n'envoie ni achat ni offre d'achat pendant les
+    60 premières secondes, mais vend comme la v4c ; son choix de réglage est celui de la v4c."""
+
+    def test_no_buy_before_60_s_but_sells_and_the_v4c_choice(self):
+        from figgie.adapt import STRONG_HAND, AdaptiveV4cBot, SellOnlyV4cBot, hand_strength
+        match = play_match([SellOnlyV4cBot, ZOO["marginal"], ZOO["heuristique"], ZOO["sniper"]], seed=5, rounds=3,
+                           single_quote=True)
+        early = [action[0] for log in match.logs for _t, seat, action, _ok, seen in log["actions"]
+                 if seat == 0 and seen < 60.0]
+        self.assertNotIn("buy", early)
+        self.assertNotIn("bid", early)
+        v4c = play_match([AdaptiveV4cBot, ZOO["marginal"], ZOO["heuristique"], ZOO["sniper"]], seed=5, rounds=3,
+                         single_quote=True)
+        v4c_early = [action[0] for log in v4c.logs for _t, seat, action, _ok, seen in log["actions"]
+                     if seat == 0 and seen < 60.0]
+        sales = lambda kinds: sum(k in ("sell", "ask") for k in kinds)
+        self.assertGreater(sales(early), 0)  # elle n'est pas muette
+        self.assertGreaterEqual(sales(early), sales(v4c_early))  # elle vend au moins autant que la v4c
+        memory = match.memories[0]
+        for r in range(1, 3):  # mêmes profils et même main : le choix de la v4c
+            v4c = AdaptiveV4cBot()
+            v4c._strong = float(hand_strength(match.logs[r]["hands"][0], 4) >= STRONG_HAND)
+            self.assertEqual(tuple(memory["arms"][r]), tuple(v4c.choose(memory["profiles"][:r])))
+
+
 class TestMeanProfile(unittest.TestCase):
     """Phase 5h, seam « après une seule manche, la v4d choisit comme la v4c » : la moyenne d'un seul profil est ce
     profil, donc interroger les voisins une fois avec la moyenne revient à les interroger avec la seule manche vue."""
