@@ -97,11 +97,19 @@ class Neighbors:
             values = [f[k] for f, _ in self.training]
             sd = statistics.pstdev(values) if len(values) > 1 else 0.0
             self.scale[k] = sd or 1.0  # chaque mesure ramenée à son écart-type, pour qu'aucune n'écrase les autres
+        # Pour aller vite : les mesures de chaque table dans l'ordre de self.keys, et les voisins déjà cherchés
+        # (la v4c redemande ceux de toutes ses manches passées à chaque manche). Mêmes calculs, même ordre.
+        self._rows = [tuple(f[key] for key in self.keys) for f, _ in self.training]
+        self._scales = tuple(self.scale[key] for key in self.keys)
+        self._nearest = {}
 
     def nearest(self, features, k=K):
-        def distance(f):
-            return math.sqrt(sum(((f[key] - features[key]) / self.scale[key]) ** 2 for key in self.keys))
-        return sorted(self.training, key=lambda item: distance(item[0]))[:k]
+        x = tuple(features[key] for key in self.keys)
+        if (x, k) not in self._nearest:
+            d = [math.sqrt(sum(((v - xv) / s) ** 2 for v, xv, s in zip(row, x, self._scales))) for row in self._rows]
+            order = sorted(range(len(d)), key=d.__getitem__)[:k]  # tri stable, comme avant
+            self._nearest[(x, k)] = [self.training[i] for i in order]
+        return self._nearest[(x, k)]
 
     def best(self, features, k=K):
         """Le réglage qui rapportait le plus, en moyenne, sur les `k` tables les plus ressemblantes."""
