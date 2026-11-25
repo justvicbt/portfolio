@@ -252,7 +252,8 @@ def paper_replay(rnd, bot, seed=0, memory=None, majority=False):
                 mine[s][kind] = action[2]
                 continue
             if kind == "cancel":
-                mine[s]["bid"] = mine[s]["ask"] = None
+                for side in action[2:] or ("bid", "ask"):  # phase 5m : un seul côté si l'action le dit
+                    mine[s][side] = None
                 continue
             q = book[s]["ask" if kind == "buy" else "bid"]
             if not q or (q[0] > action[2] or q[0] > cash if kind == "buy" else q[0] < action[2] or hand[s] < 1):

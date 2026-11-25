@@ -1,7 +1,7 @@
 """Seam « carnet d'ordres » : une cotation par joueur et par couleur, priorité prix puis temps."""
 import unittest
 
-from figgie.engine import IllegalAction, Market
+from figgie.engine import IllegalAction, Market, empty_book
 
 
 def empty_hand(**cards):
@@ -21,6 +21,18 @@ class TestQuotes(unittest.TestCase):
         m.apply(2, ("bid", "H", 5))
         m.apply(3, ("bid", "H", 4))  # moins bien que la meilleure, mais accepté : chacun a sa cotation
         self.assertEqual(m.best("H", "bid"), (5, 2))
+
+    def test_cancel_one_side_keeps_the_other(self):
+        # Phase 5m, comme sur le site (retraits xb et xo) : retirer mon offre d'achat laisse mon offre de vente.
+        m = market()
+        m.apply(0, ("ask", "H", 9))
+        m.apply(0, ("bid", "H", 2))
+        m.apply(0, ("cancel", "H", "bid"))
+        self.assertIsNone(m.best("H", "bid"))
+        self.assertEqual(m.best("H", "ask"), (9, 0))
+        self.assertEqual(m.events[-1][2:], ("cancel", "H", "bid"))  # le fil public dit quel côté a disparu
+        m.apply(0, ("cancel", "H", "ask"))
+        self.assertIsNone(m.best("H", "ask"))
 
     def test_new_quote_replaces_my_previous_one(self):
         m = market()
@@ -170,6 +182,29 @@ class TestSingleQuoteRule(unittest.TestCase):
         m.apply(3, ("bid", "H", 4))
         m.apply(2, ("cancel", "H"))
         self.assertEqual(m.best("H", "bid"), (4, 3))
+
+
+class TestSiteRuleRecede(unittest.TestCase):
+    """Phase 5m, seam « reculer un seul côté » : sous la règle du site, un bot qui veut baisser son offre d'achat
+    retire seulement celle-ci, et garde son offre de vente."""
+
+    def test_lowering_my_bid_keeps_my_ask(self):
+        import random
+        from figgie.bots import ValueBot
+        from figgie.engine import View
+
+        class Fixed(ValueBot):  # une carte de pique vaut 10 $, les autres rien
+            spread, edge = 2, None
+
+            def values(self, hand, rng):
+                return {"S": 10, "C": 0, "H": 0, "D": 0}
+
+        book = empty_book()
+        book["S"]["bid"][0] = (9, 0)   # mon offre d'achat à 9 $ : je voudrais 8 $, je dois la retirer
+        book["S"]["ask"][0] = (12, 0)  # mon offre de vente à 12 $ : c'est encore mon prix
+        view = View(seat=0, n_players=4, hand={"S": 1, "C": 0, "H": 0, "D": 0}, cash=340.0, book=book, trades=[],
+                    card_counts=[1, 10, 10, 10], time=30.0, duration=240.0, events=[], single_quote=True)
+        self.assertEqual(Fixed().act(view, random.Random(0)), ("cancel", "S", "bid"))
 
 
 if __name__ == "__main__":

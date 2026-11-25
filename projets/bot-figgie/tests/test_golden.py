@@ -2,6 +2,8 @@
 
 Les valeurs de référence (fixtures/golden.json) ont été enregistrées avec le moteur de la phase 3,
 avant toute accélération. Si ce test échoue, une optimisation a changé le comportement du jeu.
+Régénérées en phase 5m, après la correction de la valeur d'achat du marginal (mêmes tables, mêmes graines) :
+seule la table sans bot à valeur marginale est restée identique.
 """
 import hashlib
 import json

@@ -33,6 +33,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5j. A simulated Hard bot that no longer overpays | How sell offers end on the real rounds, a simulated Hard bot recalibrated on the share of offers taken, and the entry rule replayed with it | [FR](docs/phase5j.fr.md) · [EN](docs/phase5j.en.md) | Done (no bot promoted) |
 | 5k. Buying nothing in the first minute | What the v4c buys in the first minute and why it overpays, then a v4c that sells but buys nothing for 60 s | [FR](docs/phase5k.fr.md) · [EN](docs/phase5k.en.md) | Done (no bot promoted) |
 | 5l. A value that accounts for time | The majority share counted less early in the round, with a weight that rises until 2 minutes, and the settings retrained | [FR](docs/phase5l.fr.md) · [EN](docs/phase5l.en.md) | Done (no bot promoted) |
+| 5m. Three flaws fixed | One-sided cancels, the marginal bot's buy value, a table profile that follows the site rule, and the v4c retrained | [FR](docs/phase5m.fr.md) · [EN](docs/phase5m.en.md) | Done (no bot promoted) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -68,6 +69,8 @@ In phase 5j, I check that point on the real rounds: the site's bots almost never
 In phase 5k, I find why the v4c overpays in the first minute: it does not know yet which suit is the goal, and its value counts the majority as if nothing else would be traded. A v4c that sells but buys nothing for 60 s beats both the marginal bot (+$7.26 per round with 4 players) and the recalibrated Hard bot (+$10.06). It is refused: at the mixed table, the quiet v4c does $1.57 to $1.81 better than it, and the reading exploiter $3.43 with 5 players. It wins its trades, but leaves the majority to the others. No bot is promoted.
 
 In phase 5l, I fix the value itself: the majority share counts with a weight min(1, t / 120) ^ 0.5, zero at the start of the round and full at 2 minutes. The new v4c beats the marginal bot (+$9.74 per round with 4 players) and the recalibrated Hard bot (+$15.18) by more than any earlier candidate, and it is the first to pass the entry rule with 4 players. It is refused with 5: the quiet v4c does $2.46 better than it at the mixed table, and the reading exploiter $1.66. It sells its goal cards too early, because the weight also applies when selling. Retraining its settings brings nothing clear. No bot is promoted.
+
+In phase 5m, I fix three mistakes found in review: under the site rule, the bot cancelled both of its offers when it only wanted to lower one; the marginal bot's buy value forgot that a seller proves they hold the card when the suit is not the goal; and the table profile kept offers the site had erased. I retrained the v4c and the timed v4c on the fixed code. At the tournament, the timed v4c still passes with 4 players and is still refused with 5, by one reference instead of two: the quiet v4c, which does $3.05 better than it. Almost every bot changed with these fixes, so the numbers do not compare directly with phase 5l's. No bot is promoted.
 
 Full tables are in each phase's doc.
 
@@ -107,11 +110,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 138 tests, about 15 seconds
+python3 -m unittest                      # 142 tests, about 15 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5l-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5m-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -120,4 +123,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5l done. Next step: keep the weight on the buying side only, so the bot stops giving away its goal cards early in the round. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5m done. Next step: keep the weight on the buying side only, so the bot stops giving away its goal cards early in the round. Phase 6 (real site) waits for written consent from Jane Street.

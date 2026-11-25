@@ -113,8 +113,11 @@ class ValueBot:
         can_bid = can_ask = True
         if view.single_quote:  # phase 5c, règle du site : une offre doit battre celle qui est affichée
             mine_bid, mine_ask = view.mine(s, "bid"), view.mine(s, "ask")
-            if (mine_bid is not None and my_bid < mine_bid) or (mine_ask is not None and my_ask > mine_ask):
-                return ("cancel", s)  # je ne peux pas reculer mon prix : je retire la cotation
+            # je ne peux pas reculer mon prix : je retire cette offre seulement, l'autre côté reste (phase 5m)
+            if mine_bid is not None and my_bid < mine_bid:
+                return ("cancel", s, "bid")
+            if mine_ask is not None and my_ask > mine_ask:
+                return ("cancel", s, "ask")
             can_bid = not bid or my_bid > bid[0]
             can_ask = not ask or my_ask < ask[0]
         if can_bid and 1 <= my_bid <= view.cash and view.mine(s, "bid") != my_bid and my_bid < (view.mine(s, "ask") or 10**9):

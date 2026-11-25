@@ -38,12 +38,13 @@ def parse_arm(key):
     return tuple(int(x) for x in key.split(","))
 
 
-def table_profile(events, me, duration, n_players=None):
+def table_profile(events, me, duration, n_players=None, single_quote=False):
     """Le comportement des autres joueurs pendant une manche, mesuré sur le fil public.
 
     Pour chaque adversaire : combien il cote par minute, l'écart entre ses prix d'achat et de vente
     quand il cote des deux côtés d'une couleur, et le temps qu'il met à recoter après un échange
     (le carnet est alors vide). On résume ensuite la table en quelques nombres.
+    `single_quote` (phase 5m) : règle du site, une nouvelle offre efface celles des autres du même côté.
     """
     players = range(n_players) if n_players else sorted({e[1] for e in events} | {me})
     opponents = [j for j in players if j != me]
@@ -56,9 +57,14 @@ def table_profile(events, me, duration, n_players=None):
             book.clear()  # après un échange, toutes les cotations sont annulées
             last_trade, waiting = t, set(opponents)
             continue
-        if kind == "cancel":
-            book.pop((player, suit), None)  # ses cotations de cette couleur ont disparu
+        if kind == "cancel":  # ses cotations de cette couleur ont disparu, ou seulement un côté (phase 5m)
+            for side in (price,) if price in ("bid", "ask") else ("bid", "ask"):
+                book.get((player, suit), {}).pop(side, None)
             continue
+        if single_quote:  # mon offre aussi efface celles des autres
+            for (other, s), quoted in book.items():
+                if s == suit and other != player:
+                    quoted.pop(kind, None)
         if player == me or player not in quotes:
             continue
         quotes[player] += 1
@@ -143,7 +149,7 @@ class AdaptiveBot(MarginalBot):
     def __init__(self):
         super().__init__()
         self.memory = {}  # remplacée par la mémoire de la partie (play_match)
-        self._feed, self._arm, self._duration, self._n = [], None, 240.0, None
+        self._feed, self._arm, self._duration, self._n, self._site = [], None, 240.0, None, False
 
     def choose(self, profiles):
         """Version 1 : le profil moyen des manches passées, comparé aux profils moyens des tables d'entraînement."""
@@ -157,12 +163,12 @@ class AdaptiveBot(MarginalBot):
             if late:
                 self.spread_late, self.edge_late = late
             self.memory.setdefault("arms", []).append(self._arm)
-            self._duration, self._n = view.duration, view.n_players
+            self._duration, self._n, self._site = view.duration, view.n_players, view.single_quote
         self._feed = view.events
         return super().act(view, rng)
 
     def end_round(self, reveal):
-        profile = table_profile(self._feed, reveal["seat"], self._duration, self._n)
+        profile = table_profile(self._feed, reveal["seat"], self._duration, self._n, self._site)
         self.memory.setdefault("profiles", []).append(profile)
 
 
@@ -389,7 +395,8 @@ def _table_v3(job):
                     s = mine[0]
                     strong = float(hand_strength(result.log["hands"][s], n) >= STRONG_HAND)
                     if seat == 0 and len([x for x in samples if x[0] == arm]) < V3_PROFILES:  # donnes variées
-                        samples.append((arm, table_profile(result.events, s, result.log["duration"], n), strong))
+                        samples.append((arm, table_profile(result.events, s, result.log["duration"], n, bool(site)),
+                                        strong))
         overall = statistics.fmean(profits[0.0] + profits[1.0])
         gains[arm_key(arm)] = {str(c): statistics.fmean(v) if v else overall for c, v in profits.items()}
         gains[arm_key(arm)]["share_strong"] = len(profits[1.0]) / len(profits[0.0] + profits[1.0])
@@ -519,7 +526,9 @@ V4C_RECIPE = [(True, V4_SEED + 2, 80, ["adaptatif_v3", "adaptatif_v4_1"]), ("ful
 
 def build_v4t(majority_time, deals, rounds, arms=ARMS_V3, out=None):
     """La v4c réentraînée : les mêmes tables que son modèle, jouées avec la part de majorité pondérée par le temps
-    (majority_time = (T, k)). Écrit modeles/adaptation_v4t.json (ou `out`). Renvoie (tables mesurées, chemin)."""
+    (majority_time = (T, k)). Écrit modeles/adaptation_v4t.json (ou `out`). Renvoie (tables mesurées, chemin).
+    Sans poids (majority_time = None, phase 5m), ce sont les tables de la v4c rejouées telles quelles : écrit alors
+    modeles/adaptation_v4c.json."""
     import sys
     import time
     jobs = [(i, seed, deals, rounds, previous, arms, kind, majority_time)
@@ -531,7 +540,7 @@ def build_v4t(majority_time, deals, rounds, arms=ARMS_V3, out=None):
             elapsed = time.time() - start
             print(f"{done}/{len(jobs)} tables, {elapsed / 60:.0f} min écoulées, "
                   f"fin dans ~{elapsed / done * (len(jobs) - done) / 60:.0f} min", file=sys.stderr, flush=True)
-    path = Path(out) if out else MODELS_DIR / "adaptation_v4t.json"
+    path = Path(out) if out else MODELS_DIR / ("adaptation_v4t.json" if majority_time else AdaptiveV4cBot.model_file)
     path.write_text(json.dumps(Neighbors(v3_rows(measured)).to_dict(), indent=1))
     return measured, path
 
@@ -620,7 +629,7 @@ def main():
     parser.add_argument("--v4b", metavar="RAPPORT", help="phase 5e : la v4 du rapport, plus --tables tables pleines")
     parser.add_argument("--v4c", metavar="RAPPORT", help="phase 5f : la v4b du rapport, plus --tables tables symétriques")
     parser.add_argument("--v4t", metavar="T,k", help="phase 5l : les tables de la v4c, jouées avec la part de majorité "
-                        "pondérée par min(1, t / T) ** k")
+                        "pondérée par min(1, t / T) ** k ; « sans » (phase 5m) : la v4c réentraînée, sans poids")
     parser.add_argument("--previous", nargs="*", default=[], help="versions précédentes, placées aux tables (avec --v3)")
     parser.add_argument("--rounds", type=int, default=3, help="manches par partie (avec --v3)")
     parser.add_argument("--arms", nargs="+", help="réglages possibles, « spread,marge,spread fin,marge fin » (avec --v3)")
@@ -641,10 +650,10 @@ def main():
             measured, path = build_v4b(args.v4b, args.tables, args.deals, args.rounds, arms)
             print(f"v4b : {args.v4b}, plus {args.tables} tables pleines, {args.deals} donnes, parties de {args.rounds} manches")
         elif args.v4t:
-            horizon, power = map(float, args.v4t.split(","))
-            measured, path = build_v4t((horizon, power), args.deals, args.rounds, arms)
-            print(f"v4t : les {len(measured)} tables de la v4c, majorité pondérée par min(1, t / {horizon:g}) ** {power:g}, "
-                  f"{args.deals} donnes, parties de {args.rounds} manches")
+            timed = None if args.v4t == "sans" else tuple(map(float, args.v4t.split(",")))
+            measured, path = build_v4t(timed, args.deals, args.rounds, arms)
+            weight = f"majorité pondérée par min(1, t / {timed[0]:g}) ** {timed[1]:g}" if timed else "sans poids"
+            print(f"{'v4t' if timed else 'v4c'} : les {len(measured)} tables de la v4c, {weight}, {args.deals} donnes, parties de {args.rounds} manches")
         elif args.v4c:
             measured, path = build_v4b(args.v4c, args.tables, args.deals, args.rounds, arms, kind="symmetric")
             print(f"v4c : {args.v4c}, plus {args.tables} tables symétriques, {args.deals} donnes, parties de {args.rounds} manches")

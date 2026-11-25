@@ -9,12 +9,12 @@
    ],
    "seed": 0,
    "profits": [
-    46.0,
-    -48.0,
-    -27.0,
-    29.0
+    51.0,
+    -47.0,
+    -34.0,
+    30.0
    ],
-   "log_sha256": "c89a0b35be131e826e2db8eb3ed1fff9af3ce64071151da6e54ffc0bbbc19de1"
+   "log_sha256": "5ce2b3e7f27ab979f8747debb03a7b3a20d9ea3d6b0dfd5bab166389a9461b6d"
   },
   {
    "bots": [
@@ -25,12 +25,12 @@
    ],
    "seed": 1,
    "profits": [
-    37.0,
-    48.0,
-    -103.0,
-    18.0
+    18.0,
+    44.0,
+    -123.0,
+    61.0
    ],
-   "log_sha256": "81382db8ecf18e08ed3ca1fde33718213e8f627ae65e6aef370f270eb5d1ea8c"
+   "log_sha256": "ab9d3f0de8f8a6efc834546b9a4d234de8bcda94fb6ea0a3757554ee1b96c533"
   },
   {
    "bots": [
@@ -42,13 +42,13 @@
    ],
    "seed": 2,
    "profits": [
-    -12.0,
+    -13.0,
     -20.0,
-    38.0,
+    35.0,
     -5.0,
-    -1.0
+    3.0
    ],
-   "log_sha256": "7b415d9bf53382c626537fc6975af41a59f6772e0c6e7b1bff482f4821ea7c61"
+   "log_sha256": "ee568c4c444c848b3288b25b8e5efeeb69349ac6ebc223f6a750d2eb020eb662"
   },
   {
    "bots": [
@@ -59,12 +59,12 @@
    ],
    "seed": 3,
    "profits": [
-    -10.0,
-    -59.0,
-    20.0,
-    49.0
+    9.0,
+    64.0,
+    -92.0,
+    19.0
    ],
-   "log_sha256": "c4893dda491e9236afc7eb54ccfa8d0bebf6ff5cc5c5ef1af26cc137de5ee6b8"
+   "log_sha256": "3dcaed35bde79a519625c6edc3cb2d5c965727b5e574ab2e60d39613bcf62854"
   },
   {
    "bots": [
@@ -87,12 +87,12 @@
  ],
  "match": {
   "profits": [
-   295.0,
-   -261.0,
-   -66.0,
-   32.0
+   271.0,
+   -278.0,
+   -85.0,
+   92.0
   ],
-  "log_sha256": "816b2dab0d4546b02afd1303a3c475a8db1c77ffcecaa337ba812366bc76ca9d"
+  "log_sha256": "fbc6598587a62bd955cbab9e78e0363febd71bae75074490a1682943b0fa0572"
  },
  "model_sha256": "46f763707b277d2f7cf612944be551a272996782e0b00fd0415d0c7bba6074db"
 }

@@ -35,6 +35,21 @@ class TestTableProfile(unittest.TestCase):
         p = table_profile(feed, me=0, duration=60, n_players=4)
         self.assertEqual(p["spread_min"], 20.0)  # personne n'a coté les deux côtés : valeur par défaut
 
+    def test_site_rule_a_beaten_quote_is_gone(self):
+        # Phase 5m, règle du site : l'offre à 6 $ du joueur 2 efface celle à 5 $ du joueur 1, qui n'a donc jamais
+        # coté les deux côtés à la fois quand il propose de vendre à 9 $.
+        feed = [(1.0, 1, "bid", "H", 5), (2.0, 2, "bid", "H", 6), (3.0, 1, "ask", "H", 9)]
+        self.assertEqual(table_profile(feed, me=0, duration=60, n_players=4)["spread_min"], 9 - 5)  # sans la règle
+        p = table_profile(feed, me=0, duration=60, n_players=4, single_quote=True)
+        self.assertEqual(p["spread_min"], 20.0)  # personne n'a coté les deux côtés : valeur par défaut
+
+    def test_cancelling_one_side_keeps_the_other(self):
+        # Phase 5m : le joueur 1 retire seulement son offre d'achat ; sa vente à 9 $ reste, et s'apparie à sa
+        # nouvelle offre à 6 $. Écarts 4 puis 3.
+        feed = [(1.0, 1, "bid", "H", 5), (2.0, 1, "ask", "H", 9), (3.0, 1, "cancel", "H", "bid"),
+                (4.0, 1, "bid", "H", 6)]
+        self.assertAlmostEqual(table_profile(feed, me=0, duration=60, n_players=4)["spread_min"], 3.5)
+
     def test_cancels_appear_in_the_public_feed(self):
         from figgie.engine import Market
         m = Market([dict(S=0, C=0, H=2, D=0)] + [dict(S=0, C=0, H=0, D=0)] * 3)

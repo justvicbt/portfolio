@@ -28,6 +28,13 @@ def card_gain(mine, others, delta, counterparty):
 
 
 @lru_cache(maxsize=None)
+def _p_some(places, mine, cards):
+    """Probabilité qu'au moins une de `cards` cartes, placées au hasard dans `places` places, tombe dans mes
+    `mine` places (loi hypergéométrique)."""
+    return 1.0 - comb(places - mine, cards) / comb(places, cards)
+
+
+@lru_cache(maxsize=None)
 def _card_gain(mine, others, delta, counterparty):
     # Les mêmes situations reviennent des millions de fois : on garde chaque résultat (calcul exact, inchangé).
     after = list(others)
@@ -172,8 +179,10 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
     for k, j in enumerate(opponents):
         slot_owner += [k] * (card_counts[j] - sum(minimums[j].values()))
     slots = range(len(slot_owner))
+    free = [card_counts[j] - sum(minimums[j].values()) for j in opponents]
     buy = {s: [0.0] * len(opponents) for s in SUITS}
-    buy_worlds = {s: [samples] * len(opponents) for s in SUITS}
+    # Phase 5m : poids des mondes où ce joueur a au moins une carte de la couleur, seuls possibles s'il me la vend
+    buy_worlds = {s: [0.0] * len(opponents) for s in SUITS}
     sell = {s: [0.0] * len(opponents) for s in SUITS}
     for twelve, _eight, sizes in rng.choices(CONFIGS, weights=weights, k=samples):
         goal = TWIN[twelve]
@@ -182,15 +191,19 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
             others[slot_owner[slot]] += 1
         mine = hand[goal]
         others = tuple(others)
-        for k in range(len(opponents)):
+        left = len(slot_owner) - (sizes[goal] - known[goal])  # places inconnues pour les autres couleurs
+        for k, j in enumerate(opponents):
             if others[k] > 0:
                 buy[goal][k] += gain(mine, others, +1, k)
-            else:
-                buy_worlds[goal][k] -= 1  # monde impossible si ce joueur me vend une carte objectif
+                buy_worlds[goal][k] += 1
+            room = free[k] - (others[k] - minimums[j][goal])  # ses places inconnues sans carte objectif
+            for s in SUITS:  # hors objectif, la carte vaut 0 : il ne reste que la probabilité qu'il en ait une
+                if s != goal:
+                    buy_worlds[s][k] += 1.0 if minimums[j][s] else _p_some(left, room, sizes[s] - known[s])
             if mine > 0:
                 sell[goal][k] -= gain(mine, others, -1, k)
     return {
-        s: ({j: buy[s][k] / max(1, buy_worlds[s][k]) for k, j in enumerate(opponents)},
+        s: ({j: buy[s][k] / buy_worlds[s][k] if buy_worlds[s][k] else 0.0 for k, j in enumerate(opponents)},
             {j: sell[s][k] / samples for k, j in enumerate(opponents)})
         for s in SUITS
     }

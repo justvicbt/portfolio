@@ -138,22 +138,25 @@ class TestMonteCarlo(unittest.TestCase):
 
     def test_marginal_values_match_the_full_sampler(self):
         # La version rapide ne tire que les cartes objectif ; elle doit donner les mêmes valeurs
-        # que la moyenne calculée à la main sur des mondes complets.
+        # que la moyenne calculée à la main sur des mondes complets. Phase 5m : une carte achetée à un joueur
+        # prouve qu'il en avait une, que la couleur soit l'objectif ou non. Le joueur 1 n'a qu'une place inconnue :
+        # il a rarement du pique, et l'ancienne valeur rapide (1,84 $ au lieu d'environ 5,80 $) le voyait.
         h = hand(S=2, C=3, H=4, D=1)
-        counts, mins = [10, 11, 9, 10], [hand(), hand(H=2), hand(), hand(C=1)]
+        counts, mins = [10, 3, 13, 14], [hand(), hand(H=2), hand(), hand(C=1)]
         rng = random.Random(5)
         n = 4000
         buy_sum = {s: {j: 0.0 for j in (1, 2, 3)} for s in SUITS}
-        buy_worlds = {s: {j: n for j in (1, 2, 3)} for s in SUITS}
+        buy_worlds = {s: {j: 0 for j in (1, 2, 3)} for s in SUITS}
         sell = {s: {j: 0.0 for j in (1, 2, 3)} for s in SUITS}
         for _ in range(n):
             goal, hands = sample_world(h, 0, counts, mins, rng)
             others = [x[goal] for x in hands[1:]]
             for k, j in enumerate((1, 2, 3)):
-                if others[k] > 0:
-                    buy_sum[goal][j] += card_gain(h[goal], others, +1, k)
-                else:
-                    buy_worlds[goal][j] -= 1  # monde impossible s'il me vend une carte objectif
+                for s in SUITS:
+                    if hands[j][s] > 0:  # sinon, monde impossible s'il me vend une carte de cette couleur
+                        buy_worlds[s][j] += 1
+                        if s == goal:
+                            buy_sum[s][j] += card_gain(h[goal], others, +1, k)
                 sell[goal][j] -= card_gain(h[goal], others, -1, k) / n
         ref = {s: ({j: buy_sum[s][j] / buy_worlds[s][j] for j in (1, 2, 3)}, sell[s]) for s in SUITS}
         fast = marginal_values(h, 0, counts, mins, random.Random(6), samples=n)

@@ -96,8 +96,9 @@ class Market:
             self.events += [(t, buyer, "bought", suit, price), (t, seller, "sold", suit, price)]
         elif action[0] in ("bid", "ask"):
             self.events.append((t, player, action[0], action[1], action[2]))
-        elif action[0] == "cancel":  # la cotation disparaît de l'écran (phase 5) ; prix sans objet
-            self.events.append((t, player, "cancel", action[1], 0))
+        elif action[0] == "cancel":  # la cotation disparaît de l'écran (phase 5) ; à la place du prix, le côté
+            # retiré (phase 5m), ou 0 pour les deux
+            self.events.append((t, player, "cancel", action[1], action[2] if len(action) > 2 else 0))
         return trade
 
     def _apply(self, player, action):
@@ -108,6 +109,7 @@ class Market:
         ("buy", couleur, prix)   prend la meilleure vente, si elle coûte au plus `prix` (le prix que j'ai vu)
         ("sell", couleur, prix)  prend le meilleur achat, s'il rapporte au moins `prix`
         ("cancel", couleur)      retire mes cotations dans cette couleur
+        ("cancel", couleur, côté) retire seulement mon offre d'achat ("bid") ou de vente ("ask") (phase 5m)
 
         Le prix d'une prise protège contre la latence : si le carnet a bougé avant que mon ordre
         arrive, il est refusé au lieu de s'exécuter à un prix que je n'ai pas vu.
@@ -119,10 +121,13 @@ class Market:
             raise IllegalAction(f"couleur inconnue : {suit!r}")
         book = self.book[suit]
         if kind == "cancel":
-            if player not in book["bid"] and player not in book["ask"]:
+            sides = ("bid", "ask") if len(action) == 2 else (action[2],)
+            if not set(sides) <= {"bid", "ask"}:
+                raise IllegalAction(f"côté inconnu : {action[2]!r}")
+            if all(player not in book[side] for side in sides):
                 raise IllegalAction("rien à annuler")
-            book["bid"].pop(player, None)
-            book["ask"].pop(player, None)
+            for side in sides:
+                book[side].pop(player, None)
             return None
         if kind in ("bid", "ask", "buy", "sell"):
             price = action[2] if len(action) > 2 else None
