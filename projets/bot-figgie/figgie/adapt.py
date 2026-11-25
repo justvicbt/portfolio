@@ -279,6 +279,22 @@ class SellOnlyV4cBot(AdaptiveV4cBot):
         # mon offre d'achat (0 $ moins le spread) tombe sous 1 $, tant que marge et spread restent >= 0
         return super().buy_value(s, player) if self._buying else 0.0
 
+class TimedV4cBot(AdaptiveV4cBot):
+    """Phase 5l. La v4c, dont la valeur d'une carte compte la part de majorité avec un poids min(1, t / 120) ** 0,5 :
+    nul au début de la manche, entier à partir de 2 minutes. La valeur de la v4c compte la majorité comme si plus
+    rien ne s'échangeait ensuite, et lui fait surpayer ses achats de la première minute (phase 5k). Le poids vaut à
+    l'achat comme à la vente. (T, k) choisis sur la graine 9 ; réglages réentraînés sur les tables de la v4c."""
+    name = "v4c_temps"
+    model_file = "adaptation_v4t.json"
+    majority_time = (120.0, 0.5)
+
+
+class TimedV4cOldModelBot(TimedV4cBot):
+    """Phase 5l. La même valeur que v4c_temps, avec les réglages de la v4c, sans réentraînement : pour mesurer ce
+    qu'apporte le réentraînement."""
+    name = "v4c_temps_brut"
+    model_file = AdaptiveV4cBot.model_file
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10
@@ -338,9 +354,13 @@ def _table_v3(job):
     quelques profils d'une manche vus avec chaque réglage. Parties de `rounds` manches, rejouées à
     chaque siège sur les mêmes donnes pour tous les réglages ; la première manche, où les versions
     adaptatives ne se sont pas encore adaptées, ne compte pas dans les gains."""
-    i, base, deals, rounds, previous, arms, site = job  # site (phase 5d) : règle du site, tables de la v4,
+    i, base, deals, rounds, previous, arms, site, *timed = job  # site (phase 5d) : règle du site, tables de la v4,
     # réglages joués par le lecteur du site ; "full" (phase 5e) : les tables pleines de la v4b ;
-    # "symmetric" (phase 5f) : un seul autre joueur, toutes les autres places au réglage mesuré
+    # "symmetric" (phase 5f) : un seul autre joueur, toutes les autres places au réglage mesuré ;
+    # timed (phase 5l) : (T, k), les réglages sont joués avec la part de majorité pondérée par le temps
+    player = SiteReaderBot if site else MarginalBot
+    if timed and timed[0]:
+        player = type("TimedPlayer", (player,), {"majority_time": tuple(timed[0])})
     tables = {"full": table_opponents_full, "symmetric": table_opponents_symmetric}.get(
         site, table_opponents_v4 if site else table_opponents_v3)
     seed, names = tables(i, base, previous)
@@ -352,7 +372,7 @@ def _table_v3(job):
         for d in range(deals):
             deal_seed = seed * 1_000_000 + d
             for seat in range(n):
-                me = arm_bot(arm, SiteReaderBot if site else MarginalBot)
+                me = arm_bot(arm, player)
                 if site == "symmetric":  # seat : la place de l'autre joueur ; on compte toutes les copies
                     bots, mine = [me] * n, [s for s in range(n) if s != seat]
                     bots[seat] = opponents[0]
@@ -489,6 +509,33 @@ def build_v4(iteration, previous, tables, deals, rounds, arms=ARMS_V3):
     return measured, path
 
 
+# --- Phase 5l : la part de majorité pondérée par le temps -------------------------------------------
+
+# Les tables du modèle de la v4c, dans le même ordre : le 2e tour de la v4 (graine V4_SEED + 2), les tables
+# pleines de la v4b, les tables symétriques de la v4c. (sorte de table, graine, nombre, versions aux tables)
+V4C_RECIPE = [(True, V4_SEED + 2, 80, ["adaptatif_v3", "adaptatif_v4_1"]), ("full", V4B_SEED, 24, []),
+              ("symmetric", V4C_SEED, 84, [])]
+
+
+def build_v4t(majority_time, deals, rounds, arms=ARMS_V3, out=None):
+    """La v4c réentraînée : les mêmes tables que son modèle, jouées avec la part de majorité pondérée par le temps
+    (majority_time = (T, k)). Écrit modeles/adaptation_v4t.json (ou `out`). Renvoie (tables mesurées, chemin)."""
+    import sys
+    import time
+    jobs = [(i, seed, deals, rounds, previous, arms, kind, majority_time)
+            for kind, seed, n, previous in V4C_RECIPE for i in range(n)]
+    measured, start = [], time.time()
+    with Pool() as pool:
+        for done, table in enumerate(pool.imap(_table_v3, jobs), 1):  # dans l'ordre : mêmes lignes que la v4c
+            measured.append(table)
+            elapsed = time.time() - start
+            print(f"{done}/{len(jobs)} tables, {elapsed / 60:.0f} min écoulées, "
+                  f"fin dans ~{elapsed / done * (len(jobs) - done) / 60:.0f} min", file=sys.stderr, flush=True)
+    path = Path(out) if out else MODELS_DIR / "adaptation_v4t.json"
+    path.write_text(json.dumps(Neighbors(v3_rows(measured)).to_dict(), indent=1))
+    return measured, path
+
+
 def table_opponents(i, base):
     """La table d'entraînement numéro i : sa graine et ses adversaires (toujours les mêmes pour i et base)."""
     seed = base * 1000 + i  # donnes : seed x 1 000 000 + d, loin des graines des autres expériences
@@ -572,13 +619,15 @@ def main():
     parser.add_argument("--v4", type=int, metavar="TOUR", help="phase 5d : un tour d'entraînement sur le marché du site")
     parser.add_argument("--v4b", metavar="RAPPORT", help="phase 5e : la v4 du rapport, plus --tables tables pleines")
     parser.add_argument("--v4c", metavar="RAPPORT", help="phase 5f : la v4b du rapport, plus --tables tables symétriques")
+    parser.add_argument("--v4t", metavar="T,k", help="phase 5l : les tables de la v4c, jouées avec la part de majorité "
+                        "pondérée par min(1, t / T) ** k")
     parser.add_argument("--previous", nargs="*", default=[], help="versions précédentes, placées aux tables (avec --v3)")
     parser.add_argument("--rounds", type=int, default=3, help="manches par partie (avec --v3)")
     parser.add_argument("--arms", nargs="+", help="réglages possibles, « spread,marge,spread fin,marge fin » (avec --v3)")
     args = parser.parse_args()
-    if sum(x is not None for x in (args.v3, args.v4, args.v4b, args.v4c)) > 1:
-        parser.error("--v3, --v4, --v4b ou --v4c, un seul à la fois")
-    if args.v3 is not None or args.v4 is not None or args.v4b or args.v4c:
+    if sum(x is not None for x in (args.v3, args.v4, args.v4b, args.v4c, args.v4t)) > 1:
+        parser.error("--v3, --v4, --v4b, --v4c ou --v4t, un seul à la fois")
+    if args.v3 is not None or args.v4 is not None or args.v4b or args.v4c or args.v4t:
         from figgie.evaluate import mean_ci
         arms = [parse_arm(a) for a in args.arms] if args.arms else ARMS_V3
         if DEFAULT_ARM_V3 not in arms:
@@ -591,6 +640,11 @@ def main():
         if args.v4b:  # --previous : seulement pour retrouver les tables façon minorité du rapport
             measured, path = build_v4b(args.v4b, args.tables, args.deals, args.rounds, arms)
             print(f"v4b : {args.v4b}, plus {args.tables} tables pleines, {args.deals} donnes, parties de {args.rounds} manches")
+        elif args.v4t:
+            horizon, power = map(float, args.v4t.split(","))
+            measured, path = build_v4t((horizon, power), args.deals, args.rounds, arms)
+            print(f"v4t : les {len(measured)} tables de la v4c, majorité pondérée par min(1, t / {horizon:g}) ** {power:g}, "
+                  f"{args.deals} donnes, parties de {args.rounds} manches")
         elif args.v4c:
             measured, path = build_v4b(args.v4c, args.tables, args.deals, args.rounds, arms, kind="symmetric")
             print(f"v4c : {args.v4c}, plus {args.tables} tables symétriques, {args.deals} donnes, parties de {args.rounds} manches")

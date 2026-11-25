@@ -178,6 +178,7 @@ class MarginalBot(ValueBot):
     spread, edge = 8, 1  # réglés sur les donnes d'entraînement (graine 2), voir figgie/tune.py et resultats/phase2/
 
     ask_counting = False  # phase 5b : True = une vente proposée prouve aussi qu'on a la carte
+    majority_time = None  # phase 5l : (T, k), la part de majorité compte min(1, t / T) ** k ; None = en entier
 
     def __init__(self):
         super().__init__()
@@ -191,13 +192,21 @@ class MarginalBot(ValueBot):
         self._seen = len(view.events)
         return self._mins
 
+    def majority_weight(self, view):
+        if self.majority_time is None:
+            return 1.0
+        horizon, power = self.majority_time
+        # shortcut: poids arrondi au vingtième, pour ne refaire le Monte Carlo qu'une vingtaine de fois par manche
+        return round(min(1.0, view.time / horizon) ** power * 20) / 20
+
     def refresh(self, view, rng):
         mins = self.minimums(view)
-        key = (tuple(view.hand.values()), len(view.trades), str(mins) if self.ask_counting else None)
+        weight = self.majority_weight(view)
+        key = (tuple(view.hand.values()), len(view.trades), str(mins) if self.ask_counting else None, weight)
         if key != self._key:
             drawn = initial_hand(view.hand, view.trades, view.seat) if self.constraint_counting else None
             self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
-                                           drawn=drawn)
+                                           drawn=drawn, majority_weight=weight)
             self._key = key
 
     def buy_value(self, s, player):
@@ -257,12 +266,14 @@ class ReaderBot(MarginalBot):
             self._n_seen = self.market_key(view)
             self._new_market = self.market(view)
         market = self._new_market
-        key = (tuple(view.hand.values()), len(view.trades))
+        weight = self.majority_weight(view)
+        key = (tuple(view.hand.values()), len(view.trades), weight)
         moved = self._market is None or max(abs(market[s] - self._market[s]) for s in SUITS) > self.resample
         if key != self._key or moved:
             mins = self.minimums(view)
             self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
-                                           goal_weights=market, drawn=initial_hand(view.hand, view.trades, view.seat))
+                                           goal_weights=market, drawn=initial_hand(view.hand, view.trades, view.seat),
+                                           majority_weight=weight)
             self._key, self._market = key, market
 
     def market_key(self, view):

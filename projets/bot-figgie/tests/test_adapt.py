@@ -229,6 +229,24 @@ class TestSellOnlyStart(unittest.TestCase):
             self.assertEqual(tuple(memory["arms"][r]), tuple(v4c.choose(memory["profiles"][:r])))
 
 
+class TestTimedStart(unittest.TestCase):
+    """Phase 5l, seam « la v4c au temps choisit son réglage avec son modèle » : sous la règle du site, chaque manche
+    après la première, son réglage est celui que donnent ses voisins (modèle réentraîné) à partir des profils vus."""
+
+    def test_the_arm_is_the_one_of_its_retrained_model(self):
+        import json
+        from figgie.adapt import STRONG_HAND, Neighbors, TimedV4cBot, hand_strength, parse_arm
+        from figgie.bots import MODELS_DIR
+        model = Neighbors.from_dict(json.loads((MODELS_DIR / "adaptation_v4t.json").read_text()))
+        match = play_match([TimedV4cBot, ZOO["marginal"], ZOO["heuristique"], ZOO["sniper"]], seed=5, rounds=3,
+                           single_quote=True)
+        memory = match.memories[0]
+        for r in range(1, 3):
+            strong = float(hand_strength(match.logs[r]["hands"][0], 4) >= STRONG_HAND)
+            expected = parse_arm(model.best_many([{**p, "main": strong} for p in memory["profiles"][:r]]))
+            self.assertEqual(tuple(memory["arms"][r]), tuple(expected))
+
+
 class TestMeanProfile(unittest.TestCase):
     """Phase 5h, seam « après une seule manche, la v4d choisit comme la v4c » : la moyenne d'un seul profil est ce
     profil, donc interroger les voisins une fois avec la moyenne revient à les interroger avec la seule manche vue."""

@@ -8,7 +8,7 @@ ce que l'on sait, et on fait la moyenne. C'est la méthode de Monte Carlo.
 from functools import lru_cache
 from math import comb
 
-from figgie.engine import SUITS, TWIN, payout
+from figgie.engine import GOAL_CARD_VALUE, SUITS, TWIN, payout
 
 # Les 12 compositions possibles du paquet : (couleur de 12, couleur de 8, taille de chaque couleur).
 CONFIGS = [
@@ -150,12 +150,22 @@ def sample_world(hand, seat, card_counts, minimums, rng):
     return TWIN[twelve], hands
 
 
-def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_weights=None, drawn=None):
+def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_weights=None, drawn=None,
+                    majority_weight=1.0):
     """Valeur d'une carte de chaque couleur selon le joueur d'en face.
 
     Renvoie {couleur: (achat, vente)} où achat = {siège: ce que me rapporte une carte achetée à ce joueur}
     et vente = {siège: ce que me coûte une carte vendue à ce joueur}.
+    `majority_weight` (phase 5l) : la carte elle-même compte en entier (10 $ si objectif), le changement de ma
+    part de majorité est multiplié par ce poids. Le tirage aléatoire ne dépend pas du poids.
     """
+    def gain(mine, others, delta, k):
+        g = _card_gain(mine, others, delta, k)
+        if majority_weight == 1.0:
+            return g  # exactement les valeurs d'avant la phase 5l
+        card = GOAL_CARD_VALUE * delta
+        return card + majority_weight * (g - card)
+
     minimums, known, weights = _consistent(hand, seat, minimums, goal_weights, drawn)
     # Même tirage que sample_world, mais on ne place que les cartes objectif : ce sont les seules
     # qui comptent pour le gain, et c'est beaucoup plus rapide que de distribuer toute la table.
@@ -176,11 +186,11 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
         others = tuple(others)
         for k in range(len(opponents)):
             if others[k] > 0:
-                buy[goal][k] += _card_gain(mine, others, +1, k)
+                buy[goal][k] += gain(mine, others, +1, k)
             else:
                 buy_worlds[goal][k] -= 1  # monde impossible si ce joueur me vend une carte objectif
             if mine > 0:
-                sell[goal][k] -= _card_gain(mine, others, -1, k)
+                sell[goal][k] -= gain(mine, others, -1, k)
     return {
         s: ({j: buy[s][k] / max(1, buy_worlds[s][k]) for k, j in enumerate(opponents)},
             {j: sell[s][k] / samples for k, j in enumerate(opponents)})

@@ -175,5 +175,38 @@ class TestMonteCarlo(unittest.TestCase):
                 self.assertTrue(all(-130 <= v <= 130 for v in side.values()))
 
 
+class TestMajorityWeight(unittest.TestCase):
+    """Phase 5l, seam « part de la majorité pondérée » : marginal_values(majority_weight=w) compte la carte
+    elle-même (10 $ si objectif) en entier, et la part de majorité multipliée par w."""
+
+    def test_without_the_majority_a_card_of_the_known_goal_is_worth_10(self):
+        # Le marché désigne le carreau à coup sûr : sans majorité, une carte de carreau vaut 10 $ à l'achat
+        # comme à la vente, une carte des autres couleurs 0 $. Avec la majorité, elle vaut plus de 10 $.
+        h = hand(S=3, C=2, H=2, D=3)
+        weights = {"S": 0, "C": 0, "H": 0, "D": 1}
+        bare = marginal_values(h, 0, [10] * 4, [hand()] * 4, random.Random(4), samples=200, goal_weights=weights,
+                               majority_weight=0.0)
+        for s in SUITS:
+            expected = 10.0 if s == "D" else 0.0
+            for side in bare[s]:
+                for v in side.values():
+                    self.assertAlmostEqual(v, expected, places=9)
+        full = marginal_values(h, 0, [10] * 4, [hand()] * 4, random.Random(4), samples=200, goal_weights=weights)
+        self.assertGreater(min(full["D"][0].values()), 10.0)
+
+    def test_full_weight_gives_exactly_todays_values(self):
+        # Même graine : un poids de 1 ne change rien, ni les valeurs ni le tirage aléatoire. Le poids est pris juste
+        # sous 1 pour passer par le calcul pondéré, et pas par le raccourci du poids 1.
+        h = hand(S=6, C=1, H=2, D=1)
+        mins = [hand(), hand(C=2), hand(), hand(H=1)]
+        before = marginal_values(h, 0, [10, 9, 11, 10], mins, random.Random(8), samples=300)
+        after = marginal_values(h, 0, [10, 9, 11, 10], mins, random.Random(8), samples=300,
+                                majority_weight=1 - 1e-12)
+        for s in SUITS:
+            for side_before, side_after in zip(before[s], after[s]):
+                for j in side_before:
+                    self.assertAlmostEqual(side_after[j], side_before[j], places=6)
+
+
 if __name__ == "__main__":
     unittest.main()
