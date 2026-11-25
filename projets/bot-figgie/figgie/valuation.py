@@ -159,12 +159,10 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
     `majority_weight` (phase 5l) : la carte elle-même compte en entier (10 $ si objectif), le changement de ma
     part de majorité est multiplié par ce poids. Le tirage aléatoire ne dépend pas du poids.
     """
-    def gain(mine, others, delta, k):
-        g = _card_gain(mine, others, delta, k)
-        if majority_weight == 1.0:
-            return g  # exactement les valeurs d'avant la phase 5l
+    def weighted(mine, others, delta, k):
         card = GOAL_CARD_VALUE * delta
-        return card + majority_weight * (g - card)
+        return card + majority_weight * (_card_gain(mine, others, delta, k) - card)
+    gain = _card_gain if majority_weight == 1.0 else weighted  # poids 1 : exactement les valeurs d'avant la phase 5l
 
     minimums, known, weights = _consistent(hand, seat, minimums, goal_weights, drawn)
     # Même tirage que sample_world, mais on ne place que les cartes objectif : ce sont les seules
