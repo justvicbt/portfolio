@@ -96,7 +96,7 @@ I had the reading exploiter, the selling v4c and three recalibrated Hard bots pl
 | selling v4c first | +7.07 | -1.51 | +8.58 |
 | mean | +4.64 | -0.22 | +4.86 |
 
-The reading exploiter comes out ahead in both orders, and the mean is close to the tournament gap (+$3.43). Yet the selling v4c wins on its trades with it: $5.48 per round on average. It also loses less than the reading exploiter against the Hard bots ($6.19 against $11.04). Everything happens in the rest: over the mean of both orders, the starting hands cancel out, and that rest brings $21.15 per round to the reading exploiter against $0.49 to the selling v4c. In other words, the reading exploiter overpays for its cards, but it takes the majority. The selling v4c, which buys nothing in the first minute and even sells goal cards, leaves it the majority.
+The reading exploiter comes out ahead in both orders, and the mean is close to the tournament gap (+$3.43). Yet the selling v4c wins on its trades with it: $5.48 per round on average. It also loses less than the reading exploiter against the Hard bots ($6.19 against $11.04). Everything happens in the rest: over the mean of both orders, the starting hands cancel out, and that rest brings $21.15 per round to the reading exploiter against $0.49 to the selling v4c. So the reading exploiter overpays for its cards, but it takes the majority. The selling v4c, which buys nothing in the first minute and even sells goal cards, leaves it the majority.
 
 It is the same flaw as against the recalibrated Hard bots, seen from another side: the selling v4c wins its trades, but loses the majority.
 

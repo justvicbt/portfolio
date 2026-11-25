@@ -96,7 +96,7 @@ J'ai fait jouer l'exploiteur lecteur, la v4c vendeuse et trois Hard recalés, su
 | v4c vendeuse d'abord | +7,07 | -1,51 | +8,58 |
 | moyenne | +4,64 | -0,22 | +4,86 |
 
-L'exploiteur lecteur passe devant dans les deux ordres, et la moyenne est proche de l'écart du tournoi (+3,43 $). Pourtant, la v4c vendeuse gagne sur chaque échange avec lui : 5,48 $ par manche en moyenne. Elle perd aussi moins que lui face aux Hard (6,19 $ contre 11,04 $). Tout se joue dans le reste : sur la moyenne des deux ordres, les mains de départ s'annulent, et ce reste rapporte 21,15 $ par manche à l'exploiteur lecteur contre 0,49 $ à la v4c vendeuse. Autrement dit, l'exploiteur lecteur paie trop cher ses cartes, mais il ramasse la majorité. La v4c vendeuse, qui n'achète rien pendant la première minute et vend même des cartes objectif, la lui laisse.
+L'exploiteur lecteur passe devant dans les deux ordres, et la moyenne est proche de l'écart du tournoi (+3,43 $). Pourtant, la v4c vendeuse gagne sur chaque échange avec lui : 5,48 $ par manche en moyenne. Elle perd aussi moins que lui face aux Hard (6,19 $ contre 11,04 $). Tout se joue dans le reste : sur la moyenne des deux ordres, les mains de départ s'annulent, et ce reste rapporte 21,15 $ par manche à l'exploiteur lecteur contre 0,49 $ à la v4c vendeuse. L'exploiteur lecteur paie donc trop cher ses cartes, mais il ramasse la majorité. La v4c vendeuse, qui n'achète rien pendant la première minute et vend même des cartes objectif, la lui laisse.
 
 C'est le même défaut que face aux Hard recalés, vu d'un autre côté : la v4c vendeuse gagne ses échanges, mais perd la majorité.
 
