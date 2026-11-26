@@ -56,6 +56,23 @@ ASKS = {"goal": "hearts", "me": 0, "log": ";".join([
 ])}
 
 
+class TestConsensusHits(unittest.TestCase):
+    """Phase 5q, seam « le consensus des bots Hard désigne l'objectif » : pour chaque instant, la part des manches où
+    la couleur au plus haut consensus (le plus bas des plus hauts prix d'achat proposés par les bots Hard) est
+    l'objectif ; une égalité entre k couleurs compte 1/k. Valeurs calculées à la main."""
+
+    def test_share_of_rounds_where_the_hard_consensus_points_to_the_goal(self):
+        from figgie.reel import consensus_hits
+        hearts = {"goal": "hearts", "me": 0, "log": ";".join([
+            "b,230,2,5,1,,", "b,220,2,6,2,,", "b,210,2,4,3,,",   # avant 120 s : cœur à 4 $ au consensus
+            "b,90,0,7,1,,", "b,89,0,8,2,,", "b,88,0,9,3,,",      # à 150 s : pique à 7 $, devant le cœur
+            "b,40,2,20,0,,",                                     # le bot de Rasmus ne compte pas
+        ])}
+        nothing = {"goal": "spades", "me": 0, "log": "o,200,1,9,1,,"}  # aucune offre d'achat : 4 couleurs à égalité
+        rounds = [parse_rasmus_round(hearts), parse_rasmus_round(nothing)]
+        self.assertEqual(consensus_hits(rounds, times=(120, 180, 239)), [(1 + 1 / 4) / 2, (0 + 1 / 4) / 2, (0 + 1 / 4) / 2])
+
+
 class TestAskOutcomes(unittest.TestCase):
     def test_each_ask_ends_taken_replaced_cancelled_cleared_or_still_there(self):
         self.assertEqual(ask_outcomes(parse_rasmus_round(ASKS)), [

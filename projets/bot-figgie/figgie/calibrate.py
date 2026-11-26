@@ -8,6 +8,10 @@ bot de Rasmus : on ne mesure que les bots Hard, et les échanges sont comptés p
 
 Phase 5j, --lift : on compare aussi la part des offres de vente d'un bot Hard qu'un autre prend, par tranche de prix
 (figgie.reel.lift_rates). Le Hard de la phase 5c en prenait bien trop au-dessus de 7 $ dans les couleurs hors objectif.
+
+Phase 5q, --consensus : on compare aussi la part des manches où le consensus des bots Hard met l'objectif en tête, à
+120, 180 et 239 s (figgie.reel.consensus_hits), et la force de lecture `read` peut monter plus haut. Sur les vraies
+manches, ce consensus trouve l'objectif à la cloche dans 91 % des manches, entre les Hard recalés dans 67 % (phase 5p).
 """
 import argparse
 import json
@@ -17,8 +21,8 @@ from pathlib import Path
 
 from figgie.bots import HardBot
 from figgie.engine import play_round
-from figgie.exploit import sample_settings
-from figgie.reel import lift_rates, load_rasmus, market_stats, simulated_round
+from figgie.exploit import _map, sample_settings
+from figgie.reel import consensus_hits, lift_rates, load_rasmus, market_stats, simulated_round
 
 SPACE = {
     "base": [0, 1, 2, 3, 4, 5],
@@ -37,26 +41,31 @@ SCALES = {"hard_trades_per_pair": 2.0, "quotes_per_min": 8.0, "first_quote": 2.0
           "other_price": 1.0, "goal_top_bid": 1.0, "other_top_bid": 1.0}
 MINUTE_SCALE = 0.1  # pour la répartition des échanges par minute, somme des écarts
 LIFT_SCALE = 0.05  # phase 5j : 5 points de part d'offres prises = une unité d'erreur
+CONSENSUS_SCALE = 0.05  # phase 5q : 5 points de manches où le consensus désigne l'objectif = une unité d'erreur
+CONSENSUS_READ = [0.6, 0.8, 1.2]  # phase 5q : forces de lecture ajoutées à SPACE avec --consensus
 
 
 def hard_bot(params):
     return type("CalibratedHard", (HardBot,), dict(params))
 
 
-def distance(sim, real, lift=False):
+def distance(sim, real, lift=False, consensus=False):
     """Écart entre deux jeux de mesures : somme des carrés des écarts, chacun ramené à son échelle.
     Infini si une mesure manque (aucun échange entre bots simulés, par exemple).
-    `lift` (phase 5j) : ajoute les parts d'offres de vente prises, par tranche de prix."""
+    `lift` (phase 5j) : ajoute les parts d'offres de vente prises, par tranche de prix.
+    `consensus` (phase 5q) : ajoute la part des manches où le consensus des bots Hard désigne l'objectif."""
     if any(sim[k] is None for k in SCALES) or (lift and any(v is None for v in sim["lift"].values())):
         return float("inf")
     total = sum(((sim[k] - real[k]) / scale) ** 2 for k, scale in SCALES.items())
     if lift:
         total += sum(((sim["lift"][k] - real["lift"][k]) / LIFT_SCALE) ** 2 for k in real["lift"])
+    if consensus:
+        total += sum(((a - b) / CONSENSUS_SCALE) ** 2 for a, b in zip(sim["consensus"], real["consensus"]))
     return total + (sum(abs(a - b) for a, b in zip(sim["by_minute"], real["by_minute"])) / MINUTE_SCALE) ** 2
 
 
 def measures(rounds):
-    return {**market_stats(rounds), "lift": lift_rates(rounds)}
+    return {**market_stats(rounds), "lift": lift_rates(rounds), "consensus": consensus_hits(rounds)}
 
 
 def simulate(params, rounds, seed, players=4):
@@ -66,8 +75,8 @@ def simulate(params, rounds, seed, players=4):
 
 
 def _score(job):
-    params, rounds, seed, real, lift = job
-    return distance(simulate(params, rounds, seed), real, lift), params
+    params, rounds, seed, real, lift, consensus = job
+    return distance(simulate(params, rounds, seed), real, lift, consensus), params
 
 
 def main():
@@ -77,13 +86,16 @@ def main():
     parser.add_argument("--keep", type=int, default=5, help="meilleurs réglages revérifiés sur d'autres donnes")
     parser.add_argument("--out", help="fichier JSON des résultats")
     parser.add_argument("--lift", action="store_true", help="phase 5j : compter aussi les parts d'offres de vente prises")
+    parser.add_argument("--consensus", action="store_true",
+                        help="phase 5q : compter aussi la part des manches où le consensus des Hard désigne l'objectif")
     args = parser.parse_args()
     real = measures(load_rasmus())
-    settings = sample_settings(SPACE, args.settings, random.Random(SEARCH_SEED))
+    space = {**SPACE, "read": SPACE["read"] + CONSENSUS_READ} if args.consensus else SPACE
+    settings = sample_settings(space, args.settings, random.Random(SEARCH_SEED))
     with Pool() as pool:
-        scored = sorted(pool.map(_score, [(p, args.rounds, SEARCH_SEED, real, args.lift) for p in settings]), key=lambda x: x[0])
+        scored = sorted(_map(pool, _score, [(p, args.rounds, SEARCH_SEED, real, args.lift, args.consensus) for p in settings], "recherche"), key=lambda x: x[0])
         best = [p for _d, p in scored[:args.keep]]
-        checked = sorted(pool.map(_score, [(p, 3 * args.rounds, CHECK_SEED, real, args.lift) for p in best]), key=lambda x: x[0])
+        checked = sorted(_map(pool, _score, [(p, 3 * args.rounds, CHECK_SEED, real, args.lift, args.consensus) for p in best], "revérification"), key=lambda x: x[0])
     final = checked[0][1]
     stats = simulate(final, 3 * args.rounds, CHECK_SEED)
     fmt = lambda v: "-" if v is None else "/".join(f"{x:.2f}" for x in v) if isinstance(v, list) else f"{v:.2f}"
@@ -98,6 +110,7 @@ def main():
         print(f"{k:22s} {fmt(real[k]):>12s} {fmt(stats[k]):>12s}")
     for k in real["lift"]:
         print(f"{'prise ' + k:22s} {fmt(real['lift'][k]):>12s} {fmt(stats['lift'][k]):>12s}")
+    print(f"{'consensus 120/180/239':22s} {fmt(real['consensus']):>12s} {fmt(stats['consensus']):>12s}")
     if args.out:
         Path(args.out).write_text(json.dumps({"args": vars(args), "real": real, "search": scored, "checked": checked,
                                               "final": final, "final_stats": stats}, indent=1))

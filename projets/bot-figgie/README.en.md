@@ -37,6 +37,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5n. The majority weight on the buying side only | The majority counted in full when selling, a weight min(1, t / 240) ^ 0.5 when buying, and a full 300-deal tournament | [FR](docs/phase5n.fr.md) · [EN](docs/phase5n.en.md) | Done (v4c_achat promoted) |
 | 5o. Searching for an exploiter | The automatic exploiter search run again against the "buying" v4c, on the site's market and at the mixed table, with 4 and 5 players | [FR](docs/phase5o.fr.md) · [EN](docs/phase5o.en.md) | Done (promotion kept) |
 | 5p. What the bot believes about the others | The card that breaks a tie, what the bot believes about the rivals' hands and the goal suit, the site bots' cancels, and a late-round reading stopped because it did no better on the real rounds | [FR](docs/phase5p.fr.md) · [EN](docs/phase5p.en.md) | Done (diagnostics, no bot changed) |
+| 5q. A simulated Hard bot whose bids point to the goal | The Hard bots' consensus measured on the real rounds and added to the simulated Hard bot's tuning, and what a stronger reading changes | [FR](docs/phase5q.fr.md) · [EN](docs/phase5q.en.md) | Done (no Hard bot kept) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -81,6 +82,8 @@ In phase 5o, I run the automatic exploiter search again against the "buying" v4c
 
 In phase 5p, I look at the card that breaks a majority tie, the idea from Rasmus's v5. The "buying" v4c ends tied in 13.4% of the rounds with 4 players, and lets slip goal cards at $27 that would bring it about $60. Yet its value counts that gain: what it lacks is information. It values the card at $10, at $21 if it knew the goal, and does not see that a rival is tied with it. Reading the suit better late in the round, tuned in simulation, does no better on the real rounds. The cause lies in the simulator: the consensus of bids finds the goal in 91% of the real rounds at the bell, but in only 67% between our simulated Hard bots. No bot is changed.
 
+In phase 5q, I add this consensus to the simulated Hard bot's tuning. The search finds nothing better than the recalibrated Hard bot: its best setting finds the goal at the bell in 84% of the rounds instead of 73%, but it moves the rest of the market away from the site. And reading the others' offers harder freezes the consensus at about 30%: the Hard bots all follow the first suit where someone bid high. The site's real bots read something other than the highest bids. No bot is changed.
+
 Full tables are in each phase's doc.
 
 ## What I took away
@@ -119,11 +122,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 145 tests, about 15 seconds
+python3 -m unittest                      # 146 tests, about 15 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5p-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5q-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -132,4 +135,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5p done. Next step: a simulated Hard bot whose bids point to the goal as often as on the site, tuned on the consensus of the real rounds. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5q done. Next step to be chosen: the simulated Hard bot only reads the highest bids, and it is the form of its reading that would have to change. Phase 6 (real site) waits for written consent from Jane Street.

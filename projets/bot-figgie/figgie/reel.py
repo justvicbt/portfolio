@@ -106,6 +106,27 @@ def market_stats(rounds):
     }
 
 
+CONSENSUS_TIMES = (120, 180, 239)
+
+
+def consensus_hits(rounds, times=CONSENSUS_TIMES):
+    """Phase 5q : à chaque instant de `times`, la part des manches où le consensus des bots `hard` (pour chaque couleur,
+    le plus bas de leurs plus hauts prix d'achat proposés jusque-là) met l'objectif en tête. Une égalité entre k
+    couleurs compte 1/k. Sur les tables simulées, on ne prend que trois bots Hard, comme dans les vraies manches."""
+    from figgie.signals import top_bids
+    out = []
+    for t in times:
+        hits = []
+        for r in rounds:
+            players = sorted(r["hard"])[:3]
+            top = top_bids([e for e in r["events"] if e[0] <= t], players)
+            cons = {s: min(top.get((p, s), 0) for p in players) for s in SUITS}
+            leaders = [s for s in SUITS if cons[s] == max(cons.values())]
+            hits.append((r["goal"] in leaders) / len(leaders))
+        out.append(statistics.fmean(hits))
+    return out
+
+
 LIFT_BUCKETS = (("autre", 1, 3), ("autre", 4, 6), ("autre", 7, 8), ("autre", 9, 13), ("objectif", 7, 10),
                 ("objectif", 11, 13))
 
