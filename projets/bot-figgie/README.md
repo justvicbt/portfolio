@@ -34,6 +34,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 5k. Ne rien acheter la première minute | Ce que la v4c achète en première minute et pourquoi elle le surpaie, puis une v4c qui vend mais n'achète rien pendant 60 s | [FR](docs/phase5k.fr.md) · [EN](docs/phase5k.en.md) | Terminée (aucun bot promu) |
 | 5l. Une valeur qui tient compte du temps | La part de majorité comptée moins fort en début de manche, avec un poids qui monte jusqu'à 2 minutes, et les réglages réentraînés | [FR](docs/phase5l.fr.md) · [EN](docs/phase5l.en.md) | Terminée (aucun bot promu) |
 | 5m. Trois défauts corrigés | Retrait d'un seul côté, valeur d'achat du marginal, profil de table qui suit la règle du site, et la v4c réentraînée | [FR](docs/phase5m.fr.md) · [EN](docs/phase5m.en.md) | Terminée (aucun bot promu) |
+| 5n. Le poids de la majorité à l'achat seulement | La majorité comptée en entier à la vente, un poids min(1, t / 240) ^ 0,5 à l'achat, et un tournoi complet à 300 donnes | [FR](docs/phase5n.fr.md) · [EN](docs/phase5n.en.md) | Terminée (v4c_achat promu) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -71,6 +72,8 @@ En phase 5k, je trouve pourquoi la v4c surpaie en première minute : elle ne sai
 En phase 5l, je corrige la valeur elle-même : la part de majorité compte avec un poids min(1, t / 120) ^ 0,5, nul au début de la manche et entier à 2 minutes. La nouvelle v4c bat le marginal (+9,74 $ par manche à 4 joueurs) et le Hard recalé (+15,18 $) mieux que tous les candidats d'avant, et c'est la première à passer la règle d'entrée à 4 joueurs. Elle est refusée à 5 : la v4c qui se tait fait 2,46 $ de mieux qu'elle à la table mixte, et l'exploiteur lecteur 1,66 $. Elle vend trop tôt ses cartes objectif, parce que le poids compte aussi à la vente. Réentraîner ses réglages n'apporte rien de net. Aucun bot n'est promu.
 
 En phase 5m, je corrige trois erreurs trouvées à la relecture : sous la règle du site, le bot retirait ses deux offres quand il voulait n'en baisser qu'une ; la valeur d'achat du marginal oubliait qu'un vendeur prouve qu'il a la carte quand la couleur n'est pas l'objectif ; et le profil de table gardait des offres que le site avait effacées. J'ai réentraîné la v4c et la v4c au temps sur le code corrigé. Au tournoi, la v4c au temps passe toujours à 4 joueurs et reste refusée à 5, par une seule référence au lieu de deux : la v4c qui se tait, qui fait 3,05 $ de mieux qu'elle. Presque tous les bots ont changé avec ces corrections, donc les chiffres ne se comparent pas directement à ceux de la 5l. Aucun bot n'est promu.
+
+En phase 5n, je garde le poids de la majorité à l'achat et je le retire à la vente, pour que le bot ne cède plus ses cartes objectif en début de manche. Avec T = 240 s, choisi sur une autre graine, la v4c « achat » passe la règle d'entrée à 4 et à 5 joueurs, au tournoi réduit comme au tournoi complet à 300 donnes : aucun candidat n'y était arrivé depuis la table mixte. Elle bat la v4c au temps de la 5l de 3,90 $ par manche à 4 joueurs et de 4,25 $ à 5. Elle devient le bot de référence, à la place du marginal. Elle ne fait que jeu égal avec l'exploiteur lecteur à 5 joueurs, et gagne moins face aux marginaux à 5 joueurs (+9,16 $ par manche contre +12,40 $). Ces gains sont mesurés contre des bots simulés.
 
 Les tableaux complets sont dans les docs de chaque phase.
 
@@ -110,11 +113,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 142 tests, environ 15 secondes
+python3 -m unittest                      # 144 tests, environ 15 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5m-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5n-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -123,4 +126,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 
 
 ## Statut
 
-En cours : phases 0 à 5m terminées. Prochaine étape : garder le poids à l'achat seulement, pour que le bot ne cède plus ses cartes objectif en début de manche. La phase 6 (site réel) attend un accord écrit de Jane Street.
+En cours : phases 0 à 5n terminées. Prochaine étape : relancer la recherche automatique d'exploiteurs contre la v4c « achat », à 4 et à 5 joueurs, sur le marché du site. La phase 6 (site réel) attend un accord écrit de Jane Street.

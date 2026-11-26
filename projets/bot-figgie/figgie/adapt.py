@@ -301,6 +301,15 @@ class TimedV4cOldModelBot(TimedV4cBot):
     name = "v4c_temps_brut"
     model_file = AdaptiveV4cBot.model_file
 
+
+class BuyTimedV4cBot(AdaptiveV4cBot):
+    """Phase 5n. La v4c dont la part de majorité compte avec un poids min(1, t / 240) ** 0,5, à l'achat seulement : à la
+    vente, la majorité compte en entier, pour ne plus céder ses cartes objectif bon marché en début de manche (diagnostic
+    de la phase 5l). T choisi sur la graine 9 ; réglages de la v4c, sans réentraînement."""
+    name = "v4c_achat"
+    majority_time = (240.0, 0.5)
+    majority_on_sell = False
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10

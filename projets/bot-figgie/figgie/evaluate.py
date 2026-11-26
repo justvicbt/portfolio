@@ -11,7 +11,7 @@ import json
 import statistics
 
 from figgie.adapt import AdaptiveBot, AdaptiveV2Bot, AdaptiveV3Bot, AdaptiveV4Bot, AdaptiveV4bBot, AdaptiveV4cBot, \
-    AdaptiveV4dBot, QuietV4cBot, QuietV4cBot30, SellOnlyV4cBot, TimedV4cBot, TimedV4cOldModelBot
+    AdaptiveV4dBot, QuietV4cBot, QuietV4cBot30, SellOnlyV4cBot, TimedV4cBot, TimedV4cOldModelBot, BuyTimedV4cBot
 from figgie.bots import ABNORMAL, ZOO, CorrectedMarginalBot, CountingBot, HardBot, HardBotV2, LeagueReaderBot, SiteReaderBot, ImitatorBot, \
     FundamentalistBot, FundamentalistBot35, MantisBot, SellerBot, TiltBot
 
@@ -25,6 +25,7 @@ CANDIDATES = {**ZOO, CorrectedMarginalBot.name: CorrectedMarginalBot, CountingBo
               SellerBot.name: SellerBot, MantisBot.name: MantisBot, TiltBot.name: TiltBot,
               QuietV4cBot.name: QuietV4cBot, QuietV4cBot30.name: QuietV4cBot30, SellOnlyV4cBot.name: SellOnlyV4cBot,
               TimedV4cBot.name: TimedV4cBot, TimedV4cOldModelBot.name: TimedV4cOldModelBot,
+              BuyTimedV4cBot.name: BuyTimedV4cBot,
               AdaptiveV4dBot.name: AdaptiveV4dBot}
 from figgie.engine import play_match, play_round
 

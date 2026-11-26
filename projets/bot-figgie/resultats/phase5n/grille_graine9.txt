@@ -1,0 +1,7 @@
+graine 9, 100 donnes, 10 manches, règle du site ; gain par manche [IC 95 %] ; calme = écart v4c calme - candidat, 5 joueurs
+  v4c         hard_v2 4j   -5.83 [-7.62 ; -4.05]   hard_v2 5j   -4.35 [-5.93 ; -2.77]   marginal 4j   +8.45 [+7.63 ; +9.28]   marginal 5j   +4.90 [+3.98 ; +5.83]   calme 5j   +5.78 [+4.74 ; +6.83]   score   -4.99
+  both_T120   hard_v2 4j  +16.67 [+14.89 ; +18.45]   hard_v2 5j  +14.80 [+13.32 ; +16.27]   marginal 4j  +12.80 [+11.65 ; +13.94]   marginal 5j  +10.31 [+9.31 ; +11.30]   calme 5j   +1.84 [+0.79 ; +2.90]   score  +11.80
+  achat_T60   hard_v2 4j   +9.10 [+7.30 ; +10.90]   hard_v2 5j  +14.81 [+13.09 ; +16.53]   marginal 4j  +10.85 [+9.81 ; +11.90]   marginal 5j   +6.86 [+5.95 ; +7.76]   calme 5j   +1.81 [+0.69 ; +2.93]   score   +8.60
+  achat_T120  hard_v2 4j  +16.08 [+14.29 ; +17.87]   hard_v2 5j  +17.65 [+16.42 ; +18.88]   marginal 4j  +11.80 [+10.78 ; +12.82]   marginal 5j   +7.32 [+6.47 ; +8.16]   calme 5j   +0.65 [-0.34 ; +1.63]   score  +12.57
+  achat_T240  hard_v2 4j  +17.94 [+16.35 ; +19.53]   hard_v2 5j  +15.25 [+13.84 ; +16.66]   marginal 4j  +13.61 [+12.54 ; +14.68]   marginal 5j   +9.21 [+8.37 ; +10.05]   calme 5j   -0.00 [-0.98 ; +0.97]   score  +14.01
+point retenu (critère fixé avant) : achat_T240 (score +14.01)

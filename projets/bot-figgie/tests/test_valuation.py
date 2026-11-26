@@ -211,5 +211,30 @@ class TestMajorityWeight(unittest.TestCase):
                     self.assertAlmostEqual(side_after[j], side_before[j], places=6)
 
 
+class TestBuyOnlyWeight(unittest.TestCase):
+    """Phase 5n, seam « poids à l'achat seulement » : avec weight_sell=False, la valeur de vente est celle d'aujourd'hui
+    (majorité en entier) et la valeur d'achat celle de la phase 5l (majorité pondérée), au même tirage."""
+
+    def setUp(self):
+        self.h = hand(S=6, C=1, H=2, D=1)
+        self.args = (self.h, 0, [10, 9, 11, 10], [hand(), hand(C=2), hand(), hand(H=1)])
+
+    def test_sell_values_are_todays(self):
+        full = marginal_values(*self.args, random.Random(8), samples=300)
+        buy_only = marginal_values(*self.args, random.Random(8), samples=300, majority_weight=0.3, weight_sell=False)
+        for s in SUITS:
+            for j, v in full[s][1].items():
+                self.assertAlmostEqual(buy_only[s][1][j], v, places=9)
+
+    def test_buy_values_are_phase_5l(self):
+        both = marginal_values(*self.args, random.Random(8), samples=300, majority_weight=0.3)
+        buy_only = marginal_values(*self.args, random.Random(8), samples=300, majority_weight=0.3, weight_sell=False)
+        for s in SUITS:
+            for j, v in both[s][0].items():
+                self.assertAlmostEqual(buy_only[s][0][j], v, places=9)
+        # le poids change bien la vente en 5l : sinon le premier test ne verrait rien
+        self.assertTrue(any(abs(both[s][1][j] - buy_only[s][1][j]) > 0.1 for s in SUITS for j in both[s][1]))
+
+
 if __name__ == "__main__":
     unittest.main()

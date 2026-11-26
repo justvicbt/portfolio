@@ -158,18 +158,20 @@ def sample_world(hand, seat, card_counts, minimums, rng):
 
 
 def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_weights=None, drawn=None,
-                    majority_weight=1.0):
+                    majority_weight=1.0, weight_sell=True):
     """Valeur d'une carte de chaque couleur selon le joueur d'en face.
 
     Renvoie {couleur: (achat, vente)} où achat = {siège: ce que me rapporte une carte achetée à ce joueur}
     et vente = {siège: ce que me coûte une carte vendue à ce joueur}.
     `majority_weight` (phase 5l) : la carte elle-même compte en entier (10 $ si objectif), le changement de ma
     part de majorité est multiplié par ce poids. Le tirage aléatoire ne dépend pas du poids.
+    `weight_sell=False` (phase 5n) : le poids ne vaut qu'à l'achat ; à la vente, la majorité compte en entier.
     """
     def weighted(mine, others, delta, k):
         card = GOAL_CARD_VALUE * delta
         return card + majority_weight * (_card_gain(mine, others, delta, k) - card)
     gain = _card_gain if majority_weight == 1.0 else weighted  # poids 1 : exactement les valeurs d'avant la phase 5l
+    sell_gain = gain if weight_sell else _card_gain
 
     minimums, known, weights = _consistent(hand, seat, minimums, goal_weights, drawn)
     # Même tirage que sample_world, mais on ne place que les cartes objectif : ce sont les seules
@@ -201,7 +203,7 @@ def marginal_values(hand, seat, card_counts, minimums, rng, samples=300, goal_we
                 if s != goal:
                     buy_worlds[s][k] += 1.0 if minimums[j][s] else _p_some(left, room, sizes[s] - known[s])
             if mine > 0:
-                sell[goal][k] -= gain(mine, others, -1, k)
+                sell[goal][k] -= sell_gain(mine, others, -1, k)
     return {
         s: ({j: buy[s][k] / buy_worlds[s][k] if buy_worlds[s][k] else 0.0 for k, j in enumerate(opponents)},
             {j: sell[s][k] / samples for k, j in enumerate(opponents)})

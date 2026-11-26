@@ -182,6 +182,7 @@ class MarginalBot(ValueBot):
 
     ask_counting = False  # phase 5b : True = une vente proposée prouve aussi qu'on a la carte
     majority_time = None  # phase 5l : (T, k), la part de majorité compte min(1, t / T) ** k ; None = en entier
+    majority_on_sell = True  # phase 5n : False = le poids ne vaut qu'à l'achat
 
     def __init__(self):
         super().__init__()
@@ -209,7 +210,7 @@ class MarginalBot(ValueBot):
         if key != self._key:
             drawn = initial_hand(view.hand, view.trades, view.seat) if self.constraint_counting else None
             self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
-                                           drawn=drawn, majority_weight=weight)
+                                           drawn=drawn, majority_weight=weight, weight_sell=self.majority_on_sell)
             self._key = key
 
     def buy_value(self, s, player):
@@ -276,7 +277,7 @@ class ReaderBot(MarginalBot):
             mins = self.minimums(view)
             self._values = marginal_values(view.hand, view.seat, view.card_counts, mins, rng, self.samples,
                                            goal_weights=market, drawn=initial_hand(view.hand, view.trades, view.seat),
-                                           majority_weight=weight)
+                                           majority_weight=weight, weight_sell=self.majority_on_sell)
             self._key, self._market = key, market
 
     def market_key(self, view):
