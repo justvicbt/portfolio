@@ -1,0 +1,12 @@
+
+4 joueurs : 4633 offres de vente sur l'objectif, après 120 s, dans les manches finies à égalité
+  toutes (4633) : prix 34.71 $, A bot 10.56, B sans poids 11.25, C objectif connu 18.96, D exact 43.32, marge 2.73
+      le bot l'aurait prise (prix <= A - marge) : 0% ; avec B : 1% ; avec C : 17%
+  moins chères que le gain exact D (2501) : prix 27.60 $, A bot 10.26, B sans poids 10.93, C objectif connu 20.98, D exact 60.46, marge 2.76
+      le bot l'aurait prise (prix <= A - marge) : 1% ; avec B : 2% ; avec C : 25%
+
+5 joueurs : 4261 offres de vente sur l'objectif, après 120 s, dans les manches finies à égalité
+  toutes (4261) : prix 37.42 $, A bot 10.45, B sans poids 11.05, C objectif connu 16.60, D exact 43.92, marge 2.84
+      le bot l'aurait prise (prix <= A - marge) : 0% ; avec B : 1% ; avec C : 9%
+  moins chères que le gain exact D (2126) : prix 27.25 $, A bot 10.87, B sans poids 11.62, C objectif connu 18.39, D exact 61.59, marge 2.91
+      le bot l'aurait prise (prix <= A - marge) : 1% ; avec B : 2% ; avec C : 14%

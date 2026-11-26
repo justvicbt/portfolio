@@ -1,0 +1,20 @@
+
+4 joueurs
+  manches finies à égalité
+    120 s ( 128) : P(vrai objectif) bot 0.56, marché seul 0.52, en tête chez le bot 71% ; meneur : vrai 3.70, attendu 2.49 (dont connu 0.92) ; le bot en a 4.09 ; rival moyen : vrai 1.91, attendu 1.91, erreur 0.96
+    180 s ( 128) : P(vrai objectif) bot 0.66, marché seul 0.63, en tête chez le bot 73% ; meneur : vrai 4.20, attendu 2.84 (dont connu 1.56) ; le bot en a 4.35 ; rival moyen : vrai 1.83, attendu 1.83, erreur 1.03
+    225 s ( 128) : P(vrai objectif) bot 0.73, marché seul 0.69, en tête chez le bot 80% ; meneur : vrai 4.49, attendu 3.02 (dont connu 1.89) ; le bot en a 4.51 ; rival moyen : vrai 1.77, attendu 1.77, erreur 1.09
+  toutes les manches
+    120 s (1000) : P(vrai objectif) bot 0.55, marché seul 0.52, en tête chez le bot 66% ; meneur : vrai 3.87, attendu 2.98 (dont connu 1.20) ; le bot en a 2.55 ; rival moyen : vrai 2.26, attendu 2.26, erreur 0.83
+    180 s (1000) : P(vrai objectif) bot 0.62, marché seul 0.60, en tête chez le bot 66% ; meneur : vrai 4.36, attendu 3.46 (dont connu 1.98) ; le bot en a 2.57 ; rival moyen : vrai 2.26, attendu 2.26, erreur 0.86
+    225 s (1000) : P(vrai objectif) bot 0.66, marché seul 0.63, en tête chez le bot 68% ; meneur : vrai 4.72, attendu 3.79 (dont connu 2.48) ; le bot en a 2.50 ; rival moyen : vrai 2.28, attendu 2.28, erreur 0.86
+
+5 joueurs
+  manches finies à égalité
+    120 s (  92) : P(vrai objectif) bot 0.61, marché seul 0.56, en tête chez le bot 75% ; meneur : vrai 3.57, attendu 2.28 (dont connu 1.05) ; le bot en a 3.91 ; rival moyen : vrai 1.46, attendu 1.46, erreur 0.86
+    180 s (  92) : P(vrai objectif) bot 0.74, marché seul 0.69, en tête chez le bot 78% ; meneur : vrai 4.01, attendu 2.66 (dont connu 1.63) ; le bot en a 4.23 ; rival moyen : vrai 1.38, attendu 1.38, erreur 0.83
+    225 s (  92) : P(vrai objectif) bot 0.79, marché seul 0.74, en tête chez le bot 78% ; meneur : vrai 4.30, attendu 2.92 (dont connu 1.95) ; le bot en a 4.36 ; rival moyen : vrai 1.35, attendu 1.35, erreur 0.80
+  toutes les manches
+    120 s (1000) : P(vrai objectif) bot 0.54, marché seul 0.51, en tête chez le bot 63% ; meneur : vrai 3.71, attendu 2.83 (dont connu 1.46) ; le bot en a 1.97 ; rival moyen : vrai 1.84, attendu 1.84, erreur 0.76
+    180 s (1000) : P(vrai objectif) bot 0.61, marché seul 0.58, en tête chez le bot 65% ; meneur : vrai 4.29, attendu 3.47 (dont connu 2.36) ; le bot en a 1.87 ; rival moyen : vrai 1.87, attendu 1.87, erreur 0.73
+    225 s (1000) : P(vrai objectif) bot 0.66, marché seul 0.62, en tête chez le bot 68% ; meneur : vrai 4.67, attendu 3.82 (dont connu 2.80) ; le bot en a 1.76 ; rival moyen : vrai 1.90, attendu 1.90, erreur 0.71

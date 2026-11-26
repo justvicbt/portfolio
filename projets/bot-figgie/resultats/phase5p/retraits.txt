@@ -1,0 +1,3 @@
+Vrais bots Hard, 60 manches : 233 retraits ({'achat': 146, 'vente': 87}), 0.86% de leurs 27009 cotations, dans 40 manches
+  d'un seul côté : 227, des deux côtés au même instant : 3 ; instant médian 204 s
+Hard recalés, 60 manches simulées (v4c_achat et 3 Hard, graine 9) : retraits {'deux côtés': 220}, 41229 cotations

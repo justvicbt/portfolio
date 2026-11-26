@@ -1,0 +1,28 @@
+
+4 joueurs : 2000 manches
+  seul en tête          37.8%  gain moyen  +90.27 $ ; objectif reçu 3.05, acheté 1.69, vendu 0.05, gardé 4.69
+  égalité               13.4%  gain moyen  +33.70 $ ; objectif reçu 3.09, acheté 1.49, vendu 0.06, gardé 4.53
+      une carte de plus, prise au meneur : +61.04 $ en moyenne ; à un autre : +60.31 $ (98 manches)
+      offre de vente d'un autre sous ce gain, affichée après 120 s : 268 manches (13.4% de toutes)
+      dans ces manches : offre la moins chère 16.41 $, meilleure offre d'achat du bot 10.73 $
+  une carte derrière     1.1%  gain moyen  -18.62 $ ; objectif reçu 2.76, acheté 1.14, vendu 0.24, gardé 3.67
+      une carte de plus, prise au meneur : +108.10 $ en moyenne ; à un autre : +60.48 $ (21 manches)
+      offre de vente d'un autre sous ce gain, affichée après 120 s : 21 manches (1.1% de toutes)
+      dans ces manches : offre la moins chère 9.48 $, meilleure offre d'achat du bot 5.57 $
+  plus loin             47.8%  gain moyen  -38.93 $ ; objectif reçu 1.57, acheté 0.09, vendu 1.44, gardé 0.23
+  objectif à 8 cartes : 649 manches, égalité 4.3%, une carte derrière 0.2%
+  objectif à 10 cartes : 1351 manches, égalité 17.8%, une carte derrière 1.5%
+
+5 joueurs : 2000 manches
+  seul en tête          27.9%  gain moyen +100.21 $ ; objectif reçu 2.74, acheté 1.62, vendu 0.04, gardé 4.32
+  égalité                9.4%  gain moyen  +44.75 $ ; objectif reçu 2.76, acheté 1.68, vendu 0.06, gardé 4.37
+      une carte de plus, prise au meneur : +61.52 $ en moyenne ; à un autre : +60.19 $ (89 manches)
+      offre de vente d'un autre sous ce gain, affichée après 120 s : 188 manches (9.4% de toutes)
+      dans ces manches : offre la moins chère 17.15 $, meilleure offre d'achat du bot 9.84 $
+  une carte derrière     1.1%  gain moyen  -12.38 $ ; objectif reçu 2.71, acheté 1.05, vendu 0.24, gardé 3.52
+      une carte de plus, prise au meneur : +111.90 $ en moyenne ; à un autre : +60.95 $ (21 manches)
+      offre de vente d'un autre sous ce gain, affichée après 120 s : 21 manches (1.1% de toutes)
+      dans ces manches : offre la moins chère 9.90 $, meilleure offre d'achat du bot 5.52 $
+  plus loin             61.7%  gain moyen  -26.75 $ ; objectif reçu 1.35, acheté 0.12, vendu 1.38, gardé 0.09
+  objectif à 8 cartes : 649 manches, égalité 4.2%, une carte derrière 0.3%
+  objectif à 10 cartes : 1351 manches, égalité 11.9%, une carte derrière 1.4%

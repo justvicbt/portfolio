@@ -1,0 +1,11 @@
+Vraies manches (60) : P(vrai objectif), part en tête, perte log ; consensus brut en tête
+  120 s : lecture 0.41, 53%, 1.031 ; consensus 62%
+  180 s : lecture 0.63, 77%, 0.610 ; consensus 85%
+  225 s : lecture 0.78, 85%, 0.406 ; consensus 89%
+  239 s : lecture 0.81, 85%, 0.360 ; consensus 91%
+
+Manches simulées (1000, Hard recalés)
+  120 s : lecture 0.52, 66%, 0.865 ; consensus 59%
+  180 s : lecture 0.60, 68%, 0.904 ; consensus 62%
+  225 s : lecture 0.65, 71%, 0.961 ; consensus 66%
+  239 s : lecture 0.67, 72%, 0.951 ; consensus 67%

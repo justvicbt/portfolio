@@ -36,6 +36,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 5m. Trois défauts corrigés | Retrait d'un seul côté, valeur d'achat du marginal, profil de table qui suit la règle du site, et la v4c réentraînée | [FR](docs/phase5m.fr.md) · [EN](docs/phase5m.en.md) | Terminée (aucun bot promu) |
 | 5n. Le poids de la majorité à l'achat seulement | La majorité comptée en entier à la vente, un poids min(1, t / 240) ^ 0,5 à l'achat, et un tournoi complet à 300 donnes | [FR](docs/phase5n.fr.md) · [EN](docs/phase5n.en.md) | Terminée (v4c_achat promu) |
 | 5o. Chercher un exploiteur | La recherche automatique d'exploiteurs relancée contre la v4c « achat », sur le marché du site et à la table mixte, à 4 et à 5 joueurs | [FR](docs/phase5o.fr.md) · [EN](docs/phase5o.en.md) | Terminée (promotion maintenue) |
+| 5p. Ce que le bot croit des autres | La carte qui départage une égalité, ce que le bot croit des mains des rivaux et de la couleur objectif, les retraits des bots du site, et une lecture de fin de manche arrêtée faute de mieux faire sur les vraies manches | [FR](docs/phase5p.fr.md) · [EN](docs/phase5p.en.md) | Terminée (diagnostics, aucun bot changé) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -77,6 +78,8 @@ En phase 5m, je corrige trois erreurs trouvées à la relecture : sous la règle
 En phase 5n, je garde le poids de la majorité à l'achat et je le retire à la vente, pour que le bot ne cède plus ses cartes objectif en début de manche. Avec T = 240 s, choisi sur une autre graine, la v4c « achat » passe la règle d'entrée à 4 et à 5 joueurs, au tournoi réduit comme au tournoi complet à 300 donnes : aucun candidat n'y était arrivé depuis la table mixte. Elle bat la v4c au temps de la 5l de 3,90 $ par manche à 4 joueurs et de 4,25 $ à 5. Elle devient le bot de référence, à la place du marginal. Elle ne fait que jeu égal avec l'exploiteur lecteur à 5 joueurs, et gagne moins face aux marginaux à 5 joueurs (+9,16 $ par manche contre +12,40 $). Ces gains sont mesurés contre des bots simulés.
 
 En phase 5o, je relance la recherche automatique d'exploiteurs contre la v4c « achat », pour la première fois depuis la phase 5b, cette fois sur le marché du site et à la table mixte de la règle d'entrée. Elle ne trouve pas d'exploiteur. À 4 joueurs, le meilleur des 60 réglages finit 9,11 $ par manche derrière elle. À 5 joueurs, le meilleur fait jeu égal (-0,36 $ [-1,27 ; +0,55]) : c'est un cousin de l'exploiteur lecteur, un marginal qui cote serré et vite. La promotion tient. Ces écarts sont mesurés contre des bots simulés.
+
+En phase 5p, je regarde la carte qui départage une égalité de majorité, l'idée de la v5 de Rasmus. La v4c « achat » finit à égalité dans 13,4 % des manches à 4 joueurs, et laisse passer des cartes objectif à 27 $ qui lui en rapporteraient environ 60. Sa valeur compte pourtant ce gain : ce qui lui manque, c'est l'information. Elle estime la carte à 10 $, à 21 $ si elle connaissait l'objectif, et ne voit pas qu'un rival est à égalité avec elle. Mieux lire la couleur en fin de manche, réglé en simulation, ne fait pas mieux sur les vraies manches. La cause est dans le simulateur : le consensus des offres d'achat trouve l'objectif dans 91 % des vraies manches à la cloche, mais dans 67 % seulement entre nos Hard simulés. Aucun bot n'est changé.
 
 Les tableaux complets sont dans les docs de chaque phase.
 
@@ -120,7 +123,7 @@ python3 -m unittest                      # 145 tests, environ 15 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5o-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5p-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -129,4 +132,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 
 
 ## Statut
 
-En cours : phases 0 à 5o terminées. Prochaine étape : regarder ce que vaut le regroupement des cartes, quand une sixième carte peut départager une égalité de majorité, avant de changer la valeur. La phase 6 (site réel) attend un accord écrit de Jane Street.
+En cours : phases 0 à 5p terminées. Prochaine étape : un Hard simulé dont les offres d'achat désignent l'objectif aussi souvent que sur le site, réglé sur le consensus des vraies manches. La phase 6 (site réel) attend un accord écrit de Jane Street.
