@@ -1,0 +1,22 @@
+50/200 manches simulées
+100/200 manches simulées
+150/200 manches simulées
+200/200 manches simulées
+
+Vraies manches (60) : records d'offre d'achat des bots Hard dans les 10 s, rapportés au hasard
+  déclencheur                                      objectif          autre couleur
+  échange 1-3 $                                 nan (    0)           1.12 ( 2050)
+  échange 4-6 $                                1.24 (  198)           1.01 ( 1321)
+  échange 7 $ et plus                          0.99 (  369)           0.96 (  447)
+  offre de vente                               1.00 (16151)           0.93 (44944)
+  retrait                                      1.15 (  353)           1.42 (  906)
+  offre d'achat record de la table             1.00 ( 1652)           1.13 ( 3033)
+
+Hard recalés (200 manches simulées) : records d'offre d'achat des bots Hard dans les 10 s, rapportés au hasard
+  déclencheur                                      objectif          autre couleur
+  échange 1-3 $                                1.34 (  326)           1.33 ( 4515)
+  échange 4-6 $                                1.10 (  394)           0.89 (  967)
+  échange 7 $ et plus                          0.76 (  517)           0.76 (  511)
+  offre de vente                               0.97 (52457)          0.98 (156026)
+  retrait                                      1.42 ( 1166)           1.70 ( 2800)
+  offre d'achat record de la table             1.39 ( 3417)           1.57 ( 5322)

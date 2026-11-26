@@ -263,6 +263,9 @@ def play_round(bots, seed, duration=240.0, memories=None, single_quote=False):
     if memories is not None:
         for p, memory in zip(players, memories):
             p.memory = memory  # ce que le bot garde d'une manche à l'autre (parties de plusieurs manches)
+    for p in players:
+        if getattr(p, "sees_goal", False):
+            p.goal = goal  # phase 5r : un bot simulé qui reçoit l'objectif (le Hard v3 et son indice privé)
     bot_rngs = [random.Random(f"{seed}:bot:{i}") for i in range(n)]
     time_rngs = [random.Random(f"{seed}:time:{i}") for i in range(n)]
     reaction = [getattr(p, "reaction", DEFAULT_REACTION) for p in players]

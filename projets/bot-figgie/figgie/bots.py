@@ -631,15 +631,22 @@ class HardBot:
             if kind == "bid" and player != view.seat:
                 self._top[suit] = max(self._top[suit], price)
         self._seen = len(view.events)
-        key = (tuple(view.hand.values()), len(view.trades), tuple(self._top.values()))
+        hint = self.hint(view)
+        key = (tuple(view.hand.values()), len(view.trades), tuple(self._top.values()), hint and tuple(hint.values()))
         if key == self._key:
             return self._values
         mean_top = sum(self._top.values()) / len(SUITS)
         weights = {s: math.exp(self.read * (self._top[s] - mean_top)) for s in SUITS} if self.read else None
+        if hint:
+            weights = {s: (weights[s] if weights else 1.0) * hint[s] for s in SUITS}
         p = goal_probabilities(view.hand, known_minimums(view.trades, view.n_players), view.seat, goal_weights=weights,
                                drawn=initial_hand(view.hand, view.trades, view.seat))
         self._key, self._values = key, {s: self.base + self.goal_worth * p[s] for s in SUITS}
         return self._values
+
+    def hint(self, view):
+        """Poids supplémentaires sur la couleur objectif (phase 5r, Hard v3) ; aucun ici."""
+        return None
 
     def act(self, view, rng):
         if view.time < max(self.start, self.next_time):
@@ -691,6 +698,29 @@ class HardBotV2(HardBot):
     noise = 1
     open_ask = 25
     read = 0.2
+
+
+class HardBotV3(HardBotV2):
+    """Phase 5r : le Hard simulé avec un indice privé sur l'objectif. Sur les vraies manches, chaque bot du site ne
+    réagit presque à rien de public, mais sa plus haute offre d'achat récente tombe sur l'objectif au hasard à 60 s et
+    dans 80 % des cas à 180 s (resultats/phase5r/). Je ne sais pas d'où vient cette information ; je la modélise telle
+    qu'on la voit : le moteur lui donne l'objectif (sees_goal), et sa lecture est multipliée par un indice qui mélange
+    « toutes les couleurs à égalité » et « la vraie couleur », avec un poids min(1, t / hint_time) ** hint_power."""
+    name = "hard_simule_v3"
+    sees_goal = True
+    # Réglage de figgie.calibrate --lift --consensus --hint (resultats/phase5r/calibration_hard_v3.md)
+    base, goal_worth = 1, 16
+    margin, margin_power = 2, 0.5
+    pace = 0.6
+    noise = 2
+    open_ask = 15
+    read = 0.05
+    hint_time, hint_power = 400.0, 2.0  # à la cloche, l'indice ne pèse que (240 / 400) ** 2 = 0,36
+
+    def hint(self, view):
+        # shortcut: poids arrondi au vingtième, pour ne recalculer la valeur qu'une vingtaine de fois par manche
+        lam = round(min(1.0, view.time / self.hint_time) ** self.hint_power * 20) / 20
+        return {s: (1 - lam) / len(SUITS) + (lam if s == self.goal else 0.0) for s in SUITS}
 
 
 class LeagueReaderBot(ReaderBot):

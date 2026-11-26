@@ -4,8 +4,8 @@ Trois sortes de tâches, toutes en donnes dupliquées sur les donnes des tournoi
 - un candidat face à des copies d'un adversaire du zoo ;
 - le test de minorité : une référence seule face à des copies du candidat ;
 - un candidat face à une table mixte précise (comportements anormaux), sur une ou plusieurs manches ;
-- phase 5i, --mixed : une référence et le candidat à la même table, avec des Hard simulés (--filler, le Hard recalé de
-  la phase 5j par défaut ; hard_simule pour refaire la phase 5i) ; on garde l'écart
+- phase 5i, --mixed : une référence et le candidat à la même table, avec des Hard simulés (--filler, le Hard v3 de la
+  phase 5r par défaut ; hard_simule_v2 pour refaire les phases 5j à 5q, hard_simule pour la phase 5i) ; on garde l'écart
   référence - candidat, lu dans les mêmes parties (evaluate.mixed_gap). Il remplace le test de minorité dans la
   règle d'entrée ; ajouter --references sans nom pour ne pas calculer aussi le test de minorité.
 
@@ -61,8 +61,8 @@ def main():
                         help="références de la table mixte (avec des Hard simulés) : remplace le test de minorité dans la règle "
                              "d'entrée, qui reste calculé à part sauf avec --references sans nom")
     parser.add_argument("--no-tables", action="store_true", help="sauter les tables anormales")
-    parser.add_argument("--filler", default="hard_simule_v2", choices=sorted(CANDIDATES),
-                        help="remplissant de la table mixte (phase 5i : hard_simule ; phase 5j : hard_simule_v2)")
+    parser.add_argument("--filler", default="hard_simule_v3", choices=sorted(CANDIDATES),
+                        help="remplissant de la table mixte (phase 5i : hard_simule ; phase 5j : hard_simule_v2 ; phase 5r : hard_simule_v3)")
     parser.add_argument("--opponents", nargs="*", default=list(ZOO), choices=sorted(CANDIDATES),
                         help="adversaires du tournoi (le zoo par défaut)")
     parser.add_argument("--site", action="store_true", help="règle du site : une offre doit battre celle qui est affichée")

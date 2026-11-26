@@ -107,6 +107,48 @@ class TestAskOutcomes(unittest.TestCase):
         self.assertIsNone(rates["autre 1-3"])          # aucune offre dans cette tranche
 
 
+class TestHardHint(unittest.TestCase):
+    """Phase 5r, seam « l'indice privé du Hard v3 » : le moteur donne l'objectif aux bots qui le demandent (sees_goal),
+    et la valeur du Hard v3 mélange sa lecture et un indice qui ne dit rien à t = 0 et donne la vraie couleur à t >= T."""
+
+    def view(self, t):
+        from figgie.engine import View, empty_book
+        return View(seat=0, n_players=4, hand=dict(S=3, C=2, H=3, D=2), cash=350.0, book=empty_book(), trades=[],
+                    card_counts=[10] * 4, time=t, duration=240.0, events=[(5.0, 1, "bid", "S", 6)], single_quote=True)
+
+    def test_no_hint_at_the_start_and_the_true_goal_at_T(self):
+        from figgie.bots import HardBot, HardBotV3
+        settings = {k: getattr(HardBotV3, k) for k in ("base", "goal_worth", "margin", "margin_power", "pace", "noise",
+                                                       "open_ask", "read")}
+        v3 = HardBotV3()
+        v3.goal = "H"
+        same = type("SameHard", (HardBot,), settings)().values(self.view(0.0))
+        self.assertEqual(v3.values(self.view(0.0)), same)
+        late = HardBotV3()
+        late.goal = "H"
+        values = late.values(self.view(HardBotV3.hint_time))
+        self.assertAlmostEqual(values["H"], HardBotV3.base + HardBotV3.goal_worth, places=9)
+        for s in "SCD":
+            self.assertAlmostEqual(values[s], HardBotV3.base, places=9)
+
+    def test_the_engine_gives_the_goal_only_to_bots_that_ask(self):
+        from figgie.engine import play_round
+        seen = []
+
+        class Asks:
+            sees_goal = True
+            def act(self, view, rng):
+                seen.append(("asks", getattr(self, "goal", None)))
+
+        class Quiet:
+            def act(self, view, rng):
+                seen.append(("quiet", getattr(self, "goal", None)))
+
+        result = play_round([Asks, Quiet, Quiet, Quiet], seed=4, duration=1.0)
+        self.assertIn(("asks", result.log["goal"]), seen)
+        self.assertTrue(all(g is None for who, g in seen if who == "quiet"))
+
+
 def close_to_the_site(stats, real):
     """Une table simulée ressemble au site : chaque mesure entre 0,6 et 1,5 fois celle des journaux,
     et des échanges de plus en plus nombreux au fil de la manche."""
