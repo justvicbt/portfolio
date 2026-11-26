@@ -35,6 +35,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5l. A value that accounts for time | The majority share counted less early in the round, with a weight that rises until 2 minutes, and the settings retrained | [FR](docs/phase5l.fr.md) · [EN](docs/phase5l.en.md) | Done (no bot promoted) |
 | 5m. Three flaws fixed | One-sided cancels, the marginal bot's buy value, a table profile that follows the site rule, and the v4c retrained | [FR](docs/phase5m.fr.md) · [EN](docs/phase5m.en.md) | Done (no bot promoted) |
 | 5n. The majority weight on the buying side only | The majority counted in full when selling, a weight min(1, t / 240) ^ 0.5 when buying, and a full 300-deal tournament | [FR](docs/phase5n.fr.md) · [EN](docs/phase5n.en.md) | Done (v4c_achat promoted) |
+| 5o. Searching for an exploiter | The automatic exploiter search run again against the "buying" v4c, on the site's market and at the mixed table, with 4 and 5 players | [FR](docs/phase5o.fr.md) · [EN](docs/phase5o.en.md) | Done (promotion kept) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -75,6 +76,8 @@ In phase 5m, I fix three mistakes found in review: under the site rule, the bot 
 
 In phase 5n, I keep the majority weight on buying and remove it from selling, so the bot stops giving away its goal cards early in the round. With T = 240 s, chosen on another seed, the "buying" v4c passes the entry rule with 4 and with 5 players, in the reduced tournament and in the full 300-deal one: no candidate had done so since the mixed table. It beats phase 5l's timed v4c by $3.90 per round with 4 players and by $4.25 with 5. It becomes the reference bot, in place of the marginal bot. It only ties with the reading exploiter with 5 players, and gains less against marginal bots with 5 players (+$9.16 per round against +$12.40). These gains are measured against simulated bots.
 
+In phase 5o, I run the automatic exploiter search again against the "buying" v4c, for the first time since phase 5b, this time on the site's market and at the entry rule's mixed table. It finds no exploiter. With 4 players, the best of 60 settings ends $9.11 per round behind it. With 5 players, the best one ties (-$0.36 [-1.27; +0.55]): it is a cousin of the reading exploiter, a marginal bot that quotes tight and fast. The promotion holds. These gaps are measured against simulated bots.
+
 Full tables are in each phase's doc.
 
 ## What I took away
@@ -113,11 +116,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 144 tests, about 15 seconds
+python3 -m unittest                      # 145 tests, about 15 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5n-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5o-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -126,4 +129,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5n done. Next step: rerun the automatic exploiter search against the "buying" v4c, with 4 and 5 players, on the site's market. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5o done. Next step: look at what gathering cards is worth, when a sixth card can break a majority tie, before changing the value. Phase 6 (real site) waits for written consent from Jane Street.

@@ -1,0 +1,1024 @@
+{
+  "args": {
+    "target": "v4c_achat",
+    "players": 4,
+    "candidates": 60,
+    "keep": 6,
+    "rounds": 10,
+    "deals": [
+      20,
+      100,
+      300
+    ],
+    "site": true,
+    "filler": "hard_simule_v2",
+    "out": "resultats/phase5o/recherche_4j.json"
+  },
+  "stage1": [
+    [
+      [
+        -10.340833333333332,
+        -14.136656860090937,
+        -6.5450098065757265
+      ],
+      {
+        "value": "marginal",
+        "spread": 3,
+        "edge": 2,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -10.468124999999999,
+        -14.00061134043528,
+        -6.935638659564718
+      ],
+      {
+        "value": "marginal",
+        "spread": 4,
+        "edge": 1,
+        "reaction": 0.4,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -11.304375,
+        -13.59900086668326,
+        -9.00974913331674
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 8,
+        "edge": 2,
+        "reaction": 0.4,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -12.840833333333332,
+        -15.31810490144284,
+        -10.363561765223825
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -14.22875,
+        -17.695317150138322,
+        -10.762182849861677
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 10,
+        "edge": 3,
+        "reaction": 0.3,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -15.401458333333334,
+        -18.07242671394829,
+        -12.730489952718377
+      ],
+      {
+        "value": "marginal",
+        "spread": 8,
+        "edge": 3,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -16.165208333333332,
+        -19.507596227158455,
+        -12.82282043950821
+      ],
+      {
+        "value": "marginal",
+        "spread": 3,
+        "edge": 3,
+        "reaction": 0.15,
+        "quotes": true,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -16.186041666666664,
+        -18.92122667557099,
+        -13.450856657762342
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 4,
+        "edge": 1,
+        "reaction": 0.4,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -16.474583333333335,
+        -20.74468763002958,
+        -12.204479036637089
+      ],
+      {
+        "value": "marginal",
+        "spread": 10,
+        "edge": 2,
+        "reaction": 0.3,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -19.282708333333332,
+        -22.646713676784973,
+        -15.918702989881691
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 1,
+        "edge": 3,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -19.69875,
+        -22.119284503073686,
+        -17.278215496926315
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 10,
+        "edge": 3,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -20.090625,
+        -22.86221280847706,
+        -17.319037191522938
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 2,
+        "edge": 2,
+        "reaction": 0.1,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -20.752291666666665,
+        -24.245315108490082,
+        -17.259268224843247
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 1,
+        "edge": 3,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -20.780625,
+        -24.78533617847385,
+        -16.77591382152615
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 2,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -21.155833333333334,
+        -25.59083889851771,
+        -16.720827768148958
+      ],
+      {
+        "value": "marginal",
+        "spread": 8,
+        "edge": 0,
+        "reaction": 0.3,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -21.333125000000003,
+        -24.350827156546437,
+        -18.315422843453568
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 10,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -22.5375,
+        -25.2623487663651,
+        -19.812651233634902
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 10,
+        "edge": 3,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -23.14,
+        -26.63581948332576,
+        -19.64418051667424
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 3,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -24.19875,
+        -26.36015454636015,
+        -22.03734545363985
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 12,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -24.4,
+        -27.392372396479175,
+        -21.407627603520822
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 1,
+        "edge": 1,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -24.409166666666668,
+        -28.24964484716871,
+        -20.568688486164625
+      ],
+      {
+        "value": "marginal",
+        "spread": 12,
+        "edge": 3,
+        "reaction": 0.15,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -24.511875,
+        -27.28098798843696,
+        -21.74276201156304
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 2,
+        "edge": 1,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -24.511875,
+        -27.28098798843696,
+        -21.74276201156304
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 1,
+        "edge": 1,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -24.975833333333334,
+        -27.843114540172586,
+        -22.108552126494082
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 3,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -25.276041666666664,
+        -28.498797014637784,
+        -22.053286318695545
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 2,
+        "edge": 1,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -25.968333333333334,
+        -30.29705115604423,
+        -21.639615510622438
+      ],
+      {
+        "value": "marginal",
+        "spread": 12,
+        "edge": 2,
+        "reaction": 0.3,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -26.125,
+        -30.254187918599158,
+        -21.995812081400842
+      ],
+      {
+        "value": "marginal",
+        "spread": 8,
+        "edge": 0,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -26.513958333333335,
+        -29.934012472881108,
+        -23.093904193785562
+      ],
+      {
+        "value": "marginal",
+        "spread": 1,
+        "edge": 2,
+        "reaction": 0.1,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -27.344166666666666,
+        -31.236790619317937,
+        -23.451542714015396
+      ],
+      {
+        "value": "marginal",
+        "spread": 12,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -27.861874999999998,
+        -30.915512505732213,
+        -24.808237494267782
+      ],
+      {
+        "value": "marginal",
+        "spread": 12,
+        "edge": 2,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -28.272708333333334,
+        -31.094458364937644,
+        -25.450958301729024
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 3,
+        "reaction": 0.1,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -28.595,
+        -32.39546142725186,
+        -24.794538572748138
+      ],
+      {
+        "value": "bayesien",
+        "spread": 12,
+        "edge": 2,
+        "reaction": 0.15,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -28.783125000000002,
+        -32.105524631820316,
+        -25.46072536817969
+      ],
+      {
+        "value": "marginal",
+        "spread": 1,
+        "edge": 1,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -28.783125000000002,
+        -32.105524631820316,
+        -25.46072536817969
+      ],
+      {
+        "value": "marginal",
+        "spread": 12,
+        "edge": 1,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -29.068541666666665,
+        -32.804622221519594,
+        -25.33246111181374
+      ],
+      {
+        "value": "bayesien",
+        "spread": 12,
+        "edge": 3,
+        "reaction": 0.2,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -29.195833333333333,
+        -33.707808392366054,
+        -24.68385827430061
+      ],
+      {
+        "value": "bayesien",
+        "spread": 1,
+        "edge": 3,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -29.247291666666666,
+        -32.60769427950368,
+        -25.88688905382965
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 3,
+        "reaction": 0.2,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -30.564999999999998,
+        -34.10886987490556,
+        -27.021130125094437
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 4,
+        "edge": 0,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -30.799791666666664,
+        -34.355289266946514,
+        -27.244294066386814
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 2,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -30.91625,
+        -33.90165427485828,
+        -27.93084572514172
+      ],
+      {
+        "value": "bayesien",
+        "spread": 4,
+        "edge": 2,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -31.949374999999996,
+        -34.96167464620383,
+        -28.937075353796164
+      ],
+      {
+        "value": "marginal",
+        "spread": 12,
+        "edge": 2,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -32.22604166666667,
+        -35.204332349680264,
+        -29.247750983653074
+      ],
+      {
+        "value": "bayesien",
+        "spread": 3,
+        "edge": 1,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -32.436875,
+        -36.95106206849502,
+        -27.922687931504978
+      ],
+      {
+        "value": "bayesien",
+        "spread": 2,
+        "edge": 1,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -32.825625,
+        -36.62447266642863,
+        -29.02677733357137
+      ],
+      {
+        "value": "marginal",
+        "spread": 10,
+        "edge": 1,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -32.965625,
+        -37.09416210835917,
+        -28.837087891640834
+      ],
+      {
+        "value": "bayesien",
+        "spread": 3,
+        "edge": 1,
+        "reaction": 0.2,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -34.001666666666665,
+        -37.23100912688219,
+        -30.772324206451138
+      ],
+      {
+        "value": "marginal",
+        "spread": 8,
+        "edge": 2,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -35.011874999999996,
+        -38.934667519111024,
+        -31.089082480888973
+      ],
+      {
+        "value": "bayesien",
+        "spread": 4,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -35.011874999999996,
+        -38.934667519111024,
+        -31.089082480888973
+      ],
+      {
+        "value": "bayesien",
+        "spread": 1,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -36.760625,
+        -40.09474355515599,
+        -33.426506444844
+      ],
+      {
+        "value": "marginal",
+        "spread": 10,
+        "edge": 0,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -37.75645833333333,
+        -40.46542235475696,
+        -35.047494311909695
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 0,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -39.131875,
+        -42.63185895775929,
+        -35.63189104224071
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 0,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -39.62229166666667,
+        -43.24493570444562,
+        -35.999647628887715
+      ],
+      {
+        "value": "bayesien",
+        "spread": 1,
+        "edge": 0,
+        "reaction": 0.2,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -48.810625,
+        -53.43944745075624,
+        -44.18180254924376
+      ],
+      {
+        "value": "heuristique",
+        "spread": 10,
+        "edge": 2,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -54.67375,
+        -58.70310291247732,
+        -50.64439708752268
+      ],
+      {
+        "value": "heuristique",
+        "spread": 1,
+        "edge": 1,
+        "reaction": 0.2,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -58.119375000000005,
+        -63.44595882938019,
+        -52.79279117061982
+      ],
+      {
+        "value": "heuristique",
+        "spread": 4,
+        "edge": 0,
+        "reaction": 0.3,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -58.128750000000004,
+        -63.56402903124578,
+        -52.69347096875423
+      ],
+      {
+        "value": "heuristique",
+        "spread": 12,
+        "edge": 1,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": null
+      }
+    ],
+    [
+      [
+        -58.271249999999995,
+        -62.075396245960825,
+        -54.467103754039165
+      ],
+      {
+        "value": "heuristique",
+        "spread": 10,
+        "edge": 1,
+        "reaction": 0.4,
+        "quotes": false,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -59.036249999999995,
+        -63.4399392060581,
+        -54.63256079394189
+      ],
+      {
+        "value": "heuristique",
+        "spread": 10,
+        "edge": 0,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -59.173125000000006,
+        -62.82289809501546,
+        -55.52335190498455
+      ],
+      {
+        "value": "heuristique",
+        "spread": 10,
+        "edge": 0,
+        "reaction": 0.15,
+        "quotes": false,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -62.589999999999996,
+        -68.5412720836765,
+        -56.63872791632348
+      ],
+      {
+        "value": "heuristique",
+        "spread": 3,
+        "edge": 0,
+        "reaction": 0.2,
+        "quotes": false,
+        "pace": null
+      }
+    ]
+  ],
+  "stage2": [
+    [
+      [
+        -12.043583333333334,
+        -13.732261521028098,
+        -10.35490514563857
+      ],
+      {
+        "value": "marginal",
+        "spread": 3,
+        "edge": 2,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -8.500625,
+        -10.278099548977735,
+        -6.723150451022263
+      ],
+      {
+        "value": "marginal",
+        "spread": 4,
+        "edge": 1,
+        "reaction": 0.4,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -11.55125,
+        -12.79427424413248,
+        -10.30822575586752
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 8,
+        "edge": 2,
+        "reaction": 0.4,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -11.611208333333334,
+        -13.424581363863629,
+        -9.797835302803039
+      ],
+      {
+        "value": "marginal",
+        "spread": 6,
+        "edge": 1,
+        "reaction": 0.1,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ],
+    [
+      [
+        -14.189791666666668,
+        -15.342711041707446,
+        -13.03687229162589
+      ],
+      {
+        "value": "lecteur_site",
+        "spread": 10,
+        "edge": 3,
+        "reaction": 0.3,
+        "quotes": true,
+        "pace": 2.0
+      }
+    ],
+    [
+      [
+        -12.784708333333333,
+        -14.339262930693344,
+        -11.230153735973321
+      ],
+      {
+        "value": "marginal",
+        "spread": 8,
+        "edge": 3,
+        "reaction": 0.2,
+        "quotes": true,
+        "pace": 5.0
+      }
+    ]
+  ],
+  "best": {
+    "value": "marginal",
+    "spread": 4,
+    "edge": 1,
+    "reaction": 0.4,
+    "quotes": true,
+    "pace": 5.0
+  },
+  "final": [
+    -9.11363888888889,
+    -10.18562211933982,
+    -8.041655658437959
+  ]
+}
