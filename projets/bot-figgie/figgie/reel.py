@@ -352,19 +352,21 @@ def paper_replay(rnd, bot, seed=0, memory=None, majority=False):
 CHECK_TIMES = (0, 60, 120, 180, 239)
 
 
-def goal_calibration(rounds, times=CHECK_TIMES, per_round=False):
+def goal_calibration(rounds, times=CHECK_TIMES, per_round=False, signals_file=None):
     """Probabilité de la vraie couleur objectif, vue du siège de Rasmus (sa main et les vrais échanges),
     à chaque instant de `times`, selon trois méthodes : la donne seule, le comptage des cartes du
     marginal, et le comptage avec la lecture du marché du lecteur (modèle de signaux de la phase 3).
     Phase 5d, « lecture site » : le lecteur du site (figgie.learn --site), avec la confiance par joueur
     et par fenêtre de temps apprise sur les manches précédentes de la même session.
     Renvoie {méthode: {instant: (P moyenne de la vraie couleur, part des manches où elle est la plus
-    probable, perte logarithmique moyenne)}}. Avec `per_round`, les mêmes trois nombres pour chaque manche."""
+    probable, perte logarithmique moyenne)}}. Avec `per_round`, les mêmes trois nombres pour chaque manche.
+    Phase 5s, `signals_file` : un autre modèle de la lecture du site (modeles/<fichier>), avec son atténuation."""
     from figgie.bots import UNIFORM, ReaderBot, SiteReaderBot
     from figgie.signals import MarketReading, OpponentModel
     from figgie.valuation import goal_probabilities, known_minimums
     model, temper = ReaderBot.model()
-    site_model, site_temper = SiteReaderBot.model()
+    site = type("Lecture", (SiteReaderBot,), {"signals_file": signals_file}) if signals_file else SiteReaderBot
+    site_model, site_temper = site.model()
     empty = [dict.fromkeys(SUITS, 0) for _ in range(4)]
     out = {m: {t: [] for t in times} for m in ("donne", "comptage", "lecture", "lecture site")}
     trust, session = None, None
@@ -425,6 +427,7 @@ def main():
     parser.add_argument("--calibration", action="store_true", help="probabilité de la vraie couleur objectif")
     parser.add_argument("--majority", action="store_true", help="phase 5e : compter la majorité estimée au rejeu")
     parser.add_argument("--stats", action="store_true", help="mesures du marché des vraies manches")
+    parser.add_argument("--signals", help="phase 5s : avec --calibration, un autre modèle de la lecture du site (modeles/<fichier>)")
     args = parser.parse_args()
     rounds = load_rasmus()
     print(f"{len(rounds)} vraies manches (journaux de Rasmus Suonio, son bot contre 3 bots Hard de figgie.com)")
@@ -441,7 +444,7 @@ def main():
             print(f"  {name:16s} {m:+7.2f} [{lo:+.2f} ; {hi:+.2f}]   prises par manche {statistics.fmean(takes):.1f}")
     if args.calibration:
         print("\nProbabilité de la vraie couleur objectif, vue du siège de Rasmus : P moyenne / part des manches où elle est la plus probable / perte log")
-        for method, by_t in goal_calibration(rounds).items():
+        for method, by_t in goal_calibration(rounds, signals_file=args.signals).items():
             print(f"  {method:9s} " + "   ".join(f"t={t:3d} s : {p:.2f} / {acc:.0%} / {ll:.2f}" for t, (p, acc, ll) in by_t.items()))
 
 

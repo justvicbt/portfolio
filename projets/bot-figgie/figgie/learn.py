@@ -18,6 +18,9 @@ Phase 5d (--site) : des manches jouées avec la règle du site, à des tables de
 autre joueur, comme les vraies manches de Rasmus Suonio (trois bots Hard et son bot). Le modèle lit
 les cotations par fenêtre de temps, avec le consensus de la table (signals.TimedSignalModel).
 Les vraies manches ne servent jamais à apprendre : elles servent de test (figgie.reel --calibration).
+
+Phase 5s, --hard : les mêmes tables, avec un autre Hard simulé à la place de celui de la phase 5c :
+        python3 -m figgie.learn --site --hard hard_simule_v3 --train 2400 --valid 600 --out modeles/signaux_site_v3.json
 """
 import argparse
 import json
@@ -114,23 +117,29 @@ SITE_SEATMATES = ("marginal", "adaptatif_v3", "lecteur", "bayesien", "hard_simul
 SITE_TEMPERS = (0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0)
 
 
-def _play_site(job):
-    """Une manche avec la règle du site : des Hard simulés et un autre joueur, à une place tirée au hasard.
-    Renvoie (main initiale du siège 0, événements, objectif, durée, nombre de joueurs)."""
-    from figgie.evaluate import CANDIDATES
-    i, base = job
+def site_table(i, base, hard="hard_simule"):
+    """La i-ième table : sa graine et ses joueurs, des Hard simulés (`hard`) et un autre joueur à une place tirée au
+    hasard. Phase 5s : changer de Hard garde les mêmes tailles de table et le même voisin, à la même place."""
     seed = base * 1_000_000 + i
     rng = random.Random(seed)
     n = rng.choice((4, 5))
-    names = ["hard_simule"] * (n - 1) + [rng.choice(SITE_SEATMATES)]
-    rng.shuffle(names)
+    names = [hard] * (n - 1) + [rng.choice(SITE_SEATMATES)]
+    rng.shuffle(names)  # la permutation ne dépend pas des noms : le voisin reste à sa place quel que soit `hard`
+    return seed, names
+
+
+def _play_site(job):
+    """Une manche avec la règle du site, à la table site_table(i, base, hard).
+    Renvoie (main initiale du siège 0, événements, objectif, durée, nombre de joueurs)."""
+    from figgie.evaluate import CANDIDATES
+    seed, names = site_table(*job)
     result = play_round([CANDIDATES[x] for x in names], seed=seed, single_quote=True)
-    return result.log["hands"][0], result.events, result.log["goal"], result.log["duration"], n
+    return result.log["hands"][0], result.events, result.log["goal"], result.log["duration"], len(names)
 
 
-def site_rounds(n, base):
+def site_rounds(n, base, hard="hard_simule"):
     with Pool() as pool:
-        return pool.map(_play_site, [(i, base) for i in range(n)], chunksize=10)
+        return pool.map(_play_site, [(i, base, hard) for i in range(n)], chunksize=10)
 
 
 def site_posterior(model, temper, hand0, events, t, duration, n, weights=None):
@@ -153,7 +162,7 @@ def score_site(model, rounds, temper):
 
 
 def learn_site(args):
-    train, valid = site_rounds(args.train, SITE_TRAIN_SEED), site_rounds(args.valid, SITE_VALID_SEED)
+    train, valid = site_rounds(args.train, SITE_TRAIN_SEED, args.hard), site_rounds(args.valid, SITE_VALID_SEED, args.hard)
     model = TimedSignalModel.fit_rounds([(ev, goal, d, n) for _h, ev, goal, d, n in train])
     results = {temper: score_site(model, valid, temper) for temper in SITE_TEMPERS}
     print("| atténuation | " + " | ".join(f"{t} s" for t in CHECKPOINTS) + " |")
@@ -178,6 +187,7 @@ def main():
     parser.add_argument("--out")
     parser.add_argument("--report", help="fichier JSON où écrire les mesures de validation")
     parser.add_argument("--site", action="store_true", help="phase 5d : apprendre sur le marché du site")
+    parser.add_argument("--hard", default="hard_simule", help="phase 5s : le Hard simulé des tables du site")
     args = parser.parse_args()
     if args.site:
         return learn_site(args)

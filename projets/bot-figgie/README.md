@@ -39,6 +39,7 @@ Le projet avance par phases. Chacune a sa propre doc, en français et en anglais
 | 5p. Ce que le bot croit des autres | La carte qui départage une égalité, ce que le bot croit des mains des rivaux et de la couleur objectif, les retraits des bots du site, et une lecture de fin de manche arrêtée faute de mieux faire sur les vraies manches | [FR](docs/phase5p.fr.md) · [EN](docs/phase5p.en.md) | Terminée (diagnostics, aucun bot changé) |
 | 5q. Un Hard simulé dont les offres désignent l'objectif | Le consensus des bots Hard mesuré sur les vraies manches et ajouté au réglage du Hard simulé, et ce que change une lecture plus forte | [FR](docs/phase5q.fr.md) · [EN](docs/phase5q.en.md) | Terminée (aucun Hard retenu) |
 | 5r. Un Hard simulé avec un indice privé | Ce à quoi réagissent les bots du site, un Hard v3 qui reçoit un indice sur l'objectif de plus en plus sûr, son réglage, et le tournoi réduit avec lui à la table mixte | [FR](docs/phase5r.fr.md) · [EN](docs/phase5r.en.md) | Terminée (Hard v3 remplaçant de la table mixte) |
+| 5s. Réapprendre la lecture du site avec le Hard v3 | D'où viennent les gains contre le Hard v3, le modèle de signaux réappris sur ses tables, un critère fixé sur les vraies manches, et les tournois réduit et complet | [FR](docs/phase5s.fr.md) · [EN](docs/phase5s.en.md) | Terminée (v4c_achat_v3 promu) |
 | 6. Site réel | Seulement avec l'accord écrit de Jane Street, sinon outil d'entraînement et d'analyse | | À venir |
 
 Le site figgie.com ne publie pas de conditions d'utilisation et ne dit rien des bots. Je n'automatiserai aucune partie classée sans un accord écrit de Jane Street.
@@ -87,6 +88,8 @@ En phase 5q, j'ajoute ce consensus au réglage du Hard simulé. La recherche ne 
 
 En phase 5r, je regarde à quoi réagissent les bots Hard du site : presque à rien de public. Pourtant, chacun trouve l'objectif de mieux en mieux au fil de la manche, du hasard à 60 s jusqu'à 80 % à 180 s. Le Hard v3 modélise cette information telle qu'on la voit : le moteur lui donne l'objectif, avec un poids qui monte avec le temps. Réglé sur les vraies manches, il est deux fois plus proche du site que le Hard recalé (écart 23,5 contre 46,7, consensus compris). La v4c « achat » passe toujours la règle d'entrée avec lui à la table mixte, et il en devient le remplaçant. Aucun bot de jeu n'est changé.
 
+En phase 5s, je réapprends le modèle de signaux de la lecture du site sur des tables où joue le Hard v3. Sur les 60 vraies manches, qui ne servent jamais à apprendre, la nouvelle lecture trouve l'objectif à la cloche dans 98 % des manches, contre 85 %. La v4c « achat » avec cette lecture passe la règle d'entrée au tournoi réduit et au tournoi complet, à 4 et à 5 joueurs, et gagne 10,33 $ et 10,96 $ par manche de plus que la v4c « achat » à la même table. Elle devient le bot de référence. Elle gagne en revanche 4 à 8 $ de moins face aux anciens Hard simulés. Ces gains sont mesurés contre des bots simulés.
+
 Les tableaux complets sont dans les docs de chaque phase.
 
 ## Ce que j'en retiens
@@ -125,11 +128,11 @@ Python 3.14, sans aucune dépendance externe.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 148 tests, environ 15 secondes
+python3 -m unittest                      # 149 tests, environ 15 secondes
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5r-figgie`) pour retrouver le code exact.
+Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 (`python3 -m figgie.tournoi`) environ 1 h 15 sur 10 cœurs. Chaque phase a son étiquette git (`phase0-figgie` à `phase5s-figgie`) pour retrouver le code exact.
 
 ## Stack
 
@@ -138,4 +141,4 @@ Un candidat contre tout le zoo prend quelques minutes, le tournoi de la phase 4 
 
 ## Statut
 
-En cours : phases 0 à 5r terminées. Prochaine étape à choisir : réapprendre le modèle de signaux de la lecture du site sur des tables avec le Hard v3. La phase 6 (site réel) attend un accord écrit de Jane Street.
+En cours : phases 0 à 5s terminées. Prochaine étape à choisir : réapprendre les réglages de la v4c avec la nouvelle lecture, ou corriger le Hard v3, qui paie trop cher les cartes hors objectif. La phase 6 (site réel) attend un accord écrit de Jane Street.

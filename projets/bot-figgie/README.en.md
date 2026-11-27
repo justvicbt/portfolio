@@ -39,6 +39,7 @@ The project moves in phases. Each one has its own doc, in French and English, an
 | 5p. What the bot believes about the others | The card that breaks a tie, what the bot believes about the rivals' hands and the goal suit, the site bots' cancels, and a late-round reading stopped because it did no better on the real rounds | [FR](docs/phase5p.fr.md) · [EN](docs/phase5p.en.md) | Done (diagnostics, no bot changed) |
 | 5q. A simulated Hard bot whose bids point to the goal | The Hard bots' consensus measured on the real rounds and added to the simulated Hard bot's tuning, and what a stronger reading changes | [FR](docs/phase5q.fr.md) · [EN](docs/phase5q.en.md) | Done (no Hard bot kept) |
 | 5r. A simulated Hard bot with a private hint | What the site's bots react to, a Hard v3 that receives a hint about the goal that grows surer, its tuning, and the reduced tournament with it at the mixed table | [FR](docs/phase5r.fr.md) · [EN](docs/phase5r.en.md) | Done (Hard v3 is the mixed table's filler) |
+| 5s. Learning the site reading again with the Hard v3 | Where the gains against the Hard v3 come from, the signal model learned again on its tables, a criterion set on the real rounds, and the reduced and full tournaments | [FR](docs/phase5s.fr.md) · [EN](docs/phase5s.en.md) | Done (v4c_achat_v3 promoted) |
 | 6. Real site | Only with Jane Street's written consent, otherwise a training and analysis tool | | Upcoming |
 
 figgie.com publishes no terms of use and says nothing about bots. I will not automate any ranked game without written consent from Jane Street.
@@ -87,6 +88,8 @@ In phase 5q, I add this consensus to the simulated Hard bot's tuning. The search
 
 In phase 5r, I look at what the site's Hard bots react to: almost nothing public. Yet each of them finds the goal better and better as the round goes on, from chance at 60 s up to 80% at 180 s. The Hard v3 models this information as it appears: the engine gives it the goal, with a weight that grows with time. Tuned on the real rounds, it is twice as close to the site as the recalibrated Hard bot (gap 23.5 against 46.7, consensus included). The "buying" v4c still passes the entry rule with it at the mixed table, and it becomes that table's filler. No playing bot is changed.
 
+In phase 5s, I learn the site reading's signal model again on tables where the Hard v3 plays. On the 60 real rounds, which are never used for learning, the new reading finds the goal at the bell in 98% of the rounds, against 85%. The "buying" v4c with this reading passes the entry rule in the reduced and the full tournament, with 4 and with 5 players, and makes $10.33 and $10.96 per round more than the "buying" v4c at the same table. It becomes the reference bot. On the other hand, it makes $4 to $8 less against the old simulated Hard bots. These gains are measured against simulated bots.
+
 Full tables are in each phase's doc.
 
 ## What I took away
@@ -125,11 +128,11 @@ Python 3.14, no external dependencies.
 
 ```bash
 cd projets/bot-figgie
-python3 -m unittest                      # 148 tests, about 15 seconds
+python3 -m unittest                      # 149 tests, about 15 seconds
 python3 -m figgie.evaluate --candidate marginal --deals 1000 --seed 1
 ```
 
-One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5r-figgie`) to get the exact code back.
+One candidate against the whole zoo takes a few minutes, the phase 4 tournament (`python3 -m figgie.tournoi`) about 1 h 15 on 10 cores. Each phase has a git tag (`phase0-figgie` to `phase5s-figgie`) to get the exact code back.
 
 ## Stack
 
@@ -138,4 +141,4 @@ One candidate against the whole zoo takes a few minutes, the phase 4 tournament 
 
 ## Status
 
-In progress: phases 0 to 5r done. Next step to be chosen: learn the site reading's signal model again on tables with the Hard v3. Phase 6 (real site) waits for written consent from Jane Street.
+In progress: phases 0 to 5s done. Next step to be chosen: learn the v4c's settings again with the new reading, or fix the Hard v3, which overpays for non-goal cards. Phase 6 (real site) waits for written consent from Jane Street.

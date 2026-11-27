@@ -1,0 +1,43 @@
+500 parties de 10 manches, v4c « achat » au siège 0, moyenne par manche
+                                           Hard recalés        Hard v3
+donne                                            -26.41         -26.41
+gain total                                        18.07          35.99
+prime de majorité                                 45.91          57.14
+échanges                                          -1.44           5.26
+autre achat : cartes                               1.26           1.46
+autre achat : gain                                -9.87          -9.32
+autre achat : gain minute 1                       -3.59          -3.41
+autre achat : gain minute 2                       -3.29          -3.76
+autre achat : gain minute 3                       -1.70          -1.63
+autre achat : gain minute 4                       -1.30          -0.52
+autre achat : somme des prix                      9.87           9.32
+autre vente : cartes                               3.60           3.58
+autre vente : gain                                13.30          16.09
+autre vente : gain minute 1                        1.75           2.89
+autre vente : gain minute 2                        1.39           1.91
+autre vente : gain minute 3                        4.32           3.18
+autre vente : gain minute 4                        5.84           8.11
+autre vente : somme des prix                     13.30          16.09
+objectif : cartes des 3 Hard entre eux échangées           3.29           3.71
+objectif : cartes du bot, donne                    2.36           2.36
+objectif : cartes du bot, fin                      2.48           2.98
+objectif : meilleur rival, donne                   3.47           3.47
+objectif : meilleur rival, fin                     4.84           4.65
+objectif achat : cartes                            0.90           1.15
+objectif achat : gain                             -1.96          -0.28
+objectif achat : gain minute 1                     0.26           0.91
+objectif achat : gain minute 2                    -0.86           0.09
+objectif achat : gain minute 3                    -0.67          -0.39
+objectif achat : gain minute 4                    -0.70          -0.89
+objectif achat : somme des prix                  10.99          11.77
+objectif vente : cartes                            0.78           0.53
+objectif vente : gain                             -2.90          -1.23
+objectif vente : gain minute 1                    -0.99          -0.84
+objectif vente : gain minute 2                    -0.20          -0.39
+objectif vente : gain minute 3                    -0.71          -0.08
+objectif vente : gain minute 4                    -0.99           0.08
+objectif vente : somme des prix                   4.88           4.04
+seul en tête                                       0.36           0.48
+à égalité en tête                                  0.14           0.11
+hard_simule_v2 : gain total 18.07 ± 1.73
+hard_simule_v3 : gain total 35.99 ± 1.78

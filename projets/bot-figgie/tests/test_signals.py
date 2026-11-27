@@ -139,3 +139,18 @@ class TestOpponentModel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class TestSiteTables(unittest.TestCase):
+    """Phase 5s : les tables où s'apprend la lecture du site peuvent prendre un autre Hard, sans rien changer d'autre."""
+
+    def test_the_chosen_hard_replaces_the_old_one_and_nothing_else(self):
+        from figgie.learn import SITE_TRAIN_SEED, site_table
+        for i in range(30):
+            seed, old = site_table(i, SITE_TRAIN_SEED)
+            same_seed, new = site_table(i, SITE_TRAIN_SEED, "hard_simule_v3")
+            self.assertEqual(same_seed, seed)
+            self.assertEqual(new.count("hard_simule_v3"), len(new) - 1)
+            # mêmes tailles, même voisin à la même place (même s'il est lui-même un ancien Hard)
+            self.assertEqual(["hard_simule" if x == "hard_simule_v3" else x for x in new], old)

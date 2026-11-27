@@ -310,6 +310,13 @@ class BuyTimedV4cBot(AdaptiveV4cBot):
     majority_time = (240.0, 0.5)
     majority_on_sell = False
 
+
+class BuyTimedV4cHardV3Bot(BuyTimedV4cBot):
+    """Phase 5s. La v4c « achat », avec la lecture du site réapprise sur des tables où jouent des Hard v3
+    (figgie.learn --site --hard hard_simule_v3). Ses réglages restent ceux de la v4c."""
+    name = "v4c_achat_v3"
+    signals_file = "signaux_site_v3.json"
+
 # --- Apprentissage hors ligne -------------------------------------------------------------------
 
 TRAIN_SEED, VALID_SEED = 9, 10

@@ -1,0 +1,5 @@
+Vraies manches : P moyenne de la vraie couleur / part en tête / perte log
+  modèle de la phase 5d (Hard 5c)  60 s : 0.31 / 43% / 1.281   120 s : 0.41 / 53% / 1.031   180 s : 0.63 / 77% / 0.610   225 s : 0.78 / 85% / 0.406   239 s : 0.81 / 85% / 0.360
+  modèle appris avec le Hard v3    60 s : 0.31 / 43% / 1.295   120 s : 0.52 / 62% / 0.999   180 s : 0.90 / 95% / 0.188   225 s : 0.95 / 95% / 0.146   239 s : 0.98 / 98% / 0.098
+
+Critère (perte log plus basse et part en tête au moins égale à (180, 225, 239) s) : rempli
